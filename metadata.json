@@ -1,0 +1,8 @@
+{
+  "name": "Gladiatorum: Arena Aeterna",
+  "description": "RPG clássico de gladiadores na Roma Antiga inspirado em Gladiatus, com progressão idle, expedições, arena simulada, masmorras, mercado e sistema visual histórico unificado.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,684 @@
+{
+  "entities": {
+    "PlayerPublicProfile": {
+      "title": "PlayerPublicProfile",
+      "description": "Publicly visible gladiator profile used for rankings, guild rosters, and public inspection.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Authenticated Firebase UID of the player.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Gladiator display name.",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "title": {
+          "type": "string",
+          "description": "Roman arena title.",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "level": {
+          "type": "integer",
+          "description": "Current gladiator level."
+        },
+        "honor": {
+          "type": "integer",
+          "description": "Total Honor score validated by combat outcomes."
+        },
+        "fame": {
+          "type": "integer",
+          "description": "Provincial Fame score."
+        },
+        "wins": {
+          "type": "integer",
+          "description": "Total combat victories."
+        },
+        "losses": {
+          "type": "integer",
+          "description": "Total combat defeats."
+        },
+        "featsCount": {
+          "type": "integer",
+          "description": "Number of unlocked feats."
+        },
+        "goldLooted": {
+          "type": "integer",
+          "description": "Cumulative gold looted in combat and patrols."
+        },
+        "guildId": {
+          "type": "string",
+          "description": "Current guild ID or empty string if unaligned.",
+          "maxLength": 128
+        },
+        "guildName": {
+          "type": "string",
+          "description": "Current guild name or empty string.",
+          "maxLength": 32
+        },
+        "guildTag": {
+          "type": "string",
+          "description": "Current guild tag or empty string.",
+          "maxLength": 4
+        },
+        "damageRange": {
+          "type": "string",
+          "description": "Formatted damage range (e.g., 9-15).",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "armor": {
+          "type": "integer",
+          "description": "Total armor value."
+        },
+        "competitiveStatus": {
+          "type": "string",
+          "description": "Origin verification status of the profile.",
+          "enum": ["verified_online", "migrated_capped"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "uid",
+        "name",
+        "title",
+        "level",
+        "honor",
+        "fame",
+        "wins",
+        "losses",
+        "featsCount",
+        "goldLooted",
+        "guildId",
+        "guildName",
+        "guildTag",
+        "damageRange",
+        "armor",
+        "competitiveStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PlayerPrivateAccount": {
+      "title": "PlayerPrivateAccount",
+      "description": "Private player account containing PII (email) and authoritative economy/progression state.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "gold": {
+          "type": "integer",
+          "description": "Current wallet gold balance."
+        },
+        "xp": {
+          "type": "integer",
+          "description": "Current experience points."
+        },
+        "currentHp": {
+          "type": "integer",
+          "description": "Current health points."
+        },
+        "energy": {
+          "type": "integer",
+          "description": "Current expedition/arena energy."
+        },
+        "maxEnergy": {
+          "type": "integer",
+          "description": "Maximum energy cap."
+        },
+        "str": {
+          "type": "integer",
+          "description": "Base Strength attribute."
+        },
+        "ski": {
+          "type": "integer",
+          "description": "Base Skill attribute."
+        },
+        "agi": {
+          "type": "integer",
+          "description": "Base Agility attribute."
+        },
+        "con": {
+          "type": "integer",
+          "description": "Base Constitution attribute."
+        },
+        "cha": {
+          "type": "integer",
+          "description": "Base Charisma attribute."
+        },
+        "intStat": {
+          "type": "integer",
+          "description": "Base Intelligence attribute."
+        },
+        "idleActive": {
+          "type": "boolean",
+          "description": "Whether automatic patrol is active."
+        },
+        "idleRegionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "idleEnemyIndex": {
+          "type": "integer"
+        },
+        "idleFocusMode": {
+          "type": "string",
+          "enum": ["gold", "xp", "equipment"]
+        },
+        "idleStartedAtMs": {
+          "type": "integer"
+        },
+        "lastServerSyncMs": {
+          "type": "integer"
+        },
+        "migratedFromLocal": {
+          "type": "boolean"
+        },
+        "lastOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "gold",
+        "xp",
+        "currentHp",
+        "energy",
+        "maxEnergy",
+        "str",
+        "ski",
+        "agi",
+        "con",
+        "cha",
+        "intStat",
+        "idleActive",
+        "idleRegionId",
+        "idleEnemyIndex",
+        "idleFocusMode",
+        "idleStartedAtMs",
+        "lastServerSyncMs",
+        "migratedFromLocal",
+        "lastOpId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PlayerInventoryItem": {
+      "title": "PlayerInventoryItem",
+      "description": "Individual equipment item owned by a player in their bag or equipped slot.",
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "templateId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "slot": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "equippedSlot": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "rarity": {
+          "type": "string",
+          "enum": ["common", "uncommon", "rare", "epic"]
+        },
+        "levelReq": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "itemId",
+        "ownerId",
+        "templateId",
+        "slot",
+        "equippedSlot",
+        "rarity",
+        "levelReq",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "GuildDocument": {
+      "title": "GuildDocument",
+      "description": "Shared online Roman Guild (Collegium) headquarters and aggregated ranking metrics.",
+      "type": "object",
+      "properties": {
+        "guildId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 32
+        },
+        "normalizedName": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 32
+        },
+        "tag": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 4
+        },
+        "normalizedTag": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 4
+        },
+        "emblemId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "recruitmentStatus": {
+          "type": "string",
+          "enum": ["open", "application", "closed"]
+        },
+        "minLevelReq": {
+          "type": "integer"
+        },
+        "minHonorReq": {
+          "type": "integer"
+        },
+        "leaderId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "leaderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "memberCount": {
+          "type": "integer"
+        },
+        "maxCapacity": {
+          "type": "integer"
+        },
+        "totalHonor": {
+          "type": "integer"
+        },
+        "averageHonor": {
+          "type": "integer"
+        },
+        "treasuryGold": {
+          "type": "integer"
+        },
+        "forumLevel": {
+          "type": "integer"
+        },
+        "bancoLevel": {
+          "type": "integer"
+        },
+        "campoTreinoLevel": {
+          "type": "integer"
+        },
+        "balnearioLevel": {
+          "type": "integer"
+        },
+        "villaMediciLevel": {
+          "type": "integer"
+        },
+        "bibliotecaLevel": {
+          "type": "integer"
+        },
+        "armazemLevel": {
+          "type": "integer"
+        },
+        "mercadoInternoLevel": {
+          "type": "integer"
+        },
+        "activeBuffScrollId": {
+          "type": "string",
+          "maxLength": 48
+        },
+        "activeBuffExpiresAtMs": {
+          "type": "integer"
+        },
+        "announcementText": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "announcementAuthor": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "guildId",
+        "name",
+        "normalizedName",
+        "tag",
+        "normalizedTag",
+        "emblemId",
+        "description",
+        "recruitmentStatus",
+        "minLevelReq",
+        "minHonorReq",
+        "leaderId",
+        "leaderName",
+        "memberCount",
+        "maxCapacity",
+        "totalHonor",
+        "averageHonor",
+        "treasuryGold",
+        "forumLevel",
+        "bancoLevel",
+        "campoTreinoLevel",
+        "balnearioLevel",
+        "villaMediciLevel",
+        "bibliotecaLevel",
+        "armazemLevel",
+        "mercadoInternoLevel",
+        "activeBuffScrollId",
+        "activeBuffExpiresAtMs",
+        "announcementText",
+        "announcementAuthor",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "GuildMemberDoc": {
+      "title": "GuildMemberDoc",
+      "description": "Membership record in a guild subcollection with role and contribution tracking.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "guildId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "role": {
+          "type": "string",
+          "enum": ["leader", "admin", "member"]
+        },
+        "level": {
+          "type": "integer"
+        },
+        "honor": {
+          "type": "integer"
+        },
+        "fame": {
+          "type": "integer"
+        },
+        "wins": {
+          "type": "integer"
+        },
+        "goldLooted": {
+          "type": "integer"
+        },
+        "featsCount": {
+          "type": "integer"
+        },
+        "goldContributed": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "guildId",
+        "name",
+        "title",
+        "role",
+        "level",
+        "honor",
+        "fame",
+        "wins",
+        "goldLooted",
+        "featsCount",
+        "goldContributed",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "GuildApplicationDoc": {
+      "title": "GuildApplicationDoc",
+      "description": "Application submitted by a gladiator to join a guild.",
+      "type": "object",
+      "properties": {
+        "applicantId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "guildId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "applicantName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "level": {
+          "type": "integer"
+        },
+        "honor": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "applicantId",
+        "guildId",
+        "applicantName",
+        "level",
+        "honor",
+        "message",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "GuildLedgerDoc": {
+      "title": "GuildLedgerDoc",
+      "description": "Immutable bank ledger and audit log entry for a guild.",
+      "type": "object",
+      "properties": {
+        "txId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "guildId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "actorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "actorName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "entryType": {
+          "type": "string",
+          "enum": ["donation", "upgrade", "library_buff", "audit"]
+        },
+        "amount": {
+          "type": "integer"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "txId",
+        "guildId",
+        "actorId",
+        "actorName",
+        "entryType",
+        "amount",
+        "description",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/players_public/{playerId}": {
+      "schema": { "$ref": "#/entities/PlayerPublicProfile" },
+      "description": "Public gladiator profiles indexed for rankings and guild rosters."
+    },
+    "/players_private/{playerId}": {
+      "schema": { "$ref": "#/entities/PlayerPrivateAccount" },
+      "description": "Private player account containing PII (email) and authoritative economy state."
+    },
+    "/players_private/{playerId}/inventory_items/{itemId}": {
+      "schema": { "$ref": "#/entities/PlayerInventoryItem" },
+      "description": "Subcollection of equipment items owned by a player."
+    },
+    "/guilds/{guildId}": {
+      "schema": { "$ref": "#/entities/GuildDocument" },
+      "description": "Shared online guilds (Collegia) with building levels, treasury, and aggregated honor."
+    },
+    "/guilds/{guildId}/members/{memberUid}": {
+      "schema": { "$ref": "#/entities/GuildMemberDoc" },
+      "description": "Subcollection of current guild members and their roles."
+    },
+    "/guilds/{guildId}/applications/{applicantUid}": {
+      "schema": { "$ref": "#/entities/GuildApplicationDoc" },
+      "description": "Subcollection of recruitment applications to a guild."
+    },
+    "/guilds/{guildId}/ledger/{txId}": {
+      "schema": { "$ref": "#/entities/GuildLedgerDoc" },
+      "description": "Immutable bank transaction and audit log entries for a guild."
+    }
+  }
+}

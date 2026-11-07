@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+:root {
+  /* Core Roman Historical Palette */
+  --color-bg-deep: #17120F;
+  --color-panel-dark: #2B2119;
+  --color-panel-wood: #36281E;
+  --color-panel-leather: #241A14;
+  --color-parchment: #D6C29A;
+  --color-parchment-dark: #C2AB7E;
+  --color-parchment-light: #E3D3B2;
+  --color-bronze: #947044;
+  --color-bronze-dark: #5E4527;
+  --color-iron: #4A443F;
+  --color-gold: #B79552;
+  --color-gold-bright: #D4B26A;
+  --color-crimson: #792B28;
+  --color-crimson-dark: #541B19;
+  --color-text-light: #EFE2C4;
+  --color-text-muted: #B8A686;
+  --color-text-parchment: #30251A;
+  --color-text-parchment-muted: #5C4935;
+
+  /* Spacing Scale: 4, 8, 12, 16, 24, 32 px */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Typography */
+  --font-display: 'Cinzel', Georgia, serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg-deep);
+  color: var(--color-text-light);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.font-roman {
+  font-family: var(--font-display);
+  letter-spacing: 0.03em;
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle discrete surface backgrounds separated from text layer */
+.surface-stone {
+  background-color: #2B2119;
+  background-image: 
+    radial-gradient(circle at 20% 20%, rgba(148, 112, 68, 0.07) 0%, transparent 55%),
+    radial-gradient(circle at 80% 80%, rgba(0, 0, 0, 0.35) 0%, transparent 60%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.012) 0px, rgba(255, 255, 255, 0.012) 2px, transparent 2px, transparent 6px);
+}
+
+.surface-wood {
+  background-color: #33251B;
+  background-image: 
+    linear-gradient(180deg, rgba(23, 18, 15, 0.35) 0%, rgba(51, 37, 27, 0.1) 50%, rgba(23, 18, 15, 0.45) 100%),
+    repeating-linear-gradient(90deg, rgba(148, 112, 68, 0.03) 0px, rgba(148, 112, 68, 0.03) 3px, rgba(0, 0, 0, 0.06) 3px, rgba(0, 0, 0, 0.06) 7px);
+}
+
+.surface-parchment {
+  background-color: #D6C29A;
+  color: #30251A;
+  background-image: 
+    radial-gradient(ellipse at center, rgba(227, 211, 178, 0.45) 0%, rgba(194, 171, 126, 0.35) 75%, rgba(148, 112, 68, 0.28) 100%),
+    repeating-linear-gradient(0deg, rgba(48, 37, 26, 0.018) 0px, rgba(48, 37, 26, 0.018) 1px, transparent 1px, transparent 4px);
+}
+
+.surface-leather {
+  background-color: #211711;
+  background-image: 
+    radial-gradient(circle at 50% 35%, rgba(148, 112, 68, 0.08) 0%, rgba(15, 10, 7, 0.5) 100%);
+}
+
+/* Classical Beveled Bronze & Iron Borders */
+.frame-bronze {
+  border: 2px solid #947044;
+  box-shadow: 
+    inset 0 1px 0 rgba(239, 226, 196, 0.22),
+    inset 0 -1px 0 rgba(23, 18, 15, 0.8),
+    0 2px 6px rgba(0, 0, 0, 0.65);
+}
+
+.frame-iron {
+  border: 2px solid #5A524C;
+  box-shadow: 
+    inset 0 1px 0 rgba(239, 226, 196, 0.14),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.85),
+    0 2px 5px rgba(0, 0, 0, 0.6);
+}
+
+.frame-parchment {
+  border: 2px solid #8A663B;
+  box-shadow: 
+    inset 0 0 10px rgba(94, 69, 39, 0.25),
+    0 2px 4px rgba(0, 0, 0, 0.45);
+}
+
+/* Scrollbar styling for desktop preview */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #17120F;
+}
+::-webkit-scrollbar-thumb {
+  background: #5E4527;
+  border: 1px solid #947044;
+}

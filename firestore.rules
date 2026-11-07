@@ -1,0 +1,585 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 4.1: Global Safety Net (Default-Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Hardened Global Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation Blueprint 1: PlayerPublicProfile
+    function isValidPlayerPublic(data) {
+      return data.keys().hasAll([
+          'uid', 'name', 'title', 'level', 'honor', 'fame', 'wins', 'losses',
+          'featsCount', 'goldLooted', 'guildId', 'guildName', 'guildTag',
+          'damageRange', 'armor', 'competitiveStatus', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'name', 'title', 'level', 'honor', 'fame', 'wins', 'losses',
+          'featsCount', 'goldLooted', 'guildId', 'guildName', 'guildTag',
+          'damageRange', 'armor', 'competitiveStatus', 'createdAt', 'updatedAt'
+        ])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid == request.auth.uid
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 32
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 48
+        && data.level is int && data.level >= 1 && data.level <= 999
+        && data.honor is int && data.honor >= 0 && data.honor <= 10000000
+        && data.fame is int && data.fame >= 0 && data.fame <= 10000000
+        && data.wins is int && data.wins >= 0 && data.wins <= 1000000
+        && data.losses is int && data.losses >= 0 && data.losses <= 1000000
+        && data.featsCount is int && data.featsCount >= 0 && data.featsCount <= 50
+        && data.goldLooted is int && data.goldLooted >= 0 && data.goldLooted <= 100000000
+        && data.guildId is string && data.guildId.size() <= 128
+        && data.guildName is string && data.guildName.size() <= 32
+        && data.guildTag is string && data.guildTag.size() <= 4
+        && data.damageRange is string && data.damageRange.size() >= 1 && data.damageRange.size() <= 20
+        && data.armor is int && data.armor >= 0 && data.armor <= 100000
+        && data.competitiveStatus is string && (data.competitiveStatus == 'verified_online' || data.competitiveStatus == 'migrated_capped')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 2: PlayerPrivateAccount (Contains PII email)
+    function isValidPlayerPrivate(data) {
+      return data.keys().hasAll([
+          'uid', 'email', 'gold', 'xp', 'currentHp', 'energy', 'maxEnergy',
+          'str', 'ski', 'agi', 'con', 'cha', 'intStat',
+          'idleActive', 'idleRegionId', 'idleEnemyIndex', 'idleFocusMode',
+          'idleStartedAtMs', 'lastServerSyncMs', 'migratedFromLocal',
+          'lastOpId', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'email', 'gold', 'xp', 'currentHp', 'energy', 'maxEnergy',
+          'str', 'ski', 'agi', 'con', 'cha', 'intStat',
+          'idleActive', 'idleRegionId', 'idleEnemyIndex', 'idleFocusMode',
+          'idleStartedAtMs', 'lastServerSyncMs', 'migratedFromLocal',
+          'lastOpId', 'createdAt', 'updatedAt'
+        ])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid == request.auth.uid
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
+        && data.gold is int && data.gold >= 0 && data.gold <= 100000000
+        && data.xp is int && data.xp >= 0 && data.xp <= 100000000
+        && data.currentHp is int && data.currentHp >= 1 && data.currentHp <= 100000
+        && data.energy is int && data.energy >= 0 && data.energy <= 50
+        && data.maxEnergy is int && data.maxEnergy >= 1 && data.maxEnergy <= 50
+        && data.str is int && data.str >= 1 && data.str <= 999
+        && data.ski is int && data.ski >= 1 && data.ski <= 999
+        && data.agi is int && data.agi >= 1 && data.agi <= 999
+        && data.con is int && data.con >= 1 && data.con <= 999
+        && data.cha is int && data.cha >= 1 && data.cha <= 999
+        && data.intStat is int && data.intStat >= 1 && data.intStat <= 999
+        && data.idleActive is bool
+        && data.idleRegionId is string && data.idleRegionId.size() >= 1 && data.idleRegionId.size() <= 64
+        && data.idleEnemyIndex is int && data.idleEnemyIndex >= 0 && data.idleEnemyIndex <= 10
+        && data.idleFocusMode is string && (data.idleFocusMode == 'gold' || data.idleFocusMode == 'xp' || data.idleFocusMode == 'equipment')
+        && data.idleStartedAtMs is int && data.idleStartedAtMs >= 0
+        && data.lastServerSyncMs is int && data.lastServerSyncMs >= 0
+        && data.migratedFromLocal is bool
+        && data.lastOpId is string && data.lastOpId.size() >= 1 && data.lastOpId.size() <= 128
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 3: PlayerInventoryItem
+    function isValidInventoryItem(data) {
+      return data.keys().hasAll([
+          'itemId', 'ownerId', 'templateId', 'slot', 'equippedSlot',
+          'rarity', 'levelReq', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'itemId', 'ownerId', 'templateId', 'slot', 'equippedSlot',
+          'rarity', 'levelReq', 'createdAt', 'updatedAt'
+        ])
+        && data.itemId is string && data.itemId.size() >= 1 && data.itemId.size() <= 128 && data.itemId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 && data.ownerId == request.auth.uid
+        && data.templateId is string && data.templateId.size() >= 1 && data.templateId.size() <= 64
+        && data.slot is string && data.slot.size() >= 1 && data.slot.size() <= 32
+        && data.equippedSlot is string && data.equippedSlot.size() <= 32
+        && data.rarity is string && (data.rarity == 'common' || data.rarity == 'uncommon' || data.rarity == 'rare' || data.rarity == 'epic' || data.rarity == 'legendary' || data.rarity == 'mythic' || data.rarity == 'imperial' || data.rarity == 'divine')
+        && data.levelReq is int && data.levelReq >= 1 && data.levelReq <= 999
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 4: GuildDocument
+    function isValidGuild(data) {
+      return data.keys().hasAll([
+          'guildId', 'name', 'normalizedName', 'tag', 'normalizedTag', 'emblemId',
+          'description', 'recruitmentStatus', 'minLevelReq', 'minHonorReq',
+          'leaderId', 'leaderName', 'memberCount', 'maxCapacity', 'totalHonor',
+          'averageHonor', 'treasuryGold', 'forumLevel', 'bancoLevel',
+          'campoTreinoLevel', 'balnearioLevel', 'villaMediciLevel',
+          'bibliotecaLevel', 'armazemLevel', 'mercadoInternoLevel',
+          'activeBuffScrollId', 'activeBuffExpiresAtMs', 'announcementText',
+          'announcementAuthor', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'guildId', 'name', 'normalizedName', 'tag', 'normalizedTag', 'emblemId',
+          'description', 'recruitmentStatus', 'minLevelReq', 'minHonorReq',
+          'leaderId', 'leaderName', 'memberCount', 'maxCapacity', 'totalHonor',
+          'averageHonor', 'treasuryGold', 'forumLevel', 'bancoLevel',
+          'campoTreinoLevel', 'balnearioLevel', 'villaMediciLevel',
+          'bibliotecaLevel', 'armazemLevel', 'mercadoInternoLevel',
+          'activeBuffScrollId', 'activeBuffExpiresAtMs', 'announcementText',
+          'announcementAuthor', 'createdAt', 'updatedAt'
+        ])
+        && data.guildId is string && data.guildId.size() >= 1 && data.guildId.size() <= 128 && data.guildId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.name is string && data.name.size() >= 3 && data.name.size() <= 32
+        && data.normalizedName is string && data.normalizedName.size() >= 3 && data.normalizedName.size() <= 32
+        && data.tag is string && data.tag.size() >= 2 && data.tag.size() <= 4
+        && data.normalizedTag is string && data.normalizedTag.size() >= 2 && data.normalizedTag.size() <= 4
+        && data.emblemId is string && data.emblemId.size() >= 1 && data.emblemId.size() <= 32
+        && data.description is string && data.description.size() >= 1 && data.description.size() <= 240
+        && data.recruitmentStatus is string && (data.recruitmentStatus == 'open' || data.recruitmentStatus == 'application' || data.recruitmentStatus == 'closed')
+        && data.minLevelReq is int && data.minLevelReq >= 1 && data.minLevelReq <= 999
+        && data.minHonorReq is int && data.minHonorReq >= 0 && data.minHonorReq <= 1000000
+        && data.leaderId is string && data.leaderId.size() >= 1 && data.leaderId.size() <= 128 && data.leaderId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.leaderName is string && data.leaderName.size() >= 1 && data.leaderName.size() <= 32
+        && data.memberCount is int && data.memberCount >= 1 && data.memberCount <= 50
+        && data.maxCapacity is int && data.maxCapacity >= 5 && data.maxCapacity <= 50
+        && data.totalHonor is int && data.totalHonor >= 0 && data.totalHonor <= 100000000
+        && data.averageHonor is int && data.averageHonor >= 0 && data.averageHonor <= 100000000
+        && data.treasuryGold is int && data.treasuryGold >= 0 && data.treasuryGold <= 100000000
+        && data.forumLevel is int && data.forumLevel >= 1 && data.forumLevel <= 5
+        && data.bancoLevel is int && data.bancoLevel >= 1 && data.bancoLevel <= 5
+        && data.campoTreinoLevel is int && data.campoTreinoLevel >= 1 && data.campoTreinoLevel <= 5
+        && data.balnearioLevel is int && data.balnearioLevel >= 1 && data.balnearioLevel <= 5
+        && data.villaMediciLevel is int && data.villaMediciLevel >= 1 && data.villaMediciLevel <= 5
+        && data.bibliotecaLevel is int && data.bibliotecaLevel >= 1 && data.bibliotecaLevel <= 5
+        && data.armazemLevel is int && data.armazemLevel >= 1 && data.armazemLevel <= 5
+        && data.mercadoInternoLevel is int && data.mercadoInternoLevel >= 1 && data.mercadoInternoLevel <= 5
+        && data.activeBuffScrollId is string && data.activeBuffScrollId.size() <= 48
+        && data.activeBuffExpiresAtMs is int && data.activeBuffExpiresAtMs >= 0
+        && data.announcementText is string && data.announcementText.size() <= 240
+        && data.announcementAuthor is string && data.announcementAuthor.size() <= 32
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 5: GuildMemberDoc
+    function isValidGuildMember(data) {
+      return data.keys().hasAll([
+          'uid', 'guildId', 'name', 'title', 'role', 'level', 'honor',
+          'fame', 'wins', 'goldLooted', 'featsCount', 'goldContributed',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'guildId', 'name', 'title', 'role', 'level', 'honor',
+          'fame', 'wins', 'goldLooted', 'featsCount', 'goldContributed',
+          'createdAt', 'updatedAt'
+        ])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.guildId is string && data.guildId.size() >= 1 && data.guildId.size() <= 128 && data.guildId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 32
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 48
+        && data.role is string && (data.role == 'leader' || data.role == 'admin' || data.role == 'member')
+        && data.level is int && data.level >= 1 && data.level <= 999
+        && data.honor is int && data.honor >= 0 && data.honor <= 10000000
+        && data.fame is int && data.fame >= 0 && data.fame <= 10000000
+        && data.wins is int && data.wins >= 0 && data.wins <= 1000000
+        && data.goldLooted is int && data.goldLooted >= 0 && data.goldLooted <= 100000000
+        && data.featsCount is int && data.featsCount >= 0 && data.featsCount <= 50
+        && data.goldContributed is int && data.goldContributed >= 0 && data.goldContributed <= 100000000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 6: GuildApplicationDoc
+    function isValidGuildApplication(data) {
+      return data.keys().hasAll([
+          'applicantId', 'guildId', 'applicantName', 'level', 'honor',
+          'message', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'applicantId', 'guildId', 'applicantName', 'level', 'honor',
+          'message', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.applicantId is string && data.applicantId.size() >= 1 && data.applicantId.size() <= 128 && data.applicantId == request.auth.uid
+        && data.guildId is string && data.guildId.size() >= 1 && data.guildId.size() <= 128 && data.guildId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.applicantName is string && data.applicantName.size() >= 1 && data.applicantName.size() <= 32
+        && data.level is int && data.level >= 1 && data.level <= 999
+        && data.honor is int && data.honor >= 0 && data.honor <= 10000000
+        && data.message is string && data.message.size() >= 1 && data.message.size() <= 180
+        && data.status is string && (data.status == 'pending' || data.status == 'approved' || data.status == 'rejected')
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 7: GuildLedgerDoc
+    function isValidGuildLedger(data) {
+      return data.keys().hasAll([
+          'txId', 'guildId', 'actorId', 'actorName', 'entryType',
+          'amount', 'description', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'txId', 'guildId', 'actorId', 'actorName', 'entryType',
+          'amount', 'description', 'createdAt'
+        ])
+        && data.txId is string && data.txId.size() >= 1 && data.txId.size() <= 128 && data.txId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.guildId is string && data.guildId.size() >= 1 && data.guildId.size() <= 128 && data.guildId.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.actorId is string && data.actorId.size() >= 1 && data.actorId.size() <= 128 && data.actorId == request.auth.uid
+        && data.actorName is string && data.actorName.size() >= 1 && data.actorName.size() <= 32
+        && data.entryType is string && (data.entryType == 'donation' || data.entryType == 'upgrade' || data.entryType == 'library_buff' || data.entryType == 'audit')
+        && data.amount is int && data.amount >= 0 && data.amount <= 10000000
+        && data.description is string && data.description.size() >= 1 && data.description.size() <= 200
+        && data.createdAt is timestamp;
+    }
+
+    // Collection 1: /players_public/{playerId}
+    match /players_public/{playerId} {
+      allow get: if isSignedIn() && isValidId(playerId);
+      allow list: if isSignedIn() && existing().honor >= 0;
+
+      allow create: if isVerifiedUser()
+        && isValidId(playerId)
+        && request.auth.uid == playerId
+        && isValidPlayerPublic(incoming())
+        && incoming().uid == playerId
+        && incoming().honor <= 180
+        && incoming().level <= 5
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(playerId)
+        && request.auth.uid == playerId
+        && isValidPlayerPublic(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Update public guild affiliation or display title
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'title', 'guildId', 'guildName', 'guildTag', 'updatedAt'])
+          ||
+          // Action 2: Sync combat & progression metrics with bounded honor delta
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'level', 'honor', 'fame', 'wins', 'losses', 'featsCount',
+              'goldLooted', 'damageRange', 'armor', 'guildId', 'guildName',
+              'guildTag', 'competitiveStatus', 'updatedAt'
+            ])
+            && incoming().honor >= existing().honor
+            && incoming().honor <= existing().honor + 500
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // Collection 2: /players_private/{playerId} (PII Isolation)
+    match /players_private/{playerId} {
+      allow get: if isSignedIn() && isValidId(playerId) && request.auth.uid == playerId;
+      allow list: if false;
+
+      allow create: if isVerifiedUser()
+        && isValidId(playerId)
+        && request.auth.uid == playerId
+        && isValidPlayerPrivate(incoming())
+        && incoming().uid == playerId
+        && incoming().gold <= 600
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(playerId)
+        && request.auth.uid == playerId
+        && isValidPlayerPrivate(incoming())
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action: Idempotent state sync requiring new operation ID and bounded gold delta
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'gold', 'xp', 'currentHp', 'energy', 'maxEnergy',
+            'str', 'ski', 'agi', 'con', 'cha', 'intStat',
+            'idleActive', 'idleRegionId', 'idleEnemyIndex', 'idleFocusMode',
+            'idleStartedAtMs', 'lastServerSyncMs', 'migratedFromLocal',
+            'lastOpId', 'updatedAt'
+          ])
+          && incoming().lastOpId != existing().lastOpId
+          && incoming().gold <= existing().gold + 2500
+        );
+
+      allow delete: if false;
+
+      // Subcollection 2a: /players_private/{playerId}/inventory_items/{itemId}
+      match /inventory_items/{itemId} {
+        allow get: if isSignedIn() && isValidId(playerId) && isValidId(itemId) && request.auth.uid == playerId;
+        allow list: if isSignedIn() && request.auth.uid == playerId && existing().ownerId == request.auth.uid;
+
+        allow create: if isVerifiedUser()
+          && isValidId(playerId)
+          && isValidId(itemId)
+          && request.auth.uid == playerId
+          && isValidInventoryItem(incoming())
+          && incoming().itemId == itemId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/players_private/$(playerId));
+
+        allow update: if isVerifiedUser()
+          && isValidId(playerId)
+          && isValidId(itemId)
+          && request.auth.uid == playerId
+          && isValidInventoryItem(incoming())
+          && incoming().itemId == existing().itemId
+          && incoming().ownerId == existing().ownerId
+          && incoming().templateId == existing().templateId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly(['equippedSlot', 'updatedAt'])
+          )
+          && exists(/databases/$(database)/documents/players_private/$(playerId));
+
+        allow delete: if isVerifiedUser()
+          && isValidId(playerId)
+          && isValidId(itemId)
+          && request.auth.uid == playerId
+          && existing().ownerId == request.auth.uid
+          && exists(/databases/$(database)/documents/players_private/$(playerId));
+      }
+    }
+
+    // Collection 3: /guilds/{guildId}
+    match /guilds/{guildId} {
+      allow get: if isSignedIn() && isValidId(guildId);
+      allow list: if isSignedIn() && existing().totalHonor >= 0;
+
+      allow create: if isVerifiedUser()
+        && isValidId(guildId)
+        && isValidGuild(incoming())
+        && incoming().guildId == guildId
+        && incoming().leaderId == request.auth.uid
+        && incoming().memberCount == 1
+        && incoming().treasuryGold == 0
+        && incoming().forumLevel == 1
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/players_private/$(request.auth.uid));
+
+      allow update: if isVerifiedUser()
+        && isValidId(guildId)
+        && isValidGuild(incoming())
+        && incoming().guildId == existing().guildId
+        && incoming().name == existing().name
+        && incoming().normalizedName == existing().normalizedName
+        && incoming().tag == existing().tag
+        && incoming().normalizedTag == existing().normalizedTag
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action 1: Profile & announcement update by Leader or Admin
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'description', 'recruitmentStatus', 'minLevelReq', 'minHonorReq',
+              'announcementText', 'announcementAuthor', 'updatedAt'
+            ])
+            && exists(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid))
+            && (
+              get(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid)).data.role == 'leader'
+              || get(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid)).data.role == 'admin'
+            )
+          )
+          ||
+          // Action 2: Bank donation by current Guild Member
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['treasuryGold', 'updatedAt'])
+            && incoming().treasuryGold > existing().treasuryGold
+            && incoming().treasuryGold <= existing().treasuryGold + 10000
+            && exists(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid))
+          )
+          ||
+          // Action 3: Building upgrade or Library Scroll activation by Leader or Admin
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'treasuryGold', 'maxCapacity', 'forumLevel', 'bancoLevel',
+              'campoTreinoLevel', 'balnearioLevel', 'villaMediciLevel',
+              'bibliotecaLevel', 'armazemLevel', 'mercadoInternoLevel',
+              'activeBuffScrollId', 'activeBuffExpiresAtMs', 'updatedAt'
+            ])
+            && incoming().treasuryGold <= existing().treasuryGold
+            && exists(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid))
+            && (
+              get(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid)).data.role == 'leader'
+              || get(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid)).data.role == 'admin'
+            )
+          )
+          ||
+          // Action 4: Roster count, leadership transfer, or honor aggregation update
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'memberCount', 'totalHonor', 'averageHonor', 'leaderId', 'leaderName', 'updatedAt'
+            ])
+            && incoming().memberCount >= 1
+            && incoming().memberCount <= existing().maxCapacity
+            && exists(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid))
+          )
+        );
+
+      allow delete: if isVerifiedUser()
+        && isValidId(guildId)
+        && existing().leaderId == request.auth.uid
+        && existing().memberCount == 1;
+
+      // Subcollection 3a: /guilds/{guildId}/members/{memberUid}
+      match /members/{memberUid} {
+        allow get: if isSignedIn() && isValidId(guildId) && isValidId(memberUid);
+        allow list: if isSignedIn() && existing().honor >= 0;
+
+        allow create: if isVerifiedUser()
+          && isValidId(guildId)
+          && isValidId(memberUid)
+          && isValidGuildMember(incoming())
+          && incoming().uid == memberUid
+          && incoming().guildId == guildId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/guilds/$(guildId))
+          && (
+            // Founder creating their leader membership
+            (
+              request.auth.uid == memberUid
+              && incoming().role == 'leader'
+              && get(/databases/$(database)/documents/guilds/$(guildId)).data.leaderId == request.auth.uid
+            )
+            ||
+            // Joining an open guild as regular member (anti-self-promotion)
+            (
+              request.auth.uid == memberUid
+              && incoming().role == 'member'
+              && get(/databases/$(database)/documents/guilds/$(guildId)).data.recruitmentStatus == 'open'
+            )
+            ||
+            // Leader or Admin approving an applicant as regular member
+            (
+              incoming().role == 'member'
+              && exists(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid))
+              && (
+                get(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid)).data.role == 'leader'
+                || get(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid)).data.role == 'admin'
+              )
+            )
+          );
+
+        allow update: if isVerifiedUser()
+          && isValidId(guildId)
+          && isValidId(memberUid)
+          && isValidGuildMember(incoming())
+          && incoming().uid == existing().uid
+          && incoming().guildId == existing().guildId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/guilds/$(guildId))
+          && (
+            // Action 1: Member syncing their own combat stats or goldContributed (role MUST remain unchanged)
+            (
+              request.auth.uid == memberUid
+              && incoming().role == existing().role
+              && incoming().diff(existing()).affectedKeys().hasOnly([
+                'name', 'title', 'level', 'honor', 'fame', 'wins',
+                'goldLooted', 'featsCount', 'goldContributed', 'updatedAt'
+              ])
+            )
+            ||
+            // Action 2: Only Guild Leader can change a member's role
+            (
+              incoming().diff(existing()).affectedKeys().hasOnly(['role', 'updatedAt'])
+              && get(/databases/$(database)/documents/guilds/$(guildId)).data.leaderId == request.auth.uid
+            )
+          );
+
+        allow delete: if isVerifiedUser()
+          && isValidId(guildId)
+          && isValidId(memberUid)
+          && exists(/databases/$(database)/documents/guilds/$(guildId))
+          && (
+            // Member leaving voluntarily (if not sole leader with other members)
+            (request.auth.uid == memberUid && existing().role != 'leader')
+            ||
+            // Leader removing any member
+            (get(/databases/$(database)/documents/guilds/$(guildId)).data.leaderId == request.auth.uid)
+          );
+      }
+
+      // Subcollection 3b: /guilds/{guildId}/applications/{applicantUid}
+      match /applications/{applicantUid} {
+        allow get: if isSignedIn() && isValidId(guildId) && isValidId(applicantUid);
+        allow list: if isSignedIn() && existing().level >= 1;
+
+        allow create: if isVerifiedUser()
+          && isValidId(guildId)
+          && isValidId(applicantUid)
+          && request.auth.uid == applicantUid
+          && isValidGuildApplication(incoming())
+          && incoming().applicantId == applicantUid
+          && incoming().guildId == guildId
+          && incoming().status == 'pending'
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/guilds/$(guildId));
+
+        allow update: if isVerifiedUser()
+          && isValidId(guildId)
+          && isValidId(applicantUid)
+          && isValidGuildApplication(incoming())
+          && incoming().applicantId == existing().applicantId
+          && incoming().guildId == existing().guildId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          // Terminal State Lock: only pending applications can transition to approved/rejected
+          && existing().status == 'pending'
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+          && exists(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid))
+          && (
+            get(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid)).data.role == 'leader'
+            || get(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid)).data.role == 'admin'
+          );
+
+        allow delete: if isVerifiedUser()
+          && isValidId(guildId)
+          && isValidId(applicantUid)
+          && request.auth.uid == applicantUid
+          && existing().status == 'pending';
+      }
+
+      // Subcollection 3c: /guilds/{guildId}/ledger/{txId}
+      match /ledger/{txId} {
+        allow get: if isSignedIn() && isValidId(guildId) && isValidId(txId);
+        allow list: if isSignedIn() && existing().amount >= 0;
+
+        allow create: if isVerifiedUser()
+          && isValidId(guildId)
+          && isValidId(txId)
+          && isValidGuildLedger(incoming())
+          && incoming().txId == txId
+          && incoming().guildId == guildId
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/guilds/$(guildId)/members/$(request.auth.uid));
+
+        allow update, delete: if false;
+      }
+    }
+  }
+}

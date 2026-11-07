@@ -1,0 +1,77 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "players_public",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "honor", "order": "DESCENDING" },
+        { "fieldPath": "level", "order": "DESCENDING" },
+        { "fieldPath": "wins", "order": "DESCENDING" },
+        { "fieldPath": "uid", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "players_public",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fame", "order": "DESCENDING" },
+        { "fieldPath": "honor", "order": "DESCENDING" },
+        { "fieldPath": "uid", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "players_public",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "wins", "order": "DESCENDING" },
+        { "fieldPath": "honor", "order": "DESCENDING" },
+        { "fieldPath": "uid", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "players_public",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "featsCount", "order": "DESCENDING" },
+        { "fieldPath": "honor", "order": "DESCENDING" },
+        { "fieldPath": "uid", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "players_public",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "goldLooted", "order": "DESCENDING" },
+        { "fieldPath": "honor", "order": "DESCENDING" },
+        { "fieldPath": "uid", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "guilds",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "totalHonor", "order": "DESCENDING" },
+        { "fieldPath": "averageHonor", "order": "DESCENDING" },
+        { "fieldPath": "memberCount", "order": "DESCENDING" },
+        { "fieldPath": "guildId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "members",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "guildId", "order": "ASCENDING" },
+        { "fieldPath": "honor", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ledger",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "guildId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
