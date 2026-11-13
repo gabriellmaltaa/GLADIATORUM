@@ -3,10 +3,18 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { createInitialGameState, calculateElapsedIdleProgress, resolveCombat,
   buyItemFromMarket, useMedicineFromInventory, inspectAndLoadSaveState } from './rules';
 import { EXPEDITION_REGIONS, GAME_CONFIG } from './config';
 import { OnlineAuthorityEngine } from '../server/onlineAuthorityEngine';
+
+test('Auditoria: motor carrega no Node nativo usado em produção, sem resolver do bundler', () => {
+  const output = execFileSync(process.execPath, ['--input-type=module', '-e',
+    "import('./src/server/onlineAuthorityEngine.ts').then(() => console.log('native-runtime-ok'))"],
+    { cwd: process.cwd(), encoding: 'utf-8' });
+  assert.equal(output.trim(), 'native-runtime-ok');
+});
 
 test('Auditoria: relógio retrocedendo não concede recursos nem altera referência', () => {
   const state = { ...createInitialGameState(1_000_000), energy: 0, currentHp: 10 };

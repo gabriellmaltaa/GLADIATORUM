@@ -1,6 +1,6 @@
 import fs from 'node:fs';
-import { claimContract } from '../game/contracts';
-import { EXPANSION_MARKET_IDS } from '../game/expansion';
+import { claimContract } from '../game/contracts.ts';
+import { EXPANSION_MARKET_IDS } from '../game/expansion.ts';
 import path from 'node:path';
 import {
   ARENA_OPPONENTS,
@@ -244,8 +244,8 @@ const MAX_RETAINED_LEDGER_ENTRIES = 50;
 const MAX_RETAINED_AUDIT_ENTRIES = 50;
 const MAX_RETAINED_ANNOUNCEMENTS = 20;
 
-import { MIGRATION_COMPETITIVE_CAPS } from '../game/onlinePolicy';
-export { MIGRATION_COMPETITIVE_CAPS } from '../game/onlinePolicy';
+import { MIGRATION_COMPETITIVE_CAPS } from '../game/onlinePolicy.ts';
+export { MIGRATION_COMPETITIVE_CAPS } from '../game/onlinePolicy.ts';
 
 export function normalizeGuildNameKey(name: string): string {
   return name.trim().replace(/\s+/g, ' ').toLowerCase();

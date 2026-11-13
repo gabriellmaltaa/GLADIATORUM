@@ -1,5 +1,5 @@
 import type { RarityKey } from '../design/tokens.ts';
-import { EXPANSION_ITEMS, EXPANSION_REGIONS, EXPANSION_MARKET_IDS } from './expansion';
+import { EXPANSION_ITEMS, EXPANSION_REGIONS, EXPANSION_MARKET_IDS } from './expansion.ts';
 import type { EnemyAvatarId, ItemIconId } from '../design/assets.tsx';
 import {
   EXPANDED_EQUIPMENT_TEMPLATES,
