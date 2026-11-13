@@ -116,7 +116,7 @@ export const RomanPanel: React.FC<RomanPanelProps> = ({
       : 'bg-[#1D1510] text-[#D6C29A] border-b border-[#5E4527]';
 
   return (
-    <section className={`relative rounded-[2px] overflow-hidden ${surfaceClass} ${className}`}>
+    <section className={`roman-panel relative rounded-[2px] overflow-hidden ${surfaceClass} ${className}`}>
       <span
         aria-hidden="true"
         className="pointer-events-none absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-[#B79552]/70"
@@ -329,7 +329,7 @@ export const ItemSlot: React.FC<ItemSlotProps> = ({
       style={{
         borderColor: item ? rarityInfo.border : '#5E4527',
       }}
-      className={`relative ${dimClass} surface-leather border-2 rounded-[2px] flex flex-col items-center justify-center p-1 transition-transform duration-100 active:scale-95 focus-visible:outline-2 focus-visible:outline-[#D4B26A] cursor-pointer ${
+      className={`equipment-slot relative ${dimClass} surface-leather border-2 rounded-[2px] flex flex-col items-center justify-center p-1 transition-transform duration-100 active:scale-95 focus-visible:outline-2 focus-visible:outline-[#D4B26A] cursor-pointer ${
         selected ? 'ring-2 ring-[#D4B26A] shadow-md' : ''
       }`}
     >
@@ -1423,7 +1423,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   return (
     <nav
       aria-label="Navegação Principal do Ludus"
-      className="fixed bottom-0 left-0 right-0 z-30 bg-[#1B140F] border-t-2 border-[#947044] shadow-lg"
+      className="ludus-navigation fixed bottom-0 left-0 right-0 z-30 bg-[#1B140F] border-t-2 border-[#947044] shadow-lg"
     >
       <div className="max-w-5xl mx-auto grid grid-cols-5">
         {navItems.map((item) => {
@@ -1514,6 +1514,7 @@ export const GameModal: React.FC<GameModalProps> = ({
  * 14. GameShell — Estrutura Principal Responsiva
  */
 export interface GameShellProps {
+  sectionTitle?: string;
   resourceBar: React.ReactNode;
   bottomNav: React.ReactNode;
   guidedOnboardingBar?: React.ReactNode;
@@ -1523,6 +1524,7 @@ export interface GameShellProps {
 }
 
 export const GameShell: React.FC<GameShellProps> = ({
+  sectionTitle = 'Seu gladiador',
   resourceBar,
   bottomNav,
   guidedOnboardingBar,
@@ -1531,7 +1533,7 @@ export const GameShell: React.FC<GameShellProps> = ({
   children,
 }) => {
   return (
-    <div className="min-h-screen w-full bg-[#17120F] text-[#EFE2C4] flex flex-col overflow-x-hidden">
+    <div className="imperium-shell min-h-screen w-full bg-[#17120F] text-[#EFE2C4] flex flex-col overflow-x-hidden">
       {resourceBar}
 
       {guidedOnboardingBar}
@@ -1560,7 +1562,11 @@ export const GameShell: React.FC<GameShellProps> = ({
         </div>
       )}
 
-      <main className="flex-1 w-full max-w-5xl mx-auto px-2.5 sm:px-4 pt-3 pb-20">
+      <main className="imperium-main flex-1 w-full max-w-5xl mx-auto px-2.5 sm:px-4 pt-3 pb-20">
+        <div className="imperium-hero" style={{ backgroundImage: `linear-gradient(90deg, #0c1016 5%, #0c1016a8 60%, #0c101633), url(${IMAGE_ASSETS.titleBackdrop})` }}>
+          <div><span className="eyebrow">GLADIATORUM / ARENA AETERNA</span><h1>{sectionTitle}</h1><p>Forje seu nome. Conquiste seu legado.</p></div>
+          <span className="hero-seal" aria-hidden="true">SPQR</span>
+        </div>
         {children}
       </main>
 

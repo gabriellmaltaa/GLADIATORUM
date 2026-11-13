@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { ChronicleScreen } from './ChronicleScreen';
+import { EquipmentFilters, EMPTY_EQUIPMENT_FILTER, matchesEquipmentFilter } from '../ui/EquipmentFilters';
 import { DESIGN_TOKENS } from '../../design/tokens';
 import { ItemArtwork } from '../../design/assets';
 import {
@@ -43,6 +45,7 @@ import { GuildScreen } from './GuildScreen';
 import { RankingScreen } from './RankingScreen';
 
 export type CitySubTab =
+  | 'chronicle'
   | 'training'
   | 'market'
   | 'medicina'
@@ -72,6 +75,7 @@ const DIFFICULTY_BADGE_STYLES: Record<DungeonDifficulty, string> = {
 };
 
 interface CityScreenProps {
+  onClaimContract: (id: string) => void;
   state: GameState;
   derived: DerivedStats;
   isOnlineMode?: boolean;
@@ -126,6 +130,7 @@ interface CityScreenProps {
 }
 
 export const CityScreen: React.FC<CityScreenProps> = ({
+  onClaimContract,
   state,
   derived,
   isOnlineMode = false,
@@ -165,6 +170,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
 }) => {
   const [subTab, setSubTab] = useState<CitySubTab>(initialSubTab);
   const [marketMode, setMarketMode] = useState<'buy' | 'sell'>('buy');
+  const [equipmentFilter, setEquipmentFilter] = useState(EMPTY_EQUIPMENT_FILTER);
   const [marketFilter, setMarketFilter] = useState<'all' | 'equipment' | 'medicine' | 'high_rarity'>('all');
   const [selectedMarketItemId, setSelectedMarketItemId] = useState<string | null>(
     state.marketStock[0]?.id ?? null
@@ -198,6 +204,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
           ?.rank ?? '-';
 
   const filteredMarketStock = state.marketStock.filter((item) => {
+    if (!matchesEquipmentFilter(item, equipmentFilter, state.level)) return false;
     if (marketFilter === 'medicine') return Boolean(item.consumable);
     if (marketFilter === 'equipment') return !item.consumable;
     if (marketFilter === 'high_rarity') {
@@ -248,7 +255,12 @@ export const CityScreen: React.FC<CityScreenProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Navegação Interna da Cidade: Treinamento, Mercado, Medicina, Masmorras, Guilda e Classificação */}
+      <button className="chronicle-banner" onClick={() => selectSubTab('chronicle')}>
+        <span className="eyebrow">O SEU LEGADO COMEÇA AQUI</span>
+        <strong>Contratos & Coleção</strong>
+        <span>Objetivos, tesouros e novas fronteiras <span aria-hidden="true">↗</span></span>
+      </button>
+      {subTab === 'chronicle' && <ChronicleScreen state={state} onClaim={onClaimContract} />}
       <div className="grid grid-cols-2 sm:grid-cols-6 gap-1.5">
         <button
           type="button"
@@ -412,6 +424,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
             subtitle={`Saldo: ${state.gold} denários · Mochila: ${state.inventory.length}/${GAME_CONFIG.maxInventorySlots} · 8 Raridades (Comum a Divino)`}
             variant="stone"
           >
+            <EquipmentFilters value={equipmentFilter} onChange={setEquipmentFilter} />
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-[#5E4527]">
               <div className="flex items-center gap-2">
                 <GameButton

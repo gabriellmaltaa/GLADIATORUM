@@ -82,7 +82,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
   const rightSlots: EquipmentSlotType[] = ['amulet', 'shield', 'boots', 'ring'];
 
   return (
-    <div className="space-y-4">
+    <div className="character-screen space-y-4">
       {/* Próximo Objetivo de Progressão */}
       <NextObjectiveBanner
         objective={nextObjective}
@@ -147,7 +147,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
 
               {/* Retrato Central do Gladiador */}
               <div className="flex flex-col items-center">
-                <div className="relative w-full max-w-[220px] aspect-square frame-bronze overflow-hidden bg-[#17120F] shadow-xl">
+                <div className="gladiator-stage relative w-full max-w-[320px] aspect-[3/4] frame-bronze overflow-hidden bg-[#17120F] shadow-xl">
                   <ArtworkImage
                     src={IMAGE_ASSETS.playerPortrait}
                     alt={state.name}

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./design/imperium.css";
 
 :root {
   /* Core Roman Historical Palette */

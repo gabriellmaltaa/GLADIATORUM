@@ -43,7 +43,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
     <div className="space-y-4">
       <RomanPanel
         title="Arena Provincial de Cápua"
-        subtitle="Modo Local: Oponentes Simulados por Regras Determinísticas"
+        subtitle="Desafios contra NPCs · prepare seu gladiador e conquiste prestígio"
         variant="parchment"
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-[#30251A]">

@@ -1,0 +1,104 @@
+/* Gladiatorum · pedra, bronze e luz. Shared visual surfaces, no gameplay rules. */
+:root { color-scheme: dark; }
+body { background: #090c11; }
+.imperium-shell { background: radial-gradient(ellipse at 80% 0%, #30221b80, transparent 48%), #0b0e14; }
+.imperium-shell > header { background: #10141ced; border-bottom: 1px solid #b68b4b55; backdrop-filter: blur(16px); }
+.imperium-shell > header > div { max-width: 1320px; min-height: 76px; }
+.imperium-main { max-width: 1320px; padding-top: 26px; }
+.imperium-hero { min-height: 190px; margin-bottom: 26px; padding: 32px; background-size: cover; background-position: center 45%; display: flex; align-items: center; justify-content: space-between; border: 1px solid #af8b5040; border-radius: 16px; overflow: hidden; box-shadow: 0 16px 45px #0005; }
+.eyebrow { display: block; font-size: 10px; font-weight: 700; letter-spacing: .2em; color: #d5ad70; line-height: 1.7; }
+.imperium-hero h1 { font-family: var(--font-display); font-weight: 500; font-size: clamp(28px, 4vw, 46px); line-height: 1.2; margin: 10px 0; color: #f7ecd9; }
+.imperium-hero p { font-size: 13px; color: #b8b2a8; }
+.hero-seal { width: 86px; height: 86px; border: 1px solid #cba16688; outline: 1px solid #cba16633; outline-offset: 7px; border-radius: 50%; display: grid; place-items: center; font: 20px Georgia,serif; letter-spacing: .12em; color: #e1bc7f; background: #10101566; }
+.roman-panel { border: 1px solid #a48a6440; border-radius: 12px; box-shadow: 0 8px 30px #0003; }
+.roman-panel.surface-stone, .roman-panel.surface-wood { background: linear-gradient(145deg, #1b2029, #11151d); }
+.roman-panel > header { background: #171c25; border-bottom: 1px solid #9f815735; padding: 16px 18px; }
+.roman-panel > header h2 { font-size: 15px; letter-spacing: .025em; }
+.roman-panel > div:last-child { padding: 18px; }
+.roman-panel.surface-parchment { background: linear-gradient(135deg, #e6d6b8, #d5c19b); }
+.roman-panel.surface-parchment > header { background: #23252a; }
+.roman-panel > span[aria-hidden] { display: none; }
+.imperium-shell button { transition: background .16s, border-color .16s, transform .16s; }
+.imperium-shell button:focus-visible, .imperium-shell input:focus-visible, .imperium-shell select:focus-visible { outline: 2px solid #ebc88d; outline-offset: 3px; }
+.imperium-shell button:not(:disabled):hover { filter: brightness(1.12); }
+.imperium-shell button[disabled] { cursor: not-allowed; }
+.equipment-slot { border-radius: 10px; background: radial-gradient(circle at 45% 30%, #4c423650, #11151d 80%); box-shadow: inset 0 0 16px #0005, 0 3px 10px #0003; }
+.equipment-slot:not(:disabled):hover { transform: translateY(-3px); box-shadow: 0 8px 16px #0005; }
+.gladiator-stage { border-radius: 40% 40% 12px 12px; border: 1px solid #c19a5c99; box-shadow: 0 0 65px #ad723b25, 0 16px 30px #0008; }
+.gladiator-stage img { object-position: center top; }
+.character-screen > div.lg\:grid-cols-12 { gap: 24px; }
+.ludus-navigation { background: #10141df5; border-top: 1px solid #ac8b5255; backdrop-filter: blur(18px); }
+.ludus-navigation button { border: 0; padding: 10px 4px; min-height: 64px; }
+.ludus-navigation button[aria-current] { background: linear-gradient(0deg,#a46b2d22,transparent); color: #e6bd7c; }
+.ludus-navigation button svg { width: 22px; height: 22px; }
+.ludus-navigation button > span:last-child { border-radius: 5px; }
+.chronicle-banner { width: 100%; text-align: left; padding: 22px 26px; border: 1px solid #b38a4f77; border-radius: 12px; display: grid; gap: 5px; background: radial-gradient(ellipse at right, #74452b55, transparent 65%), linear-gradient(110deg,#19212c,#151820); }
+.chronicle-banner strong { font: 25px var(--font-display); color: #f0dfbd; }
+.chronicle-banner > span:last-child { font-size: 12px; color: #bbb4a6; }
+.chronicle-tabs { display: flex; gap: 8px; padding: 6px; background: #10151d; border: 1px solid #ffffff12; border-radius: 12px; margin: 20px 0; }
+.chronicle-tabs button { flex: 1; padding: 13px; border-radius: 8px; color: #a8a9ad; font-size: 13px; }
+.chronicle-tabs button[aria-selected=true] { color: #f5dfb9; background: #b28b4b22; box-shadow: inset 0 0 0 1px #bd96573d; }
+.chronicle-tabs button span { font: 11px monospace; margin-left: 8px; color: #c7a66d; }
+.section-intro { margin: 28px 0 24px; }
+.section-intro h2 { font: 27px/1.3 var(--font-display); color: #f1e2ca; margin: 8px 0; }
+.section-intro p { font-size: 13px; color: #aba9a5; max-width: 650px; line-height: 1.7; }
+.contract-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
+.contract-card { position: relative; padding: 24px; border: 1px solid #b38c4b40; border-radius: 12px; background: linear-gradient(135deg,#202630,#131820); overflow: hidden; }
+.contract-number { position: absolute; top: 10px; right: 18px; font: 52px Georgia,serif; color: #c3a77912; }
+.contract-card h3 { font: 19px var(--font-display); color: #f2e2c8; margin: 14px 0 10px; }
+.contract-card p { font-size: 12px; color: #b9b6af; line-height: 1.7; min-height: 40px; }
+.contract-progress { height: 4px; background: #05080c; margin: 22px 0 10px; border-radius: 4px; overflow: hidden; }
+.contract-progress span { display: block; height: 100%; background: linear-gradient(90deg,#976c35,#e4bd7c); }
+.contract-footer { display: flex; justify-content: space-between; font-size: 11px; color: #a8a6a0; }
+.contract-footer strong { color: #dab678; font-weight: 500; }
+.contract-card > button { width: 100%; min-height: 44px; margin-top: 20px; background: #792b28; border: 1px solid #c27a5755; border-radius: 7px; font-size: 12px; color: #fff1dc; }
+.contract-card > button:disabled { background: #ffffff05; border-color: #ffffff12; color: #979797; }
+.contract-card.is-complete { border-color: #719b6655; }
+.collection-themes { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin-bottom: 24px; }
+.collection-themes > span { font: 13px var(--font-display); color: #e2c89b; background: #171d26; padding: 14px; border-left: 2px solid #a17843; border-radius: 3px 8px 8px 3px; }
+.collection-themes small { display: block; font: 10px/1.6 var(--font-body); color: #a9a8a3; margin-top: 6px; }
+.collection-filters { display: flex; flex-wrap: wrap; gap: 10px; }
+.collection-filters input:not([type=checkbox]), .collection-filters select { min-height: 44px; background: #141a23; border: 1px solid #ffffff26; border-radius: 8px; color: #e7dac4; padding: 10px 12px; font-size: 12px; min-width: 0; }
+.collection-filters input:not([type=checkbox]) { flex: 1; min-width: 180px; }
+.collection-filters label { display: flex; gap: 8px; align-items: center; font-size: 12px; color: #c9bfae; }
+.collection-count { font-size: 11px; margin: 16px 0; color: #a4a09b; }
+.collection-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; }
+.collection-card { display: flex; flex-direction: column; border: 1px solid color-mix(in srgb,var(--rarity),transparent 55%); border-radius: 12px; padding: 17px; background: linear-gradient(145deg,#1a202a,#11161e); }
+.collection-art { position: relative; display: grid; place-items: center; height: 110px; margin-bottom: 14px; border-radius: 8px; background: radial-gradient(ellipse,color-mix(in srgb,var(--rarity),transparent 72%),#0c1018 75%); }
+.collection-art svg { filter: drop-shadow(0 6px 9px #000b); width: 76px; height: 76px; }
+.collection-art > span { position: absolute; bottom: 8px; right: 8px; font-size: 10px; color: #c4bbac; }
+.rarity-label { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.collection-card h3 { font: 15px/1.4 var(--font-display); color: #efe0c8; margin: 8px 0; }
+.collection-card > p { font-size: 11px; color: #a5a6a6; line-height: 1.65; }
+.collection-stats { display: flex; flex-wrap: wrap; gap: 5px; margin: 14px 0; }
+.collection-stats span { font-size: 10px; background: #ffffff08; color: #cfc8ba; padding: 4px 6px; border-radius: 4px; }
+.discovery { margin-top: auto; padding-top: 12px; border-top: 1px solid #ffffff10; font-size: 10px; color: #86898f; }
+.discovery.found { color: #a3c592; }
+.empty-state { padding: 40px; text-align: center; color: #bfb6a5; }
+@media(min-width:1200px) {
+  .imperium-shell { padding-left: 172px; }
+  .imperium-main { padding: 28px 32px 60px; }
+  .ludus-navigation { top: 0; bottom: 0; right: auto; width: 172px; border: 0; border-right: 1px solid #a98d5b35; padding: 120px 12px 20px; }
+  .ludus-navigation::before { content: 'GLADIATORUM'; position: absolute; top: 44px; left: 17px; color: #e2bd7f; font: 13px var(--font-display); letter-spacing: .06em; }
+  .ludus-navigation > div { display: flex; flex-direction: column; gap: 8px; }
+  .ludus-navigation button { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 14px; border-radius: 9px; }
+  .ludus-navigation button > span { font-size: 11px; }
+  .ludus-navigation button > span.absolute { top: 3px; right: 3px; font-size: 8px; }
+}
+@media(max-width:700px) {
+  .imperium-main { padding-top: 14px; }
+  .imperium-hero { min-height: 150px; padding: 22px; margin-bottom: 18px; }
+  .hero-seal { display: none; }
+  .roman-panel > div:last-child { padding: 13px; }
+  .roman-panel > header { padding: 13px; }
+  .contract-grid { grid-template-columns: 1fr; }
+  .contract-card { padding: 20px; }
+  .collection-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+  .collection-card { padding: 12px; }
+  .collection-card h3 { font-size: 13px; }
+  .collection-themes { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .collection-filters select { flex: 1; }
+  .section-intro h2 { font-size: 24px; }
+  .chronicle-banner { padding: 20px; }
+}
+@media(prefers-reduced-motion:reduce) { .imperium-shell *, .imperium-shell *::before { transition: none!important; animation: none!important; } }

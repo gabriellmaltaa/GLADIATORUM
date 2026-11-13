@@ -43,6 +43,31 @@ import {
   useVillaMedici,
 } from './guildActions';
 
+test('Regeneração preserva frações entre ticks de 1s e depois de salvar/carregar', () => {
+  const start = 1_000_000;
+  let state = { ...createInitialGameState(start), energy: 0, currentHp: 10 };
+  for (let second = 1; second <= 180; second++) {
+    state = calculateElapsedIdleProgress(state, start + second * 1000).state;
+    if (second === 90) {
+      state = inspectAndLoadSaveState(JSON.stringify(state), start + 90_000).state;
+    }
+  }
+  assert.equal(state.energy, 1, '180 ticks devem regenerar 1 energia');
+  assert.equal(state.currentHp, 46, '3 minutos devem regenerar 36 PV');
+});
+
+test('Regeneração mantém tempo fracionário e não concede energia antes de 180s', () => {
+  const start = 1_000_000;
+  let state = { ...createInitialGameState(start), energy: 0, currentHp: 10 };
+  for (let tick = 1; tick <= 1799; tick++) {
+    state = calculateElapsedIdleProgress(state, start + tick * 100).state;
+  }
+  assert.equal(state.energy, 0);
+  state = calculateElapsedIdleProgress(state, start + 180_000).state;
+  assert.equal(state.energy, 1);
+  assert.equal(state.currentHp, 46);
+});
+
 test('Equipar e remover equipamentos altera imediatamente os atributos derivados e avança o tutorial', () => {
   const initial = createInitialGameState(100000);
   const beforeStats = calculateDerivedStats(
