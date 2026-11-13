@@ -334,7 +334,8 @@ async function startServer() {
   const persistencePath = path.resolve(process.cwd(), '.data', 'online_authority_state.json');
   const engine = new OnlineAuthorityEngine({
     persistencePath,
-    seedInitialOnlineGuilds: true,
+    seedInitialOnlineGuilds: false,
+    launchId: 'gladiatorum-public-launch-2026-11-12',
   });
   const app = createAuthoritativeExpressApp(engine);
 

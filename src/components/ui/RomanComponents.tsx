@@ -335,7 +335,7 @@ export const ItemSlot: React.FC<ItemSlotProps> = ({
     >
       {item ? (
         <>
-          <ItemArtwork iconId={item.iconId} size={size === 'lg' ? 48 : 40} />
+          <ItemArtwork iconId={item.iconId} size={size === 'lg' ? 56 : 46} />
           <span className="absolute bottom-0.5 right-0.5 text-[9.5px] font-bold tabular-nums px-1 bg-[#17120F]/90 text-[#EFE2C4] border border-[#5E4527]">
             Nv.{item.levelReq}
           </span>
