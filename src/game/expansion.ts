@@ -31,7 +31,11 @@ export const EXPANSION_ITEMS: Record<string, Omit<GameItem, 'id'>> = Object.from
       : { armor: 12 + power * (slot === 'armor' ? 20 : 9), constitution: power, agility: index % 2 ? power : 0 };
     return [id, { templateId: id, name: `${name} · ${collection.name}`, slot,
       rarity: collection.rarity, levelReq: collection.level, buyPrice: 65 * power * power,
-      sellPrice: 20 * power * power, iconId: icon,
+      sellPrice: 20 * power * power, iconId: ({
+        weapon: ['gladius_iron', 'gladius_bronze', 'pugio_assassin', 'trident_neptune', 'spatha_imperial', 'spatha_imperial'],
+        shield: ['scutum_wood', 'parma_bronze', 'scutum_legion', 'parma_bronze', 'aegis_praetorian', 'aegis_praetorian'],
+        helmet: ['galea_recruit', 'galea_murmillo', 'galea_murmillo', 'galea_centurion', 'galea_centurion', 'galea_centurion'],
+      } as Partial<Record<EquipmentSlotType, ItemIconId[]>>)[slot]?.[tier] ?? icon,
       description: `Coleção ${collection.name}. Origem: ${collection.origin}. ${slot === 'weapon' ? 'Equilíbrio entre impacto e força.' : slot === 'ring' ? 'Disciplina e precisão para a arena.' : slot === 'amulet' ? 'Conhecimento e resistência em longas jornadas.' : 'Proteção trabalhada para os desafios desta região.'}`,
       stats } satisfies Omit<GameItem, 'id'>];
   }))

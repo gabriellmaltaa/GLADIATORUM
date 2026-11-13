@@ -264,6 +264,7 @@ export class OnlineAuthorityEngine {
   private guilds = new Map<string, GuildRecord>();
   private txChain: Promise<unknown> = Promise.resolve();
   private persistencePath: string | null;
+  private launchId: string | null;
   private cachedPlayerRankings = new Map<
     PlayerRankingCategory,
     { computedAtMs: number; list: (OnlinePublicPlayerProfile & { rank: number })[] }
@@ -283,8 +284,9 @@ export class OnlineAuthorityEngine {
     writesObserved: 0,
   };
 
-  constructor(options?: { persistencePath?: string | null; seedInitialOnlineGuilds?: boolean }) {
+  constructor(options?: { persistencePath?: string | null; seedInitialOnlineGuilds?: boolean; launchId?: string }) {
     this.persistencePath = options?.persistencePath ?? null;
+    this.launchId = options?.launchId ?? null;
     if (this.persistencePath) {
       this.loadFromDisk();
     }
@@ -558,9 +560,18 @@ export class OnlineAuthorityEngine {
       if (!fs.existsSync(this.persistencePath)) return;
       const raw = fs.readFileSync(this.persistencePath, 'utf-8');
       const parsed = JSON.parse(raw) as {
+        launchId?: string;
         players?: [string, AuthoritativePlayerRecord][];
         guilds?: [string, GuildRecord][];
       };
+      if (this.launchId && parsed.launchId !== this.launchId) {
+        // Preserve the entire prelaunch dataset on the persistent volume before resetting.
+        fs.copyFileSync(this.persistencePath, `${this.persistencePath}.prelaunch-${Date.now()}.json`, fs.constants.COPYFILE_EXCL);
+        this.players.clear();
+        this.guilds.clear();
+        this.saveToDisk();
+        return;
+      }
       if (Array.isArray(parsed.players)) {
         this.players = new Map(parsed.players);
       }
@@ -568,7 +579,8 @@ export class OnlineAuthorityEngine {
         this.guilds = new Map(parsed.guilds);
       }
       this.invalidateRankingCaches();
-    } catch {
+    } catch (error) {
+      if (this.launchId) throw error;
       // Se o arquivo de disco não puder ser lido, inicia limpo
     }
   }
@@ -581,13 +593,15 @@ export class OnlineAuthorityEngine {
         fs.mkdirSync(dir, { recursive: true });
       }
       const payload = JSON.stringify({
+        launchId: this.launchId,
         players: Array.from(this.players.entries()),
         guilds: Array.from(this.guilds.entries()),
       });
       const tmpPath = `${this.persistencePath}.tmp`;
       fs.writeFileSync(tmpPath, payload, 'utf-8');
       fs.renameSync(tmpPath, this.persistencePath);
-    } catch {
+    } catch (error) {
+      if (this.launchId) throw error;
       // Ignora erro de escrita em ambientes read-only
     }
   }
@@ -824,6 +838,7 @@ export class OnlineAuthorityEngine {
     if (!record) {
       isNewAccount = true;
       const fresh = createInitialGameState(serverNowMs);
+      if (this.launchId) { fresh.honor = 0; fresh.fame = 0; }
       const cleanName = (identity.displayName || 'Gladiador de Cápua')
         .trim()
         .slice(0, 28);
@@ -899,6 +914,9 @@ export class OnlineAuthorityEngine {
     playerRank?: number;
     guildRank?: number | null;
   } {
+    if (this.launchId) {
+      return { ok: false, error: 'O lançamento público começou do zero. Saves anteriores não podem ser importados.' };
+    }
     const identity = this.normalizeIdentity(identityInput);
     this.metrics.totalRequests += 1;
     this.metrics.totalMutations += 1;

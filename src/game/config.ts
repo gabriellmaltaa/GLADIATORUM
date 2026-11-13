@@ -177,7 +177,7 @@ export interface DungeonDefinition {
 }
 
 export const GAME_CONFIG = {
-  saveKey: 'gladiatorum_arena_aeterna_save_v2', // Mantém a chave existente para preservar o progresso salvo
+  saveKey: 'gladiatorum_public_launch_2026_11_12', // Novo início público autorizado pelo criador.
   backupCorruptedKey: 'gladiatorum_arena_aeterna_corrupted_backup',
   saveVersion: 4,
   maxOfflineSeconds: 8 * 3600, // Limite inicial de 8 horas (28.800 segundos)
