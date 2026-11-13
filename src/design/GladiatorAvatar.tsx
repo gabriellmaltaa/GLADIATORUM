@@ -1,4 +1,5 @@
 import React, { useId } from 'react';
+import { getItemRadiance } from '../game/itemRadiance';
 import baseBody from '../assets/images/gladiator-base.png';
 import { EquipmentArt } from './EquipmentArt';
 import { getCharacterAppearance, type EquippedAppearance } from '../game/appearance';
@@ -9,6 +10,10 @@ export function GladiatorAvatar({ equipped, level, name }: { equipped: EquippedA
   const id = useId().replace(/:/g, '');
   const ref = (part: string) => `url(#${id}${part})`;
   const material = (icon = '') => /leather|wood/.test(icon) ? ref('leather') : /bronze|recruit|mars/.test(icon) ? ref('bronze') : ref('steel');
+  const itemStyle = (rarity: Parameters<typeof getItemRadiance>[0]) => {
+    const effect = getItemRadiance(rarity);
+    return { '--gear-light': effect.color, '--gear-power': effect.strength, filter: effect.strength ? `drop-shadow(0 0 ${2 + effect.strength * 4}px ${effect.color})` : undefined } as React.CSSProperties;
+  };
   const armor = layers.armor;
   const chain = armor?.iconId === 'lorica_hamata';
   const leather = armor?.iconId === 'lorica_leather';
@@ -30,7 +35,7 @@ export function GladiatorAvatar({ equipped, level, name }: { equipped: EquippedA
       <ellipse cx="148" cy="486" rx="92" ry="9" fill="#000" opacity=".5"/>
       <image href={baseBody} x="0" y="0" width="300" height="500" preserveAspectRatio="none" />
       <g filter={ref('shadow')}>
-        {armor && <g data-equipped-slot="armor" data-icon={armor.iconId}>
+        {armor && <g data-equipped-slot="armor" data-icon={armor.iconId} data-rarity={armor.rarity} style={itemStyle(armor.rarity)}>
           <path d="M100 84L122 75Q148 98 177 75L200 84L204 112 189 129 188 199Q148 217 109 199L108 129 94 111Z" fill={chain ? ref('mail') : material(armor.iconId)} stroke="#30241a" strokeWidth="2"/>
           <path d="M111 85L108 129M187 85L189 129M112 198Q148 209 186 198" fill="none" stroke="#d5ad6b" strokeWidth="3"/>
           {!leather && !chain && [114,132,150,168,186].map(y=><path key={y} d={`M109 ${y}Q149 ${y+12} 190 ${y}L189 ${y+12}Q149 ${y+24} 110 ${y+12}Z`} fill={ref('steel')} stroke="#393b35" strokeWidth="1.5"/>)}
@@ -39,34 +44,35 @@ export function GladiatorAvatar({ equipped, level, name }: { equipped: EquippedA
           <rect x="139" y="203" width="20" height="12" rx="2" fill={ref('bronze')} stroke="#e9c880"/>
           {[109,124,139,154,169,184].map((x,i)=><path key={x} d={`M${x} 215L${x+12} 215L${x+14} ${280-Math.abs(i-2.5)*5}L${x-3} ${280-Math.abs(i-2.5)*5}Z`} fill={material(armor.iconId)} stroke="#392719" strokeWidth="1.5"/>)}
         </g>}
-        {layers.boots && <g data-equipped-slot="boots" data-icon={layers.boots.iconId}>
+        {layers.boots && <g data-equipped-slot="boots" data-icon={layers.boots.iconId} data-rarity={layers.boots.rarity} style={itemStyle(layers.boots.rarity)}>
           {[94,177].map((x,i)=><g key={x} transform={`rotate(${i ? -5 : 5} ${x+15} 385)`}>
             {layers.boots?.iconId !== 'caligae_leather' && <><path d={`M${x-3} 345Q${x+15} 333 ${x+32} 345L${x+26} 440L${x+2} 440Z`} fill={material(layers.boots?.iconId)} stroke="#403321" strokeWidth="2"/><path d={`M${x+14} 345L${x+11} 430`} stroke="#e7d1a0" opacity=".5" strokeWidth="3"/></>}
             <path d={`M${x} 443L${x+25} 443L${x+33} 477Q${x+17} 489 ${x-9} 479Z`} fill={ref('leather')} stroke="#2b1c10" strokeWidth="2"/>
             {[448,457,466].map(y=><path key={y} d={`M${x} ${y}L${x+26} ${y+2}`} stroke="#ba9258" strokeWidth="4"/>)}
           </g>)}
         </g>}
-        {layers.gloves && <g data-equipped-slot="gloves" data-icon={layers.gloves.iconId}>
+        {layers.gloves && <g data-equipped-slot="gloves" data-icon={layers.gloves.iconId} data-rarity={layers.gloves.rarity} style={itemStyle(layers.gloves.rarity)}>
           <path d="M70 171L95 180L77 237L50 229Z" fill={material(layers.gloves.iconId)} stroke="#342317" strokeWidth="2"/>
           {[179,191,203,215].map(y=><path key={y} d={`M${70-(y-179)*.3} ${y}L${93-(y-179)*.3} ${y+7}`} stroke="#d4ac6d" strokeWidth="3"/>)}
           <path d="M214 180L238 172L253 230L229 237Z" fill={material(layers.gloves.iconId)} stroke="#342317" strokeWidth="2"/>
           {[181,193,205,217].map(y=><path key={y} d={`M${216+(y-181)*.3} ${y}L${240+(y-181)*.3} ${y-7}`} stroke="#d4ac6d" strokeWidth="3"/>)}
         </g>}
-        {layers.amulet && <g data-equipped-slot="amulet" data-icon={layers.amulet.iconId}>
+        {layers.amulet && <g data-equipped-slot="amulet" data-icon={layers.amulet.iconId} data-rarity={layers.amulet.rarity} style={itemStyle(layers.amulet.rarity)}>
           <path d="M126 83Q128 120 149 132Q171 119 173 83" fill="none" stroke="#edc879" strokeWidth="2"/>
           <circle cx="149" cy="133" r="8" fill={ref('bronze')} stroke="#f4d996" strokeWidth="2"/><path d="M149 127L154 133 149 139 144 133Z" fill={layers.amulet.iconId === 'bulla_jupiter' ? '#66bbe5' : '#c24e32'}/>
         </g>}
-        {layers.helmet && <svg x="108" y={layers.helmet.iconId === 'galea_recruit' ? 0 : -15} width="86" height="90" viewBox={layers.helmet.iconId === 'galea_recruit' ? '0 20 128 108' : '0 0 128 128'} data-equipped-slot="helmet" data-icon={layers.helmet.iconId}><EquipmentArt iconId={layers.helmet.iconId} size={128}/></svg>}
-        {layers.ring && <g data-equipped-slot="ring" data-icon={layers.ring.iconId}><ellipse cx="60" cy="258" rx="5" ry="2.8" fill="none" stroke="#f5cc70" strokeWidth="3"/>{layers.ring.iconId === 'anulus_ruby' && <circle cx="58" cy="256" r="3" fill="#e7474c" stroke="#f6d88d"/>}</g>}
-        {weapon && <g data-equipped-slot="weapon" data-icon={weapon.iconId} transform="rotate(14 61 257)">
+        {layers.helmet && <svg x="108" y={layers.helmet.iconId === 'galea_recruit' ? 0 : -15} width="86" height="90" viewBox={layers.helmet.iconId === 'galea_recruit' ? '0 20 128 108' : '0 0 128 128'} data-equipped-slot="helmet" data-icon={layers.helmet.iconId} data-rarity={layers.helmet.rarity} style={itemStyle(layers.helmet.rarity)}><EquipmentArt iconId={layers.helmet.iconId} size={128}/></svg>}
+        {layers.ring && <g data-equipped-slot="ring" data-icon={layers.ring.iconId} data-rarity={layers.ring.rarity} style={itemStyle(layers.ring.rarity)}><ellipse cx="60" cy="258" rx="5" ry="2.8" fill="none" stroke="#f5cc70" strokeWidth="3"/>{layers.ring.iconId === 'anulus_ruby' && <circle cx="58" cy="256" r="3" fill="#e7474c" stroke="#f6d88d"/>}</g>}
+        {weapon && <g data-equipped-slot="weapon" data-icon={weapon.iconId} data-rarity={weapon.rarity} style={itemStyle(weapon.rarity)} transform="rotate(14 61 257)">
           <path d="M57 247H64V278H57Z" fill={ref('leather')} stroke="#1d140d" strokeWidth="2"/>
           {[253,261,269].map(y=><path key={y} d={`M57 ${y}H64`} stroke="#bd985b" strokeWidth="2"/>)}
           {trident ? <><path d="M59 116H63V249H59Z" fill={ref('bronze')}/><path d="M58 67L61 50 65 67V103Q84 103 84 81L89 67 93 82Q94 115 65 118V128H58V118Q30 115 30 82L35 67 40 81Q40 103 58 103Z" fill={ref('bronze')} stroke="#e8ca88" strokeWidth="1.5"/></> : <><path d={dagger ? 'M61 180L70 201 67 243H54L52 201Z' : 'M61 105L71 127 67 242H54L51 127Z'} fill={goldWeapon ? ref('bronze') : ref('steel')} stroke="#c9c9b4" strokeWidth="1"/><path d={`M61 ${dagger ? 187 : 115}V236`} stroke="#f8f1d5" strokeWidth="2"/><path d="M43 242Q61 235 79 242L78 247Q61 243 44 247Z" fill={ref('bronze')} stroke="#dabb77"/></>}
           <ellipse cx="61" cy="279" rx="6" ry="4" fill={ref('bronze')}/>
         </g>}
-        {layers.shield && <svg x="192" y="201" width="108" height="146" viewBox="0 0 128 128" data-equipped-slot="shield" data-icon={layers.shield.iconId}><EquipmentArt iconId={layers.shield.iconId} size={128}/></svg>}
+        {layers.shield && <svg x="192" y="201" width="108" height="146" viewBox="0 0 128 128" data-equipped-slot="shield" data-icon={layers.shield.iconId} data-rarity={layers.shield.rarity} style={itemStyle(layers.shield.rarity)}><EquipmentArt iconId={layers.shield.iconId} size={128}/></svg>}
       </g>
     </svg>
     <span className="gladiator-aura-caption">{aura.label} <span>· Nível {level}</span></span>
   </div>;
 }
+

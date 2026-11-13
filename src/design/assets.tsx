@@ -121,7 +121,7 @@ export const ArtworkImage: React.FC<ArtworkImageProps> = ({
  * Ícone pictórico de item com silhuetas imediatamente distinguíveis por categoria
  * (Espadas, Adagas, Escudos, Elmos, Armaduras, Manoplas, Grevas, Anéis e Amuletos).
  */
-export { EquipmentArt as ItemArtwork } from './EquipmentArt';
+export { ItemArtwork } from './ItemArtwork';
 
 /**
  * Retrato de inimigo ou oponente mantendo a direção de arte pictórica histórica.
@@ -197,3 +197,4 @@ export const EnemyPortrait: React.FC<{
     </div>
   );
 };
+

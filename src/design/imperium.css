@@ -66,7 +66,7 @@ body { background: #090c11; }
 .collection-card { display: flex; flex-direction: column; border: 1px solid color-mix(in srgb,var(--rarity),transparent 55%); border-radius: 12px; padding: 17px; background: linear-gradient(145deg,#1a202a,#11161e); }
 .collection-art { position: relative; display: grid; place-items: center; height: 110px; margin-bottom: 14px; border-radius: 8px; background: radial-gradient(ellipse,color-mix(in srgb,var(--rarity),transparent 72%),#0c1018 75%); }
 .collection-art svg { filter: drop-shadow(0 6px 9px #000b); width: 76px; height: 76px; }
-.collection-art > span { position: absolute; bottom: 8px; right: 8px; font-size: 10px; color: #c4bbac; }
+.collection-art > span:not(.item-portrait) { position: absolute; bottom: 8px; right: 8px; font-size: 10px; color: #c4bbac; }
 .rarity-label { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .collection-card h3 { font: 15px/1.4 var(--font-display); color: #efe0c8; margin: 8px 0; }
 .collection-card > p { font-size: 11px; color: #a5a6a6; line-height: 1.65; }
@@ -102,3 +102,4 @@ body { background: #090c11; }
   .chronicle-banner { padding: 20px; }
 }
 @media(prefers-reduced-motion:reduce) { .imperium-shell *, .imperium-shell *::before { transition: none!important; animation: none!important; } }
+
