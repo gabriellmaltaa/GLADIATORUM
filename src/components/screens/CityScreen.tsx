@@ -600,7 +600,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
                       className="flex items-center justify-between gap-2 bg-[#17120F] border border-[#5E4527] p-2 rounded-[2px] text-xs"
                     >
                       <div className="flex items-center gap-2">
-                        <ItemArtwork iconId={med.iconId} size={32} />
+                        <ItemArtwork iconId={med.iconId} rarity={med.rarity} size={32} />
                         <div>
                           <div className="font-bold text-[#EFE2C4]">{med.name}</div>
                           <div className="text-[10px] text-[#88B87E]">
@@ -727,7 +727,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
                         className="w-14 h-14 shrink-0 surface-leather border-2 flex items-center justify-center"
                         style={{ borderColor: rarity.border }}
                       >
-                        <ItemArtwork iconId={tpl.iconId} size={42} />
+                        <ItemArtwork iconId={tpl.iconId} rarity={tpl.rarity} size={42} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1">
@@ -974,7 +974,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
                       className="flex items-center gap-2 bg-[#211711] p-1.5 border rounded-[2px]"
                       style={{ borderColor: rInfo.border }}
                     >
-                      <ItemArtwork iconId={tpl.iconId} size={28} />
+                      <ItemArtwork iconId={tpl.iconId} rarity={tpl.rarity} size={28} />
                       <div>
                         <div
                           className="font-bold text-[11px]"
@@ -1037,3 +1037,5 @@ export const CityScreen: React.FC<CityScreenProps> = ({
     </div>
   );
 };
+
+
