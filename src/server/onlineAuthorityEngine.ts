@@ -597,6 +597,9 @@ export class OnlineAuthorityEngine {
    * (marcando `isPlayer: true` apenas no membro correspondente ao `uid` autenticado).
    */
   private buildClientGameStateForPlayer(record: AuthoritativePlayerRecord, nowMs: number): GameState {
+    if (record.state.tutorial.step === 'equip_item' && record.state.equipped.helmet) {
+      record.state.tutorial = advanceTutorialIfMatching(record.state.tutorial, 'equip_item');
+    }
     const stockIds = new Set(record.state.marketStock.map(item => item.templateId));
     record.state.marketStock = [...record.state.marketStock, ...EXPANSION_MARKET_IDS
       .filter(id => !stockIds.has(id)).map(id => createItemFromTemplate(id, `expansion_${id}`))];
