@@ -36,3 +36,13 @@ test('consumíveis e itens colocados no slot errado não viram roupa', () => {
   const appearance = getCharacterAppearance({ amulet: medicine, helmet: state.equipped.weapon }, 20);
   assert.deepEqual(appearance.layers, {});
 });
+
+test('retrato pintado segue a couraça e volta ao corpo neutro ao removê-la', () => {
+  const state = createInitialGameState(1000);
+  const armor = state.equipped.armor!;
+  assert.equal(getCharacterAppearance({}, 1).bodyColumn, 0);
+  assert.equal(getCharacterAppearance({ weapon: state.equipped.weapon }, 1).bodyColumn, 0);
+  assert.equal(getCharacterAppearance({ armor: { ...armor, iconId: 'lorica_leather' } }, 1).bodyColumn, 1);
+  assert.equal(getCharacterAppearance({ armor: { ...armor, iconId: 'lorica_segmentata' } }, 1).bodyColumn, 2);
+  assert.equal(getCharacterAppearance({ armor: { ...armor, iconId: 'lorica_hamata' } }, 1).bodyColumn, 3);
+});
