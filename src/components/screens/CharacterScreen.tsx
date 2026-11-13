@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RomanSceneArt } from '../../design/RomanIdentity';
+import { GladiatorAvatar } from '../../design/GladiatorAvatar';
 import { ArtworkImage, IMAGE_ASSETS } from '../../design/assets';
 import {
   EquipmentSlotType,
@@ -148,7 +148,8 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
 
               {/* Retrato Central do Gladiador */}
               <div className="flex flex-col items-center">
-                <RomanSceneArt scene="arsenal" label="Gladiador de corpo inteiro no arsenal romano" className="gladiator-stage relative w-full frame-bronze overflow-hidden shadow-xl">
+                <div className="gladiator-stage dynamic-gladiator-stage relative w-full frame-bronze overflow-hidden shadow-xl">
+                  <GladiatorAvatar equipped={state.equipped} level={state.level} name={displayNameWithTag} />
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent p-2 text-center">
                     <span className="font-roman font-bold text-xs sm:text-sm text-[#EFE2C4] block truncate">
                       {displayNameWithTag}
@@ -161,7 +162,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
                       Honra: {state.honor} (Posição #{playerRankEntry?.rank ?? '-'})
                     </button>
                   </div>
-                </RomanSceneArt>
+                </div>
               </div>
 
               {/* Slots da Direita */}
