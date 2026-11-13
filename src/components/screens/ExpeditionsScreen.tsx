@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { RomanSceneArt } from '../../design/RomanIdentity';
 import { ArtworkImage, IMAGE_ASSETS } from '../../design/assets';
 import {
   EXPEDITION_REGIONS,
@@ -63,7 +64,22 @@ export const ExpeditionsScreen: React.FC<ExpeditionsScreenProps> = ({
   const idleEnemy = idleRegion.enemies[state.idle.enemyIndex] ?? idleRegion.enemies[0];
 
   return (
-    <div className="space-y-4">
+    <div className="expeditions-screen space-y-4">
+      <section className="campaign-map" aria-label="Mapa das expedições">
+        <RomanSceneArt scene="map" label="Mapa ilustrado com florestas, montanhas e ruínas romanas">
+          <div className="map-cartouche"><span>PROVÍNCIAS DO IMPÉRIO</span><h2>Mapa de Expedição</h2><p>Escolha seu próximo destino</p></div>
+          <div className="map-destinations">
+            {EXPEDITION_REGIONS.map((region, index) => <button key={region.id} type="button"
+              aria-pressed={region.id === selectedRegionId}
+              onClick={() => setSelectedRegionId(region.id)}
+              className={`map-destination destination-${index}`}>
+              <span aria-hidden="true" className="map-pin">{index + 1}</span>
+              <strong>{region.name}</strong><small>{state.level < region.minLevel ? `Requer nível ${region.minLevel}` : `Nível ${region.minLevel}+ · ${region.energyCost} energia`}</small>
+            </button>)}
+          </div>
+          <div className="map-selection"><span>DESTINO SELECIONADO</span><strong>{selectedRegion.name}</strong><p>{selectedRegion.subtitle}</p></div>
+        </RomanSceneArt>
+      </section>
       {/* Espólios Pendentes para Resgate Idempotente no topo para visibilidade imediata */}
       {state.pendingRewards.length > 0 && (
         <div className="space-y-3">
