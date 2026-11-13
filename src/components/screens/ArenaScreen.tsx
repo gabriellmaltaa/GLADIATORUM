@@ -1,4 +1,5 @@
 import React from 'react';
+import { RomanSceneArt } from '../../design/RomanIdentity';
 import { ARENA_OPPONENTS } from '../../game/config';
 import {
   computePlayerRankings,
@@ -40,7 +41,10 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
   const guildBonuses = getActiveGuildBonuses(state.guildState);
 
   return (
-    <div className="space-y-4">
+    <div className="arena-screen space-y-4">
+      <RomanSceneArt scene="arena" label="Interior do Coliseu com tochas e estandartes" className="arena-panorama">
+        <div className="arena-proclamation"><span>ARENA PROVINCIAL</span><h2>A glória pertence aos audazes.</h2><p>Escolha um desafiante abaixo e prepare seu próximo duelo.</p><span className="arena-laurel" aria-hidden="true">SPQR</span></div>
+      </RomanSceneArt>
       <RomanPanel
         title="Arena Provincial de Cápua"
         subtitle="Desafios contra NPCs · prepare seu gladiador e conquiste prestígio"

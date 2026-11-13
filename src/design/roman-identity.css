@@ -1,0 +1,148 @@
+/* Illustrated Roman identity. Art is decorative; game controls remain live HTML. */
+.roman-identity {
+  padding-left: 0;
+  background: radial-gradient(ellipse at 50% 8%, #50341b45, transparent 60%), repeating-linear-gradient(0deg,#ffffff02 0 1px,transparent 1px 5px), #0b0c10;
+}
+.roman-identity .imperium-main { max-width: 1440px; padding: 10px 28px 140px; }
+.roman-identity .imperium-hero { background: none!important; min-height: 106px; padding: 15px 20px 20px; margin: 0; border: 0; border-radius: 0; box-shadow: none; justify-content: center; text-align: center; }
+.roman-identity .imperium-hero h1 { font-size: clamp(25px,3.2vw,40px); text-shadow: 0 2px 2px #000,0 0 24px #d38d3530; color: #f1d49d; margin: 5px 0; }
+.roman-identity .imperium-hero p, .roman-identity .hero-seal { display: none; }
+.roman-identity .imperium-hero .eyebrow { font-size: 9px; letter-spacing: .3em; color: #af8b50; }
+.roman-identity .roman-resource-bar { border-bottom: 3px ridge #9f7846; background: linear-gradient(#2c2925,#13161c 60%,#171310); box-shadow: 0 4px 18px #0009; }
+.roman-identity .roman-resource-bar > div { max-width: 1384px; min-height: 94px; }
+.roman-resource-bar > div > div:first-child { max-width: 420px; background: linear-gradient(135deg,#484844,#242a30 55%,#15191e); border: 3px ridge #9b835b; padding: 8px 16px 8px 8px; box-shadow: inset 0 0 0 3px #16181a,0 4px 10px #0008; border-radius: 45px 9px 24px 45px; }
+.roman-resource-bar > div > div:first-child > div:first-child { width: 62px; height: 62px; border: 3px ridge #bd995c; border-radius: 50%; box-shadow: 0 0 0 4px #6b4b2b55; overflow: visible; }
+.roman-resource-bar > div > div:first-child img { border-radius: 50%; }
+.roman-resource-bar > div > div:first-child > div:first-child > span { border-radius: 50%; bottom: -5px; right: -4px; width: 23px; height: 23px; display: grid; place-items: center; border: 2px ridge #d0ab68; }
+.roman-resource-bar > div > div:last-child > div > div > div:last-child { height: 10px; border: 2px ridge #c1a369; border-radius: 10px; box-shadow: 0 2px 5px #000; }
+.roman-resource-bar > div > div:last-child > div > div:last-child > div:last-child > div { background: linear-gradient(#ffe19c,#be8b29 50%,#6a4219); }
+.roman-resource-bar > div > div:last-child > div > div:first-child > div:last-child > div { background: linear-gradient(#ce7466,#8a2627 50%,#421314); }
+.roman-resource-bar button[aria-label] { border: 2px ridge #b28d52; background: linear-gradient(#513c29,#261b14); box-shadow: inset 0 0 0 2px #201911; color: #ebd5a9; }
+.doctore-scroll { position: relative; max-width: 1040px; width: calc(100% - 70px); align-self: center; padding: 12px 28px; background: radial-gradient(ellipse,#eddbaf,#d2b079 70%,#936037); border: 0; border-left: 9px ridge #a27539; border-right: 9px ridge #a27539; box-shadow: 0 7px 18px #0008,inset 0 0 15px #87542b88; color: #382719; border-radius: 2px 2px 18px 6px; }
+.doctore-scroll p { color: #463323; font-family: Georgia,serif; font-style: italic; font-size: 13px; max-width: 640px; line-height: 1.5; }
+.doctore-scroll > div > div:first-child > div > span:last-child { color: #533820; font-size: 11px; }
+.doctore-scroll > div > div:last-child > div > button { border-radius: 50%; width: 84px; height: 84px; white-space: normal; font-size: 11px; line-height: 1.3; border: 5px double #f6d38b; background: radial-gradient(circle at 35% 20%,#ffe7a7,#d8a64b 60%,#8d4f1c); color: #482b16; box-shadow: 0 0 0 4px #795022,0 0 17px #d99c3170; }
+.doctore-scroll > div > div:last-child > button { color: #513820; border-color: #8d6c3c; }
+.roman-identity .roman-panel { border: 3px ridge #8f7046; border-radius: 5px; box-shadow: inset 0 0 0 2px #111,0 10px 22px #0006; }
+.roman-identity .roman-panel.surface-stone { background: repeating-linear-gradient(7deg,#ffffff02 0 1px,transparent 1px 4px),linear-gradient(120deg,#23201e,#121419 60%,#211a15); }
+.roman-identity .roman-panel.surface-wood { background: repeating-linear-gradient(0deg,#120b0630 0 2px,transparent 2px 8px),linear-gradient(115deg,#38291d,#1e1713); }
+.roman-identity .roman-panel > header { background: linear-gradient(#34291f,#171411); border-bottom: 2px ridge #967348; padding: 12px 16px; }
+.roman-identity .roman-panel > header h2 { color: #e9ca91; font-size: 14px; }
+.roman-identity .roman-panel.surface-parchment { background: radial-gradient(ellipse at 35% 35%,#efdbac,#d0b079 80%,#9e7545); box-shadow: inset 0 0 28px #82532880,0 8px 20px #0008; border-color: #ad8149; }
+.roman-identity .roman-panel.surface-parchment > header { background: #49301e; }
+.roman-identity .equipment-slot { border: 3px ridge #9d794a; border-radius: 5px; background: radial-gradient(ellipse at 50% 25%,#582e20,#25141a 65%,#100d0e); box-shadow: inset 0 0 0 3px #0d0b0a,0 3px 7px #0009; }
+.roman-identity .equipment-slot:hover { box-shadow: 0 0 13px #dc9b3855,inset 0 0 0 2px #a57f40; }
+.roman-identity .equipment-slot svg { filter: drop-shadow(0 4px 3px #000); }
+.roman-identity button { touch-action: manipulation; }
+.roman-scene { position: relative; overflow: hidden; isolation: isolate; }
+.roman-scene-art { position: absolute; inset: 0; z-index: -1; background-image: var(--roman-atlas); background-repeat: no-repeat; background-size: 200% 200%; }
+.scene-arsenal .roman-scene-art { background-position: left top; }
+.scene-city .roman-scene-art { background-position: right top; }
+.scene-map .roman-scene-art { background-position: left bottom; }
+.scene-arena .roman-scene-art { background-position: right bottom; }
+.roman-identity .gladiator-stage { aspect-ratio: 1; border: 0; border-radius: 45% 45% 4px 4px; max-width: none; box-shadow: 0 0 40px #c2842330; }
+.arsenal-equipment { grid-template-columns: 70px minmax(0,1fr) 70px; min-height: 350px; }
+.character-screen > div.lg\:grid-cols-12 { gap: 22px; }
+.roman-identity .character-screen > div:first-child { border: 1px solid #a6814855; background: #211a13; padding: 14px; }
+.inventory-screen > section:first-child { background: linear-gradient(#211713cc,#100c09e8),repeating-linear-gradient(90deg,#422d1f 0 3px,#261d17 3px 12px)!important; }
+.inventory-screen .surface-parchment { border-radius: 3px 12px 6px 14px; }
+.inventory-screen .surface-parchment > div > div:first-child { align-items: center; }
+.inventory-screen .surface-parchment svg { width: 96px; height: 96px; }
+.campaign-map { border: 5px ridge #987446; box-shadow: 0 12px 25px #0008; border-radius: 6px; }
+.campaign-map .roman-scene { min-height: 550px; }
+.map-cartouche { text-align: center; position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: max-content; max-width: 90%; padding: 10px 30px; background: linear-gradient(#38251a,#17120e); border: 2px ridge #d6ae69; box-shadow: 0 5px 9px #0007; }
+.map-cartouche > span,.city-intro > span,.arena-proclamation > span:first-child { color: #cfaa6c; font-size: 9px; letter-spacing: .24em; }
+.map-cartouche h2 { font: 23px var(--font-display); color: #f1d7a2; }
+.map-cartouche p { font-size: 11px; color: #c5aa7b; }
+.map-destinations { position: absolute; inset: 128px 24px 95px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-content: space-around; gap: 35px 24px; }
+.map-destination { justify-self: center; width: min(230px,100%); position: relative; display: flex; flex-direction: column; align-items: center; color: #fff0c9; text-shadow: 0 2px 3px #000; filter: drop-shadow(0 3px 3px #0007); min-height: 80px; }
+.map-pin { width: 37px; height: 37px; border-radius: 50%; display: grid; place-items: center; font: 16px Georgia,serif; color: #ffdd8c; background: linear-gradient(45deg,#4c2516,#9a4d24); border: 3px ridge #ddb46a; margin-bottom: 10px; text-shadow: 0 1px 2px #000; }
+.map-destination strong { font: 12px var(--font-display); background: #20180fe8; border: 1px solid #ac8952; padding: 5px 9px; }
+.map-destination small { background: #e5ca95ed; color: #432c18; text-shadow: none; font-size: 10px; padding: 2px 7px; }
+.map-destination[aria-pressed=true] .map-pin { background: #d7a74b; box-shadow: 0 0 0 5px #fbe0a344,0 0 20px #ffd674; color: #331d0b; }
+.map-destination[aria-pressed=true] strong { border-color: #ffe3a1; background: #742f1a; }
+.map-selection { position: absolute; bottom: 0; left: 0; right: 0; padding: 14px 22px; background: linear-gradient(90deg,#26170ff2,#382819e8); border-top: 3px ridge #b58b4c; }
+.map-selection > span { font-size: 9px; color: #b98c50; letter-spacing: .2em; display: block; }
+.map-selection strong { font: 22px var(--font-display); color: #f1d39c; }
+.map-selection p { font-size: 11px; color: #c5b28e; }
+.city-panorama { min-height: 620px; border: 5px ridge #987446; border-radius: 5px; box-shadow: 0 10px 30px #0008; }
+.city-intro { padding: 20px 24px; background: linear-gradient(#090b0ee8,transparent); }
+.city-intro h2 { font: 24px var(--font-display); color: #f4dfb5; text-shadow: 0 2px 5px #000; margin-top: 5px; }
+.city-locations { position: absolute; inset: 100px 30px 32px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 45px 25px; align-items: center; }
+.city-location { display: flex; flex-direction: column; align-items: center; justify-self: center; min-width: 0; filter: drop-shadow(0 3px 4px #0008); }
+.city-location .navigation-emblem { width: 66px; height: 62px; padding: 7px; border: 3px ridge #d5b16a; border-radius: 50%; background: radial-gradient(#68482a,#251b12); }
+.city-location strong { font: 12px var(--font-display); color: #f3dba9; background: linear-gradient(#443123,#20160f); border: 3px ridge #b28d54; padding: 5px 12px; text-align: center; }
+.city-location small { font-size: 10px; color: #ffefcc; background: #1b130ed9; padding: 4px 8px; }
+.city-location[aria-pressed=true] .navigation-emblem { box-shadow: 0 0 0 4px #e2b75a55,0 0 26px #ffce7a; }
+.city-location:hover { transform: translateY(-3px); }
+.city-screen .chronicle-banner { background: linear-gradient(110deg,#44331f,#201711); border: 3px ridge #a2814e; border-radius: 2px; }
+.city-services-anchor { scroll-margin-top: 110px; }
+.arena-panorama { min-height: 330px; border: 5px ridge #987446; border-radius: 5px; }
+.arena-panorama::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg,#100b08d9,#160e0644,transparent); z-index: -1; }
+.arena-proclamation { padding: 52px 36px; max-width: 600px; }
+.arena-proclamation h2 { font: 36px/1.25 var(--font-display); color: #f2d6a3; text-shadow: 0 3px 7px #000; margin: 12px 0; }
+.arena-proclamation p { color: #e2c7a0; font-size: 13px; max-width: 330px; }
+.arena-laurel { display: block; width: 64px; height: 64px; border: 5px double #d8b16e; border-radius: 50%; font: 14px/54px Georgia,serif; text-align: center; margin-top: 20px; color: #eed4a3; background: #502c19a8; }
+.arena-screen > .roman-panel:last-child > div:last-child > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.arena-screen > .roman-panel:last-child > div:last-child > div > * { margin-top: 0; }
+.roman-identity .ludus-navigation { width: 100%; top: auto; left: 0; right: 0; bottom: 0; padding: 0 max(10px,env(safe-area-inset-right)) env(safe-area-inset-bottom); border-top: 5px ridge #8e7249; border-right: 0; background: linear-gradient(#252321f5,#0c1016fa 50%); box-shadow: 0 -8px 25px #0009; backdrop-filter: blur(12px); }
+.roman-identity .ludus-navigation::before { display: none; }
+.roman-identity .ludus-navigation > div { max-width: 1100px; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 0; }
+.roman-identity .ludus-navigation button { min-height: 112px; display: flex; flex-direction: column; gap: 0; justify-content: center; align-items: center; padding: 0 6px 8px; border-radius: 0; background: none; color: #b49a70; }
+.roman-identity .ludus-navigation .navigation-emblem { width: 79px; height: 76px; filter: drop-shadow(0 4px 3px #000); transition: transform .2s; }
+.roman-identity .ludus-navigation button[aria-current] { background: radial-gradient(ellipse at center bottom,#a477303b,transparent 70%); color: #f5d899; }
+.roman-identity .ludus-navigation button[aria-current] .navigation-emblem { transform: translateY(-9px) scale(1.18); filter: drop-shadow(0 0 9px #f5c16366) drop-shadow(0 5px 4px #000); }
+.roman-identity .ludus-navigation button > span:not(.absolute) { font-size: 11px; letter-spacing: .06em; }
+.roman-identity .ludus-navigation button > span.absolute:first-child { display: none; }
+.roman-identity .ludus-navigation button > span.absolute:last-child { top: 8px; right: 15%; border: 1px solid #9b7b46; background: #281c12; font-size: 9px; }
+@media(min-width:1500px) { .roman-identity .arsenal-equipment { min-height: 470px; } }
+@media(max-width:900px) {
+  .roman-identity .imperium-main { padding: 8px 14px 120px; }
+  .roman-identity .ludus-navigation button { min-height: 92px; }
+  .roman-identity .ludus-navigation .navigation-emblem { width: 64px; height: 61px; }
+  .city-panorama { min-height: 520px; }
+  .arsenal-equipment { min-height: 380px; }
+}
+@media(max-width:600px) {
+  .roman-identity .imperium-main { padding: 6px 10px 105px; }
+  .roman-identity .imperium-hero { min-height: 83px; padding: 15px 0; }
+  .roman-identity .imperium-hero h1 { font-size: 25px; }
+  .roman-identity .roman-resource-bar > div { min-height: 78px; gap: 5px; padding: 5px 8px; }
+  .roman-resource-bar > div > div:first-child { padding: 5px; border-width: 2px; border-radius: 35px 4px 10px 35px; }
+  .roman-resource-bar > div > div:first-child > div:first-child { width: 40px; height: 40px; border-width: 2px; }
+  .roman-resource-bar > div > div:first-child > div:last-child > div:first-child > span:last-of-type { font-size: 8px; }
+  .roman-resource-bar > div > div:last-child { gap: 4px; }
+  .roman-resource-bar > div > div:last-child button { min-width: 36px; padding: 3px; font-size: 9px; }
+  .doctore-scroll { width: calc(100% - 22px); padding: 9px 12px; border-width: 5px; }
+  .doctore-scroll > div { gap: 8px; }
+  .doctore-scroll > div > div:last-child { align-self: stretch; justify-content: space-between; }
+  .doctore-scroll > div > div:last-child > div > button { width: auto; height: 44px; border-radius: 3px; border-width: 2px; padding: 5px 15px; box-shadow: 0 2px 5px #70421866; }
+  .doctore-scroll p { font-size: 12px; }
+  .roman-identity .ludus-navigation button { min-height: 78px; padding: 0 2px 7px; }
+  .roman-identity .ludus-navigation .navigation-emblem { width: 52px; height: 49px; }
+  .roman-identity .ludus-navigation button > span:not(.absolute) { font-size: 8px; letter-spacing: 0; }
+  .roman-identity .ludus-navigation button[aria-current] .navigation-emblem { transform: translateY(-5px) scale(1.1); }
+  .roman-identity .ludus-navigation button > span.absolute:last-child { top: 1px; right: 0; font-size: 7px; }
+  .roman-identity .roman-panel > div:last-child { padding: 12px; }
+  .arsenal-equipment { grid-template-columns: 56px minmax(0,1fr) 56px; min-height: 290px; gap: 0; }
+  .roman-identity .gladiator-stage { aspect-ratio: .72; border-radius: 40% 40% 0 0; }
+  .campaign-map .roman-scene { min-height: 580px; }
+  .map-destinations { grid-template-columns: repeat(2,minmax(0,1fr)); inset: 120px 8px 105px; gap: 20px 10px; }
+  .map-cartouche { padding: 9px 12px; width: 86%; }
+  .map-cartouche h2 { font-size: 19px; }
+  .map-destination strong { font-size: 10px; padding: 5px; }
+  .map-destination small { font-size: 9px; }
+  .map-selection { padding: 12px; }
+  .map-selection strong { font-size: 18px; }
+  .city-panorama { min-height: 650px; }
+  .city-locations { grid-template-columns: repeat(2,minmax(0,1fr)); inset: 105px 5px 20px; gap: 24px 4px; }
+  .city-location strong { font-size: 10px; padding: 5px 7px; }
+  .city-location small { font-size: 8px; }
+  .city-intro { padding: 14px; }
+  .city-intro h2 { font-size: 20px; }
+  .arena-panorama { min-height: 300px; }
+  .arena-proclamation { padding: 30px 22px; }
+  .arena-proclamation h2 { font-size: 29px; }
+  .arena-screen > .roman-panel:last-child > div:last-child > div { grid-template-columns: 1fr; }
+}
+@media(prefers-reduced-motion:reduce) { .roman-identity *, .roman-identity *::before { animation: none!important; transition: none!important; } }

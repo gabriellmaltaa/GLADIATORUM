@@ -60,7 +60,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="inventory-screen space-y-4">
       <RomanPanel
         title="Equipamentos em Uso no Corpo"
         subtitle={

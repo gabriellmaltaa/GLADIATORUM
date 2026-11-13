@@ -1384,7 +1384,8 @@ export default function App() {
   return (
     <>
       <GameShell
-        sectionTitle={({ character: 'O seu legado', expeditions: 'Além das muralhas', arena: 'Sangue & glória', inventory: 'Arsenal do gladiador', city: 'O coração de Cápua' })[activeTab]}
+        activeTab={activeTab}
+        sectionTitle={({ character: 'Arsenal do Gladiador', expeditions: 'Expedições e Campanhas', arena: 'Arena de Combate', inventory: 'Inventário do Arsenal', city: 'Cidade de Cápua' })[activeTab]}
         bannerFeedback={bannerFeedback}
         onDismissFeedback={() => setBannerFeedback(null)}
         guidedOnboardingBar={
@@ -2017,7 +2018,7 @@ const GuidedTutorialBar: React.FC<{
   const info = stepMeta[step];
 
   return (
-    <div className="w-full bg-[#241A14] border-b-2 border-[#B79552] px-2.5 py-2">
+    <div className="doctore-scroll w-full bg-[#241A14] border-b-2 border-[#B79552] px-2.5 py-2">
       <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
