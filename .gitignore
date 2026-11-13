@@ -8,4 +8,5 @@ coverage/
 !.env.example
 .playwright-cli/
 .data/
+.test-build/
 

@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import { claimContract } from '../game/contracts';
+import { EXPANSION_MARKET_IDS } from '../game/expansion';
 import path from 'node:path';
 import {
   ARENA_OPPONENTS,
@@ -161,6 +163,7 @@ export interface CursorPaginatedGuildsResponse {
 }
 
 export type AuthoritativeActionType =
+  | 'claim_contract'
   | 'update_gladiator_name'
   | 'equip_item'
   | 'unequip_slot'
@@ -241,15 +244,8 @@ const MAX_RETAINED_LEDGER_ENTRIES = 50;
 const MAX_RETAINED_AUDIT_ENTRIES = 50;
 const MAX_RETAINED_ANNOUNCEMENTS = 20;
 
-export const MIGRATION_COMPETITIVE_CAPS = {
-  maxLevel: 5,
-  maxGold: 600,
-  maxHonor: 180,
-  maxFame: 220,
-  maxWins: 25,
-  maxGoldLooted: 1200,
-  maxBaseStat: 16,
-} as const;
+import { MIGRATION_COMPETITIVE_CAPS } from '../game/onlinePolicy';
+export { MIGRATION_COMPETITIVE_CAPS } from '../game/onlinePolicy';
 
 export function normalizeGuildNameKey(name: string): string {
   return name.trim().replace(/\s+/g, ' ').toLowerCase();
@@ -601,6 +597,12 @@ export class OnlineAuthorityEngine {
    * (marcando `isPlayer: true` apenas no membro correspondente ao `uid` autenticado).
    */
   private buildClientGameStateForPlayer(record: AuthoritativePlayerRecord, nowMs: number): GameState {
+    const stockIds = new Set(record.state.marketStock.map(item => item.templateId));
+    record.state.marketStock = [...record.state.marketStock, ...EXPANSION_MARKET_IDS
+      .filter(id => !stockIds.has(id)).map(id => createItemFromTemplate(id, `expansion_${id}`))];
+    record.state.discoveredTemplates = [...new Set([...(record.state.discoveredTemplates ?? []),
+      ...record.state.inventory.map(i => i.templateId),
+      ...Object.values(record.state.equipped).filter(Boolean).map(i => i!.templateId)])];
     const playerGuildId = this.findPlayerGuildId(record.uid);
     const sharedGuildsForClient: GuildRecord[] = [];
 
@@ -1548,6 +1550,13 @@ export class OnlineAuthorityEngine {
           break;
         }
 
+        case 'claim_contract': {
+          const result = claimContract(record.state, String(params.contractId ?? ''));
+          if (result.error) return fail(result.error);
+          record.state = result.state;
+          message = 'Contrato concluído. Denários creditados no servidor.';
+          break;
+        }
         case 'claim_reward': {
           const claimId = String(params.claimId ?? '');
           const stateWithGuild = this.buildClientGameStateForPlayer(record, serverNowMs);
