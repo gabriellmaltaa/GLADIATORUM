@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { NavigationEmblem } from '../../design/RomanIdentity';
 import { DESIGN_TOKENS } from '../../design/tokens';
 import {
   ArtworkImage,
@@ -1197,7 +1198,7 @@ export const ResourceBar: React.FC<ResourceBarProps> = ({
     typeof window !== 'undefined' && window.location.search.includes('dev=1');
 
   return (
-    <header className="sticky top-0 z-20 w-full bg-[#1D1510] border-b-2 border-[#947044] shadow-md">
+    <header className="roman-resource-bar sticky top-0 z-20 w-full bg-[#1D1510] border-b-2 border-[#947044] shadow-md">
       <div className="max-w-5xl mx-auto px-2.5 py-1.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="relative w-10 h-10 shrink-0 frame-bronze overflow-hidden bg-[#17120F]">
@@ -1364,61 +1365,14 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   maxInventory,
   idleActive,
 }) => {
-  const navItems: { id: MainTabId; label: string; badge?: string; svg: React.ReactNode }[] = [
-    {
-      id: 'character',
-      label: 'Personagem',
-      svg: (
-        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M12 3 C8 3 6 6 6 10 L6 15 L9 17 L9 12 L15 12 L15 17 L18 15 L18 10 C18 6 16 3 12 3 Z" />
-          <path d="M5 21 C6 18 18 18 19 21" />
-        </svg>
-      ),
-    },
-    {
-      id: 'expeditions',
-      label: 'Expedições',
-      badge: idleActive ? 'Auto' : undefined,
-      svg: (
-        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <polygon points="12,2 15,9 22,12 15,15 12,22 9,15 2,12 9,9" />
-          <circle cx="12" cy="12" r="2" />
-        </svg>
-      ),
-    },
-    {
-      id: 'arena',
-      label: 'Arena',
-      svg: (
-        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M5 19 L19 5 M15 5 L19 5 L19 9" />
-          <path d="M19 19 L5 5 M9 5 L5 5 L5 9" />
-        </svg>
-      ),
-    },
-    {
-      id: 'inventory',
-      label: 'Inventário',
-      badge: `${inventoryCount}/${maxInventory}`,
-      svg: (
-        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <rect x="4" y="6" width="16" height="14" rx="2" />
-          <path d="M9 6 V4 H15 V6 M4 11 H20" />
-        </svg>
-      ),
-    },
-    {
-      id: 'city',
-      label: 'Cidade',
-      svg: (
-        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M3 10 L12 4 L21 10" />
-          <path d="M6 10 V19 M10 10 V19 M14 10 V19 M18 10 V19" />
-          <path d="M3 19 H21" />
-        </svg>
-      ),
-    },
+  const navItems: { id: MainTabId; label: string; badge?: string }[] = [
+    { id: 'character', label: 'Personagem' },
+    { id: 'expeditions', label: 'Expedições', badge: idleActive ? 'Auto' : undefined },
+    { id: 'arena', label: 'Arena' },
+    { id: 'inventory', label: 'Inventário', badge: `${inventoryCount}/${maxInventory}` },
+    { id: 'city', label: 'Cidade' },
   ];
+
 
   return (
     <nav
@@ -1446,7 +1400,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
                   className="absolute top-0 left-0 right-0 h-0.5 bg-[#D4B26A]"
                 />
               )}
-              {item.svg}
+              <NavigationEmblem kind={item.id} />
               <span className="mt-0.5 text-[9.5px] sm:text-xs font-roman font-bold tracking-tighter whitespace-nowrap">
                 {item.label}
               </span>
@@ -1514,6 +1468,7 @@ export const GameModal: React.FC<GameModalProps> = ({
  * 14. GameShell — Estrutura Principal Responsiva
  */
 export interface GameShellProps {
+  activeTab?: MainTabId;
   sectionTitle?: string;
   resourceBar: React.ReactNode;
   bottomNav: React.ReactNode;
@@ -1524,6 +1479,7 @@ export interface GameShellProps {
 }
 
 export const GameShell: React.FC<GameShellProps> = ({
+  activeTab = 'character',
   sectionTitle = 'Seu gladiador',
   resourceBar,
   bottomNav,
@@ -1532,8 +1488,9 @@ export const GameShell: React.FC<GameShellProps> = ({
   onDismissFeedback,
   children,
 }) => {
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [activeTab]);
   return (
-    <div className="imperium-shell min-h-screen w-full bg-[#17120F] text-[#EFE2C4] flex flex-col overflow-x-hidden">
+    <div data-section={activeTab} className="imperium-shell roman-identity min-h-screen w-full bg-[#17120F] text-[#EFE2C4] flex flex-col overflow-x-hidden">
       {resourceBar}
 
       {guidedOnboardingBar}

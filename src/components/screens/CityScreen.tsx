@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { NavigationEmblem, RomanSceneArt } from '../../design/RomanIdentity';
 import { ChronicleScreen } from './ChronicleScreen';
 import { EquipmentFilters, EMPTY_EQUIPMENT_FILTER, matchesEquipmentFilter } from '../ui/EquipmentFilters';
 import { DESIGN_TOKENS } from '../../design/tokens';
@@ -248,13 +249,30 @@ export const CityScreen: React.FC<CityScreenProps> = ({
     activeDungeon.encounters[0];
 
   const medicineInBag = state.inventory.filter((i) => Boolean(i.consumable));
+  const servicesRef = useRef<HTMLDivElement>(null);
   const totalDungeonsCompleted = Object.values(state.dungeonProgress).reduce(
     (acc, p) => acc + (p?.completedCount ?? 0),
     0
   );
 
   return (
-    <div className="space-y-4">
+    <div className="city-screen space-y-4">
+      <RomanSceneArt scene="city" label="Panorama de Cápua com mercado, forja e templo" className="city-panorama">
+        <div className="city-intro"><span>BEM-VINDO A CÁPUA</span><h2>Todos os caminhos levam à glória.</h2></div>
+        <div className="city-locations" aria-label="Serviços da cidade">
+          {([
+            ['training', 'Campo de Treino', 'character', 'Aprimore seus atributos'],
+            ['market', 'Mercado', 'inventory', 'Armas e equipamentos'],
+            ['medicina', 'Casa de Medicina', 'city', 'Cuidados e remédios'],
+            ['dungeons', 'Catacumbas', 'arena', 'Explore as masmorras'],
+            ['guild', 'Sede das Guildas', 'city', 'Encontre sua aliança'],
+            ['chronicle', 'Arquivo Imperial', 'expeditions', 'Contratos e coleção'],
+          ] as const).map(([tab, label, emblem, description]) => <button type="button" key={tab} aria-pressed={subTab === tab} onClick={() => { selectSubTab(tab); servicesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className={`city-location location-${tab}`}>
+            <NavigationEmblem kind={emblem}/><strong>{label}</strong><small>{description}</small>
+          </button>)}
+        </div>
+      </RomanSceneArt>
+      <div ref={servicesRef} className="city-services-anchor" />
       <button className="chronicle-banner" onClick={() => selectSubTab('chronicle')}>
         <span className="eyebrow">O SEU LEGADO COMEÇA AQUI</span>
         <strong>Contratos & Coleção</strong>
