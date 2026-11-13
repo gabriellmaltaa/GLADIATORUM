@@ -15,5 +15,6 @@ export function getCharacterAppearance(equipped: EquippedAppearance, level: numb
   const tier = safeLevel >= 50 ? 5 : safeLevel >= 35 ? 4 : safeLevel >= 20 ? 3 : safeLevel >= 10 ? 2 : safeLevel >= 5 ? 1 : 0;
   const colors = ['#be9b68', '#e0a04d', '#64bfff', '#bd88fa', '#ffd46c', '#fff0bd'];
   const names = ['Tênue', 'Bronze', 'Celeste', 'Arcana', 'Imperial', 'Solar'];
-  return { layers, aura: { strength, tier, color: colors[tier], label: strength === 0 ? 'Sem aura' : `Aura ${names[tier]}` } };
+  const bodyColumn = !layers.armor ? 0 : layers.armor.iconId === 'lorica_leather' ? 1 : layers.armor.iconId === 'lorica_hamata' ? 3 : 2;
+  return { layers, bodyColumn, aura: { strength, tier, color: colors[tier], label: strength === 0 ? 'Sem aura' : `Aura ${names[tier]}` } };
 }
