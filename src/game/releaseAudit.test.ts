@@ -99,3 +99,20 @@ test('Auditoria: nova instância do servidor restaura progresso e operação rep
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('Auditoria: conta online antiga com elmo equipado retoma tutorial no treinamento', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gladiatorum-tutorial-'));
+  const file = path.join(dir, 'state.json');
+  const identity = { uid: 'old_tutorial', email: 'old@example.test', displayName: 'Veterano' };
+  const now = 1_750_000_000_000;
+  try {
+    new OnlineAuthorityEngine({ persistencePath: file }).bootstrapPlayer(identity, now);
+    const saved = JSON.parse(fs.readFileSync(file, 'utf-8'));
+    const state = saved.players.find(([uid]: [string, unknown]) => uid === identity.uid)[1].state;
+    state.tutorial.step = 'equip_item';
+    state.equipped.helmet = state.inventory.find((item: { slot: string }) => item.slot === 'helmet');
+    fs.writeFileSync(file, JSON.stringify(saved));
+    const result = new OnlineAuthorityEngine({ persistencePath: file }).bootstrapPlayer(identity, now + 1000);
+    assert.equal(result.state.tutorial.step, 'train_stat');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
