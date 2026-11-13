@@ -157,6 +157,9 @@ export interface GameState {
   energy: number;
   maxEnergy: number;
   lastEnergyTickMs: number;
+  claimedContracts?: string[];
+  discoveredTemplates?: string[];
+  regenerationRemainder?: { energyMs: number; hpUnits: number };
   lastSaveTimestampMs: number;
   baseStats: BaseAttributes;
   equipped: Partial<Record<EquipmentSlotType, GameItem>>;
@@ -241,9 +244,14 @@ export function syncPlayerWithGuildAndFeats(state: GameState): GameState {
     featsCount: completedFeats.length,
   };
   const nextGuildState = syncPlayerMemberInGuilds(state.guildState, snapshot);
+  const tutorial = state.tutorial.step === 'equip_item' && state.equipped.helmet
+    ? advanceTutorialIfMatching(state.tutorial, 'equip_item') : state.tutorial;
   return {
     ...state,
+    tutorial,
     completedFeats,
+    discoveredTemplates: [...new Set([...(state.discoveredTemplates ?? []),
+      ...state.inventory.map(i => i.templateId), ...Object.values(state.equipped).filter(Boolean).map(i => i!.templateId)])],
     guildState: nextGuildState,
   };
 }
@@ -963,6 +971,7 @@ export function claimPendingReward(
     goldLooted: state.goldLooted + targetBatch.gold,
     currentHp: newCurrentHp,
     inventory: newInventory,
+    discoveredTemplates: [...new Set([...(state.discoveredTemplates ?? []), ...targetBatch.items.map(item => item.templateId)])],
     pendingRewards: updatedPending.filter((b) => !b.claimed),
     claimedRewardIds: [...state.claimedRewardIds.slice(-99), claimId],
     tutorial: advanceTutorialIfMatching(state.tutorial, 'claim_reward'),
@@ -1287,6 +1296,7 @@ export function buyItemFromMarket(
     state: {
       ...state,
       gold: state.gold - item.buyPrice,
+      discoveredTemplates: [...new Set([...(state.discoveredTemplates ?? []), item.templateId])],
       inventory: [...state.inventory, purchasedCopy],
     },
   };
@@ -1312,6 +1322,7 @@ export function sellItemFromInventory(
     state: {
       ...state,
       gold: state.gold + item.sellPrice,
+      discoveredTemplates: [...new Set([...(state.discoveredTemplates ?? []), item.templateId])],
       inventory: nextInventory,
     },
     goldReceived: item.sellPrice,
@@ -1555,7 +1566,7 @@ export function calculateElapsedIdleProgress(
   state: GameState;
   offlineBatchCreated: PendingRewardBatch | null;
 } {
-  const rawElapsedSeconds = Math.max(0, Math.floor((nowMs - state.lastSaveTimestampMs) / 1000));
+  const rawElapsedSeconds = Math.max(0, (nowMs - state.lastSaveTimestampMs) / 1000);
   if (rawElapsedSeconds <= 0) {
     return { state, offlineBatchCreated: null };
   }
@@ -1573,14 +1584,26 @@ export function calculateElapsedIdleProgress(
     nowMs
   );
 
-  const energyRegenPoints = Math.floor(
-    effectiveSeconds / GAME_CONFIG.energyRegenIntervalSeconds
-  );
-  // Inclui o bônus do Balneário da Guilda através de derived.hpRegenPerMinute
-  const hpRegenPoints = Math.floor((effectiveSeconds / 60) * derived.hpRegenPerMinute);
+  // Acumule frações antes de arredondar: o tick da interface ocorre a cada 1s.
+  // Milissegundos e unidades de PV/min evitam perder progresso em cada chamada.
+  const elapsedMs = Math.round(effectiveSeconds * 1000);
+  const energyIntervalMs = GAME_CONFIG.energyRegenIntervalSeconds * 1000;
+  const energyMs = (state.regenerationRemainder?.energyMs ?? 0) + elapsedMs;
+  const hpUnits = (state.regenerationRemainder?.hpUnits ?? 0) +
+    elapsedMs * derived.hpRegenPerMinute;
+  const energyRegenPoints = Math.floor(energyMs / energyIntervalMs);
+  const hpRegenPoints = Math.floor(hpUnits / 60_000);
 
   let nextEnergy = Math.min(state.maxEnergy, state.energy + energyRegenPoints);
   let nextHp = Math.min(derived.maxHp, state.currentHp + hpRegenPoints);
+
+  state = {
+    ...state,
+    regenerationRemainder: {
+      energyMs: nextEnergy >= state.maxEnergy ? 0 : energyMs % energyIntervalMs,
+      hpUnits: nextHp >= derived.maxHp ? 0 : hpUnits % 60_000,
+    },
+  };
 
   // Limpa buffs expirados do registro da guilda após contabilizar a janela
   const playerGuild = state.guildState?.playerGuildId

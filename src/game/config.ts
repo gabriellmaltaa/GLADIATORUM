@@ -1,4 +1,5 @@
 import type { RarityKey } from '../design/tokens.ts';
+import { EXPANSION_ITEMS, EXPANSION_REGIONS, EXPANSION_MARKET_IDS } from './expansion';
 import type { EnemyAvatarId, ItemIconId } from '../design/assets.tsx';
 import {
   EXPANDED_EQUIPMENT_TEMPLATES,
@@ -483,6 +484,7 @@ export const ITEM_TEMPLATES: Record<string, Omit<GameItem, 'id'>> = {
   },
   ...MEDICINE_ITEM_TEMPLATES,
   ...EXPANDED_EQUIPMENT_TEMPLATES,
+  ...EXPANSION_ITEMS,
 };
 
 export { MEDICAL_TREATMENTS, MEDICINE_ITEM_TEMPLATES };
@@ -630,6 +632,8 @@ export const EXPEDITION_REGIONS: ExpeditionRegion[] = [
     ],
   },
 ];
+
+EXPEDITION_REGIONS.push(...EXPANSION_REGIONS);
 
 export interface SimulatedArenaOpponent extends EnemyDefinition {
   arenaRank: number;
@@ -835,6 +839,7 @@ export const DUNGEONS: DungeonDefinition[] = [
 ];
 
 export const INITIAL_MARKET_TEMPLATE_IDS: string[] = [
+  ...EXPANSION_MARKET_IDS,
   'gladius_recruit',
   'scutum_oak',
   'galea_recruit',

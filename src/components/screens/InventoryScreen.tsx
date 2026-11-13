@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { EquipmentFilters, EMPTY_EQUIPMENT_FILTER, matchesEquipmentFilter } from '../ui/EquipmentFilters';
 import {
   EQUIPMENT_SLOT_LABELS,
   EquipmentSlotType,
@@ -28,6 +29,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
   onSellItem,
 }) => {
   const [slotFilter, setSlotFilter] = useState<'all' | 'medicine' | EquipmentSlotType>('all');
+  const [equipmentFilter, setEquipmentFilter] = useState(EMPTY_EQUIPMENT_FILTER);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(
     state.inventory[0]?.id ?? null
   );
@@ -35,15 +37,16 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
   const inventoryFull = state.inventory.length >= GAME_CONFIG.maxInventorySlots;
   const medicineCount = state.inventory.filter((i) => Boolean(i.consumable)).length;
 
-  const filteredItems =
+  const categoryItems =
     slotFilter === 'all'
       ? state.inventory
       : slotFilter === 'medicine'
       ? state.inventory.filter((i) => Boolean(i.consumable))
       : state.inventory.filter((i) => i.slot === slotFilter && !i.consumable);
+  const filteredItems = categoryItems.filter(item => matchesEquipmentFilter(item, equipmentFilter, state.level));
 
   const activeItem =
-    state.inventory.find((i) => i.id === selectedItemId) ?? filteredItems[0] ?? null;
+    filteredItems.find((i) => i.id === selectedItemId) ?? filteredItems[0] ?? null;
 
   const allSlots: EquipmentSlotType[] = [
     'weapon',
@@ -149,6 +152,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
               </div>
             ) : null}
 
+            <EquipmentFilters value={equipmentFilter} onChange={setEquipmentFilter} />
             <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
               {Array.from({ length: GAME_CONFIG.maxInventorySlots }).map((_, idx) => {
                 const item: GameItem | undefined = filteredItems[idx];

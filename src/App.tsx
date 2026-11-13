@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { claimContract } from './game/contracts';
 import { ArtworkImage, IMAGE_ASSETS } from './design/assets';
 import {
   ARENA_OPPONENTS,
@@ -69,9 +70,9 @@ import {
 } from './game/rules';
 import {
   AuthoritativeActionType,
-  MIGRATION_COMPETITIVE_CAPS,
   MigrationReport,
 } from './server/onlineAuthorityEngine';
+import { MIGRATION_COMPETITIVE_CAPS } from './game/onlinePolicy';
 import {
   apiBootstrapOnlinePlayer,
   apiExecuteAuthoritativeAction,
@@ -1383,6 +1384,7 @@ export default function App() {
   return (
     <>
       <GameShell
+        sectionTitle={({ character: 'O seu legado', expeditions: 'Além das muralhas', arena: 'Sangue & glória', inventory: 'Arsenal do gladiador', city: 'O coração de Cápua' })[activeTab]}
         bannerFeedback={bannerFeedback}
         onDismissFeedback={() => setBannerFeedback(null)}
         guidedOnboardingBar={
@@ -1516,6 +1518,10 @@ export default function App() {
 
         {activeTab === 'city' && (
           <CityScreen
+            onClaimContract={(contractId) => {
+              if (isOnlineMode) { void executeOnlineAction('claim_contract', { contractId }); return; }
+              setGameState(prev => claimContract(prev, contractId).state);
+            }}
             state={screenStateWithoutActiveModalReward}
             derived={derivedStats}
             isOnlineMode={isOnlineMode}
