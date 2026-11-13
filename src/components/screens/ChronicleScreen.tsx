@@ -49,7 +49,7 @@ export function ChronicleScreen({ state, onClaim }: { state: GameState; onClaim:
       <div className="collection-grid">{filtered.sort((a, b) => a.levelReq - b.levelReq).map(item => {
         const color = DESIGN_TOKENS.colors.rarity[item.rarity as RarityKey];
         return <article className="collection-card" style={{ '--rarity': color.border } as React.CSSProperties} key={item.templateId}>
-          <div className="collection-art"><ItemArtwork iconId={item.iconId} size={64} /><span>Nv. {item.levelReq}</span></div>
+          <div className="collection-art"><ItemArtwork iconId={item.iconId} rarity={item.rarity} size={88} /><span>Nv. {item.levelReq}</span></div>
           <span className="rarity-label" style={{ color: color.textOnDark }}>{color.label} · {EQUIPMENT_SLOT_LABELS[item.slot as EquipmentSlotType]}</span>
           <h3>{item.name}</h3><p>{item.description}</p>
           <div className="collection-stats">{Object.entries(item.stats).filter(([, v]) => v).map(([key, value]) => <span key={key}>{({ armor: 'Armadura', strength: 'Força', skill: 'Habilidade', agility: 'Agilidade', constitution: 'Constituição', charisma: 'Carisma', intelligence: 'Inteligência', healthBonus: 'PV', damageMin: 'Dano mín.', damageMax: 'Dano máx.' } as Record<string,string>)[key]} +{value}</span>)}</div>
@@ -60,3 +60,5 @@ export function ChronicleScreen({ state, onClaim }: { state: GameState; onClaim:
     </>}
   </section>;
 }
+
+

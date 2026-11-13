@@ -336,7 +336,7 @@ export const ItemSlot: React.FC<ItemSlotProps> = ({
     >
       {item ? (
         <>
-          <ItemArtwork iconId={item.iconId} size={size === 'lg' ? 56 : 46} />
+          <ItemArtwork iconId={item.iconId} rarity={item.rarity} size={size === 'lg' ? 56 : 46} />
           <span className="absolute bottom-0.5 right-0.5 text-[9.5px] font-bold tabular-nums px-1 bg-[#17120F]/90 text-[#EFE2C4] border border-[#5E4527]">
             Nv.{item.levelReq}
           </span>
@@ -457,10 +457,10 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
     <div className="surface-parchment frame-parchment p-3 sm:p-4 text-[#30251A]">
       <div className="flex items-start gap-3">
         <div
-          className="w-16 h-16 shrink-0 surface-leather border-2 flex items-center justify-center"
+          className="w-24 h-24 shrink-0 surface-leather border-2 flex items-center justify-center"
           style={{ borderColor: rarity.border }}
         >
-          <ItemArtwork iconId={item.iconId} size={50} />
+          <ItemArtwork iconId={item.iconId} rarity={item.rarity} size={90} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-1">
@@ -874,7 +874,7 @@ export const RewardPanel: React.FC<RewardPanelProps> = ({ batch, onClaim }) => {
                 key={it.id}
                 className="flex items-center gap-2 bg-[#211711] text-[#EFE2C4] p-1.5 border border-[#947044]"
               >
-                <ItemArtwork iconId={it.iconId} size={32} />
+                <ItemArtwork iconId={it.iconId} rarity={it.rarity} size={32} />
                 <div className="text-xs">
                   <div className="font-semibold">{it.name}</div>
                   <div className="text-[10px] text-[#B8A686]">Nível {it.levelReq}</div>
@@ -1531,3 +1531,5 @@ export const GameShell: React.FC<GameShellProps> = ({
     </div>
   );
 };
+
+
