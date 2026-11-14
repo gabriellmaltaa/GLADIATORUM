@@ -69,6 +69,12 @@ const DUNGEON_DIFFICULTIES: ('Todas' | DungeonDifficulty)[] = [
   'Pesadelo',
   'Abissal',
   'Divino',
+  'Lendário',
+  'Mítico',
+  'Celestial',
+  'Transcendente',
+  'Imortal',
+  'Apocalíptico',
 ];
 
 const DIFFICULTY_BADGE_STYLES: Record<DungeonDifficulty, string> = {
@@ -79,6 +85,12 @@ const DIFFICULTY_BADGE_STYLES: Record<DungeonDifficulty, string> = {
   Pesadelo: 'bg-[#3D1610] text-[#FF9B85] border-[#C84B31]',
   Abissal: 'bg-[#3B2E0C] text-[#FFE484] border-[#D4AF37]',
   Divino: 'bg-[#103330] text-[#8CF0E5] border-[#5EC2B7]',
+  Lendário: 'bg-[#462C12] text-[#FFD38A] border-[#CE9550]',
+  Mítico: 'bg-[#38234F] text-[#D8B4FF] border-[#9772C8]',
+  Celestial: 'bg-[#183A56] text-[#A8DDFF] border-[#5BA8D8]',
+  Transcendente: 'bg-[#392044] text-[#F0C6FF] border-[#D69AE8]',
+  Imortal: 'bg-[#4A1F2C] text-[#FFC0D1] border-[#D96989]',
+  Apocalíptico: 'bg-[#2C1A1A] text-[#FFB27A] border-[#E07539]',
 };
 
 interface CityScreenProps {
@@ -982,10 +994,10 @@ export const CityScreen: React.FC<CityScreenProps> = ({
 
       {subTab === 'dungeons' && (
         <div className="space-y-4">
-          {/* Painel de Filtro de Dificuldades e Seleção das 32 Masmorras */}
+          {/* Painel de Filtro de Dificuldades e Seleção das Masmorras */}
           <RomanPanel
             title={`Atlas de Masmorras e Catacumbas (${DUNGEONS.length} Masmorras)`}
-            subtitle={`7 Graus de Dificuldade (Iniciante a Divino) · Total de incursões concluídas: ${totalDungeonsCompleted}`}
+            subtitle={`${DUNGEON_DIFFICULTIES.length - 1} Graus de Dificuldade (Iniciante a Apocalíptico) · Total de incursões concluídas: ${totalDungeonsCompleted}`}
             variant="stone"
           >
             <div className="flex flex-wrap gap-1.5 mb-3 pb-2.5 border-b border-[#5E4527]">
@@ -1235,6 +1247,5 @@ export const CityScreen: React.FC<CityScreenProps> = ({
     </div>
   );
 };
-
 
 

@@ -17,13 +17,13 @@ test('aparência mostra apenas os itens realmente equipados e acompanha remoçã
   assert.deepEqual(getCharacterAppearance({}, 1).layers, {});
 });
 
-test('aura cresce com o nível e muda de patamar sem depender dos equipamentos', () => {
+test('aura continua crescendo até o nível 150 sem depender dos equipamentos', () => {
   assert.equal(getCharacterAppearance({}, 1).aura.strength, 0);
-  for (let level = 2; level <= 50; level++) {
+  for (let level = 2; level <= 150; level++) {
     assert.ok(getCharacterAppearance({}, level).aura.strength > getCharacterAppearance({}, level - 1).aura.strength);
   }
-  const colors = [5, 10, 20, 35, 50].map(level => getCharacterAppearance({}, level).aura.color);
-  assert.equal(new Set(colors).size, 5);
+  const colors = [5, 10, 20, 35, 50, 75, 100, 125, 150].map(level => getCharacterAppearance({}, level).aura.color);
+  assert.equal(new Set(colors).size, 9);
   assert.equal(getCharacterAppearance({}, 5000).aura.strength, 1);
   assert.equal(getCharacterAppearance({}, NaN).aura.strength, 0);
   assert.equal(getCharacterAppearance({}, -5).aura.strength, 0);

@@ -137,7 +137,13 @@ export type DungeonDifficulty =
   | 'Mestre'
   | 'Pesadelo'
   | 'Abissal'
-  | 'Divino';
+  | 'Divino'
+  | 'Lendário'
+  | 'Mítico'
+  | 'Celestial'
+  | 'Transcendente'
+  | 'Imortal'
+  | 'Apocalíptico';
 
 export interface EnemyDefinition {
   id: string;

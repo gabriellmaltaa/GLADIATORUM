@@ -1,5 +1,6 @@
 import type { RarityKey } from '../design/tokens.ts';
 import type { EnemyAvatarId, ItemIconId } from '../design/assets.tsx';
+import { ENDGAME_ITEMS, OBSIDIAN_ITEMS } from './expansion.ts';
 import type {
   DungeonDefinition,
   DungeonDifficulty,
@@ -530,7 +531,7 @@ export const EXPANDED_EQUIPMENT_TEMPLATES: Record<string, Omit<GameItem, 'id'>> 
 };
 
 /**
- * Gerador determinístico de encontros para as 32 Masmorras históricas e mitológicas
+ * Gerador determinístico de encontros para as masmorras históricas e mitológicas até o nível 150
  */
 interface DungeonBlueprint {
   id: string;
@@ -547,6 +548,8 @@ interface DungeonBlueprint {
   guard2: { name: string; title: string; avatarId: EnemyAvatarId };
   guard3?: { name: string; title: string; avatarId: EnemyAvatarId };
   boss: { name: string; title: string; avatarId: EnemyAvatarId };
+  specialDropChance?: number;
+  specialDropPool?: string[];
 }
 
 function buildEnemyFromStage(
@@ -556,7 +559,9 @@ function buildEnemyFromStage(
   baseLevel: number,
   info: { name: string; title: string; avatarId: EnemyAvatarId },
   dropPool: string[],
-  isBoss: boolean
+  isBoss: boolean,
+  specialDropChance?: number,
+  specialDropPool?: string[]
 ): EnemyDefinition {
   const lvl = Math.max(1, baseLevel + stageIndex);
   const bossMult = isBoss ? 1.32 : 1 + stageIndex * 0.12;
@@ -593,6 +598,9 @@ function buildEnemyFromStage(
     xpReward,
     dropChance: isBoss ? 1.0 : 0.42,
     dropPool,
+    ...(isBoss && specialDropChance !== undefined
+      ? { specialDropChance, specialDropPool: specialDropPool ?? [] }
+      : {}),
   };
 }
 
@@ -601,6 +609,7 @@ function createDungeonFromBlueprint(bp: DungeonBlueprint): DungeonDefinition {
     ? [bp.guard1, bp.guard2, bp.guard3, bp.boss]
     : [bp.guard1, bp.guard2, bp.boss];
   const totalStages = stages.length;
+  const firstEncounterLevel = bp.minLevel >= 40 ? bp.minLevel - (totalStages - 1) : bp.minLevel;
 
   return {
     id: bp.id,
@@ -618,14 +627,60 @@ function createDungeonFromBlueprint(bp: DungeonBlueprint): DungeonDefinition {
         bp.id,
         idx,
         totalStages,
-        bp.minLevel,
+        firstEncounterLevel,
         st,
         bp.guaranteedDropPool,
-        idx === totalStages - 1
+        idx === totalStages - 1,
+        bp.specialDropChance,
+        bp.specialDropPool
       )
     ),
   };
 }
+
+const LEVEL_150_DUNGEON_SEEDS = [
+  { minLevel: 40, id: 'gate_janus', name: 'Arco Bifronte de Jano', difficulty: 'Lendário' as const, boss: 'Janus, Senhor dos Dois Portões' },
+  { minLevel: 50, id: 'eclipse_mithras', name: 'Santuário do Eclipse de Mitra', difficulty: 'Mítico' as const, boss: 'Mithras Sol Invictus' },
+  { minLevel: 60, id: 'seven_flames_vulcan', name: 'Câmara das Sete Chamas', difficulty: 'Mítico' as const, boss: 'Vulcano, Forjador dos Séculos' },
+  { minLevel: 70, id: 'oracle_sibylline', name: 'Biblioteca das Sibilas', difficulty: 'Celestial' as const, boss: 'A Sibila de Cumæ' },
+  { minLevel: 80, id: 'titan_forge', name: 'Bigorna dos Titãs de Etna', difficulty: 'Celestial' as const, boss: 'Encelado, o Titã Soterrado' },
+  { minLevel: 90, id: 'void_citadel', name: 'Cidadela do Vazio Adriático', difficulty: 'Transcendente' as const, boss: 'Aquila, Devorador de Estandartes' },
+  { minLevel: 100, id: 'styx_abyss', name: 'Abismo do Estige', difficulty: 'Transcendente' as const, boss: 'Caronte, Almirante dos Mortos' },
+  { minLevel: 110, id: 'hercules_pillars', name: 'Além das Colunas de Hércules', difficulty: 'Imortal' as const, boss: 'Gerião, Guardião do Ocidente' },
+  { minLevel: 120, id: 'saturn_chronos', name: 'Palácio de Saturno e Cronos', difficulty: 'Imortal' as const, boss: 'Cronos, Senhor da Era Dourada' },
+  { minLevel: 130, id: 'colosseum_ages', name: 'Coliseu das Eras', difficulty: 'Apocalíptico' as const, boss: 'O Campeão de Mil Vidas' },
+  { minLevel: 140, id: 'romulus_crown', name: 'Coroa de Rômulo', difficulty: 'Apocalíptico' as const, boss: 'Rômulo, Fundador Imortal' },
+  { minLevel: 150, id: 'last_ludus', name: 'O Último Ludus', difficulty: 'Apocalíptico' as const, boss: 'Imperator Aeternus' },
+];
+
+const highLevelDungeonBlueprints: DungeonBlueprint[] = LEVEL_150_DUNGEON_SEEDS.map((seed) => {
+  const minLevel = seed.minLevel;
+  const specialDropChance = minLevel >= 50
+    ? 0.001 + (minLevel - 50) / 100_000
+    : undefined;
+  const guaranteedDropPool = [
+    ...Object.values(ENDGAME_ITEMS).filter(item => item.rarity === 'transcendent').map(item => item.templateId),
+    'med_panacea_apollo',
+  ];
+  return {
+    id: seed.id,
+    name: seed.name,
+    subtitle: `4 Encontros · Chefe: ${seed.boss}`,
+    difficulty: seed.difficulty,
+    minLevel,
+    energyCost: minLevel >= 100 ? 5 : 4,
+    description: `Uma incursão de dificuldade ${seed.difficulty.toLowerCase()} nas fronteiras míticas de Roma. Supere quatro guardiões, conquiste relíquias e enfrente ${seed.boss}.`,
+    completionBonusGold: Math.round(11_000 * minLevel / 38),
+    completionBonusXp: Math.round(9_800 * minLevel / 38),
+    guaranteedDropPool,
+    guard1: { name: `Vigia de ${seed.name}`, title: 'Sentinela do Primeiro Círculo', avatarId: 'centurion' },
+    guard2: { name: `Campeão de ${seed.name}`, title: 'Duelista do Segundo Círculo', avatarId: 'secutor' },
+    guard3: { name: `Arauto de ${seed.boss}`, title: 'Guardião do Círculo Interior', avatarId: 'cultist' },
+    boss: { name: seed.boss, title: `Chefe da incursão · Nível ${minLevel}`, avatarId: 'praetorian_boss' },
+    specialDropChance,
+    specialDropPool: specialDropChance === undefined ? undefined : Object.keys(OBSIDIAN_ITEMS),
+  };
+});
 
 const DUNGEON_BLUEPRINTS: DungeonBlueprint[] = [
   // ============================================================================
@@ -1331,6 +1386,7 @@ const DUNGEON_BLUEPRINTS: DungeonBlueprint[] = [
     guard3: { name: 'Tribuno dos Deuses Consentes', title: 'Espada do Olimpo', avatarId: 'centurion' },
     boss: { name: 'Imperator Tonans Capitolinus', title: 'Senhor Supremo da Arena Aeterna', avatarId: 'praetorian_boss' },
   },
+  ...highLevelDungeonBlueprints,
 ];
 
 export const GENERATED_DUNGEONS: DungeonDefinition[] = DUNGEON_BLUEPRINTS.map(
