@@ -38,12 +38,15 @@ import {
 import {
   advanceTutorialIfMatching,
   applyMedicalTreatment,
+  buyGuildTemporaryEnergy,
+  buyInventoryExpansion,
   type BaseAttributes,
   buyItemFromMarket,
   buyMedicineTemplate,
   calculateDerivedStats,
   calculateElapsedIdleProgress,
   claimPendingReward,
+  claimMailMessage,
   type CombatReport,
   createInitialGameState,
   createItemFromTemplate,
@@ -51,6 +54,7 @@ import {
   evaluateUnlockedFeats,
   forgeItem,
   type GameState,
+  getInventoryCapacity,
   inspectAndLoadSaveState,
   type PendingRewardBatch,
   resolveCombat,
@@ -191,6 +195,9 @@ export type AuthoritativeActionType =
   | 'fight_dungeon'
   | 'reset_dungeon'
   | 'claim_reward'
+  | 'claim_mail'
+  | 'buy_inventory_expansion'
+  | 'guild_buy_energy_expansion'
   | 'idle_start'
   | 'toggle_idle'
   | 'idle_stop'
@@ -1253,6 +1260,7 @@ export class OnlineAuthorityEngine {
     }
 
     const safeInventory: GameItem[] = [];
+    // A capacity upgrade must be purchased on the online server; local save data cannot grant free slots.
     for (let i = 0; i < Math.min(local.inventory.length, GAME_CONFIG.maxInventorySlots); i++) {
       const rawItem = local.inventory[i];
       if (!rawItem || !ITEM_TEMPLATES[rawItem.templateId]) continue;
@@ -1777,14 +1785,19 @@ export class OnlineAuthorityEngine {
         case 'claim_contract': {
           const result = claimContract(record.state, String(params.contractId ?? ''));
           if (result.error) return fail(result.error);
-          const contractGold = result.state.gold - record.state.gold;
           const goldMultiplier =
             1 + this.getPermanentGuildRewardPercent(identity.uid, 'gold') / 100;
+          const contractMailId = `mail_contract_${String(params.contractId ?? '')}`;
+          const contractMail = result.state.mailbox.find((mail) => mail.id === contractMailId);
+          if (!contractMail) return fail('A recompensa do contrato não pôde ser enviada ao Correio.');
+          const mailGold = Math.round(contractMail.goldAmount * goldMultiplier);
           record.state = {
             ...result.state,
-            gold: record.state.gold + Math.round(contractGold * goldMultiplier),
+            mailbox: result.state.mailbox.map((mail) => mail.id === contractMailId
+              ? { ...mail, goldAmount: mailGold, body: `${mail.body} Total com bônus da guilda: ${mailGold} denários.` }
+              : mail),
           };
-          message = 'Contrato concluído. Denários creditados no servidor.';
+          message = 'Contrato concluído. Denários enviados ao Correio.';
           break;
         }
         case 'claim_reward': {
@@ -1798,8 +1811,31 @@ export class OnlineAuthorityEngine {
           leveledUp = claimRes.leveledUp;
           this.syncPlayerIntoSharedGuildMember(record);
           message = claimRes.leveledUp
-            ? `Recompensas resgatadas no servidor! Você alcançou o Nível ${claimRes.state.level}!`
-            : 'Espólios de vitória creditados na sua conta!';
+            ? `Recompensa enviada ao Correio! Você alcançou o Nível ${claimRes.state.level}!`
+            : 'XP e itens recolhidos; o ouro da batalha está no Correio.';
+          break;
+        }
+
+        case 'claim_mail': {
+          const result = claimMailMessage(record.state, String(params.messageId ?? ''), serverNowMs);
+          if (!result.claimedNow) return fail('Esta mensagem não existe ou o anexo já foi recolhido.');
+          record.state = result.state;
+          message = 'Denários recolhidos do Correio para sua bolsa.';
+          break;
+        }
+        case 'buy_inventory_expansion': {
+          const result = buyInventoryExpansion(record.state);
+          if (result.error) return fail(result.error);
+          record.state = result.state;
+          message = `Mochila ampliada para ${result.state.inventoryCapacity} espaços (-${result.costPaid} denários).`;
+          break;
+        }
+        case 'guild_buy_energy_expansion': {
+          if (!this.findPlayerGuildId(identity.uid)) return fail('Entre em uma guilda para comprar a expansão de energia.');
+          const result = buyGuildTemporaryEnergy(record.state, serverNowMs);
+          if (result.error) return fail(result.error);
+          record.state = result.state;
+          message = 'Expansão ativada: +20 de energia máxima por 2 horas.';
           break;
         }
 
@@ -2740,7 +2776,7 @@ export class OnlineAuthorityEngine {
           const guild = this.guilds.get(guildId);
           if (!guild) return fail('Guilda não encontrada.');
 
-          if (record.state.inventory.length >= GAME_CONFIG.maxInventorySlots) {
+          if (record.state.inventory.length >= getInventoryCapacity(record.state)) {
             return fail('Sua mochila está cheia!');
           }
 
@@ -2785,7 +2821,7 @@ export class OnlineAuthorityEngine {
           const tpl = ITEM_TEMPLATES[templateId];
           if (!tpl) return fail('Item inválido.');
 
-          if (record.state.inventory.length >= GAME_CONFIG.maxInventorySlots) {
+          if (record.state.inventory.length >= getInventoryCapacity(record.state)) {
             return fail('Sua mochila está cheia!');
           }
 

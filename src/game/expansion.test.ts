@@ -36,10 +36,11 @@ test('contrato bloqueia requisito não cumprido e paga uma única vez', () => {
   assert.equal(contractProgress(state, contract), 1);
   const claimed = claimContract(state, contract.id);
   assert.equal(claimed.error, undefined);
-  assert.equal(claimed.state.gold, 200);
+  assert.equal(claimed.state.gold, 160);
+  assert.equal(claimed.state.mailbox.at(-1)?.goldAmount, 40);
   const restored = JSON.parse(JSON.stringify(claimed.state));
   assert.ok(claimContract(restored, contract.id).error);
-  assert.equal(claimContract(restored, contract.id).state.gold, 200);
+  assert.equal(claimContract(restored, contract.id).state.gold, 160);
   assert.ok(claimContract(state, 'unknown').error);
 });
 
@@ -63,10 +64,24 @@ test('servidor valida contrato por conta e rejeita novo opId para contrato já r
   assert.equal(before.state.wins, 1);
   const paid = engine.executeAction(identity.uid, { opId: 'contract_paid', action: 'claim_contract', params: { contractId: 'first_blood' } }, now + 4);
   assert.equal(paid.ok, true);
-  assert.equal(paid.state.gold, before.state.gold + 40);
+  assert.equal(paid.state.gold, before.state.gold);
+  assert.equal(paid.state.mailbox.at(-1)?.goldAmount, 40);
   const duplicate = engine.executeAction(identity.uid, { opId: 'contract_duplicate', action: 'claim_contract', params: { contractId: 'first_blood' } }, now + 5);
   assert.equal(duplicate.ok, false);
   assert.equal(duplicate.state.gold, paid.state.gold);
+});
+
+test('servidor rejeita expansão de mochila sem saldo e preserva ouro e capacidade', () => {
+  const engine = new OnlineAuthorityEngine();
+  const now = 1_750_000_100_000;
+  const identity = { uid: 'inventory_expansion_tester', email: 'inventory@example.test', displayName: 'Auditor' };
+  const imported = createInitialGameState(now);
+  imported.gold = 200;
+  assert.equal(engine.migrateLocalSave(identity, JSON.stringify(imported), now).ok, true);
+  const first = engine.executeAction(identity.uid, { opId: 'buy_bag_1', action: 'buy_inventory_expansion', params: {} }, now + 10);
+  assert.equal(first.ok, false);
+  assert.equal(first.state.inventoryCapacity, 20);
+  assert.equal(first.state.gold, 200);
 });
 
 test('coleção preserva descoberta após comprar, vender e carregar o save', () => {
@@ -87,3 +102,4 @@ test('espólio convertido por mochila cheia continua descoberto na coleção', (
   assert.equal(claimed.inventory.length, 20);
   assert.ok(claimed.discoveredTemplates?.includes(rewardItem.templateId));
 });
+

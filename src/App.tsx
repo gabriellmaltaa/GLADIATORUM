@@ -47,17 +47,21 @@ import {
 import {
   advanceTutorialIfMatching,
   applyMedicalTreatment,
+  buyInventoryExpansion,
+  buyGuildTemporaryEnergy,
   buyItemFromMarket,
   buyMedicineTemplate,
   calculateDerivedStats,
   calculateElapsedIdleProgress,
   claimPendingReward,
+  claimMailMessage,
   CombatReport,
   createInitialGameState,
   createItemFromTemplate,
   equipItemFromInventory,
   forgeItem,
   GameState,
+  getInventoryCapacity,
   getNextObjective,
   getPlayerSnapshotForRankings,
   inspectAndLoadSaveState,
@@ -1480,7 +1484,7 @@ export default function App() {
             activeTab={activeTab}
             onSelectTab={setActiveTab}
             inventoryCount={gameState.inventory.length}
-            maxInventory={GAME_CONFIG.maxInventorySlots}
+            maxInventory={getInventoryCapacity(gameState)}
             idleActive={gameState.idle.active}
           />
         }
@@ -1533,11 +1537,25 @@ export default function App() {
             onUnequipSlot={handleUnequipSlot}
             onSellItem={handleSellItem}
             onUseMedicineItem={handleUseMedicineItem}
+            onBuyExpansion={() => {
+              if (isOnlineMode) { void executeOnlineAction('buy_inventory_expansion'); return; }
+              const result = buyInventoryExpansion(gameState);
+              if (!result.error) setGameState(result.state);
+            }}
           />
         )}
 
         {activeTab === 'city' && (
           <CityScreen
+            onBuyTemporaryEnergy={() => {
+              if (isOnlineMode) { void executeOnlineAction('guild_buy_energy_expansion'); return; }
+              const result = buyGuildTemporaryEnergy(gameState, Date.now());
+              if (!result.error) setGameState(result.state);
+            }}
+            onClaimMail={(messageId) => {
+              if (isOnlineMode) { void executeOnlineAction('claim_mail', { messageId }); return; }
+              setGameState((prev) => claimMailMessage(prev, messageId, Date.now()).state);
+            }}
             onClaimContract={(contractId) => {
               if (isOnlineMode) { void executeOnlineAction('claim_contract', { contractId }); return; }
               setGameState(prev => claimContract(prev, contractId).state);
@@ -2130,3 +2148,4 @@ const HowToPlayModalContent: React.FC<{
     </div>
   );
 };
+

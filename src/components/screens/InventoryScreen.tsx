@@ -6,8 +6,9 @@ import {
   GAME_CONFIG,
   GameItem,
 } from '../../game/config';
-import { GameState } from '../../game/rules';
+import { GameState, getInventoryCapacity, getInventoryExpansionCost } from '../../game/rules';
 import {
+  GameButton,
   ItemSlot,
   ItemTooltip,
   RomanPanel,
@@ -19,6 +20,7 @@ interface InventoryScreenProps {
   onUseMedicineItem?: (itemId: string) => void;
   onUnequipSlot: (slot: EquipmentSlotType) => void;
   onSellItem: (itemId: string) => void;
+  onBuyExpansion?: () => void;
 }
 
 export const InventoryScreen: React.FC<InventoryScreenProps> = ({
@@ -27,6 +29,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
   onUseMedicineItem,
   onUnequipSlot,
   onSellItem,
+  onBuyExpansion,
 }) => {
   const [slotFilter, setSlotFilter] = useState<'all' | 'medicine' | EquipmentSlotType>('all');
   const [equipmentFilter, setEquipmentFilter] = useState(EMPTY_EQUIPMENT_FILTER);
@@ -34,7 +37,9 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
     state.inventory[0]?.id ?? null
   );
 
-  const inventoryFull = state.inventory.length >= GAME_CONFIG.maxInventorySlots;
+  const inventoryCapacity = getInventoryCapacity(state);
+  const expansionCost = getInventoryExpansionCost(state);
+  const inventoryFull = state.inventory.length >= inventoryCapacity;
   const medicineCount = state.inventory.filter((i) => Boolean(i.consumable)).length;
 
   const categoryItems =
@@ -65,7 +70,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
         title="Equipamentos em Uso no Corpo"
         subtitle={
           inventoryFull
-            ? 'Mochila cheia (20/20)! Venda itens abaixo antes de remover equipamentos.'
+            ? `Mochila cheia (${inventoryCapacity}/${inventoryCapacity})! Venda itens abaixo antes de remover equipamentos.`
             : 'Toque em um item equipado para removê-lo para a mochila'
         }
         variant="stone"
@@ -96,9 +101,14 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         <div className="lg:col-span-7">
           <RomanPanel
-            title={`Arca de Couro (${state.inventory.length}/${GAME_CONFIG.maxInventorySlots} Slots)`}
+            title={`Arca de Couro (${state.inventory.length}/${inventoryCapacity} Slots)`}
             subtitle="Filtre por categoria ou toque em um item para usar medicina ou comparar com o slot atual"
             variant="wood"
+            headerAction={expansionCost === null ? <span className="text-xs text-[#D6C29A]">Limite máximo</span> : (
+              <GameButton size="sm" disabled={!onBuyExpansion || state.gold < expansionCost} onClick={onBuyExpansion}>
+                +5 espaços · {expansionCost} ouro
+              </GameButton>
+            )}
           >
             <div className="flex flex-wrap gap-1.5 mb-3 pb-2 border-b border-[#5E4527]">
               <button
@@ -154,7 +164,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
 
             <EquipmentFilters value={equipmentFilter} onChange={setEquipmentFilter} discoveredTemplates={state.discoveredTemplates} />
             <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
-              {Array.from({ length: GAME_CONFIG.maxInventorySlots }).map((_, idx) => {
+              {Array.from({ length: inventoryCapacity }).map((_, idx) => {
                 const item: GameItem | undefined = filteredItems[idx];
                 return (
                   <ItemSlot
@@ -202,3 +212,4 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
     </div>
   );
 };
+

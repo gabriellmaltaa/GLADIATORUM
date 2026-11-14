@@ -16,6 +16,7 @@ import {
 import {
   DerivedStats,
   GameState,
+  getInventoryCapacity,
   getPlayerSnapshotForRankings,
   NextObjectiveInfo,
   StatChangeNotification,
@@ -68,7 +69,8 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
   const xpForNext = getXpForNextLevel(state.level);
   const needsHealing = state.currentHp < derived.maxHp;
   const healCost = Math.max(5, Math.ceil((derived.maxHp - state.currentHp) * 0.25));
-  const inventoryFull = state.inventory.length >= GAME_CONFIG.maxInventorySlots;
+  const inventoryCapacity = getInventoryCapacity(state);
+  const inventoryFull = state.inventory.length >= inventoryCapacity;
 
   const guildBonuses = getActiveGuildBonuses(state.guildState);
   const snap = getPlayerSnapshotForRankings(state);
@@ -265,7 +267,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
 
           {/* Bolsa Rápida de Equipamentos na Tela de Personagem */}
           <RomanPanel
-            title={`Alforje Rápido (${state.inventory.length}/${GAME_CONFIG.maxInventorySlots})`}
+            title={`Alforje Rápido (${state.inventory.length}/${inventoryCapacity})`}
             subtitle="Toque em um equipamento para comparar com o slot atual e equipar"
             variant="wood"
           >
@@ -390,3 +392,4 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
     </div>
   );
 };
+
