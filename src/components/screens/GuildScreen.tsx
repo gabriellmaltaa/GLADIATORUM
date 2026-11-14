@@ -737,6 +737,16 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
             Villa Medici: <strong>Cura {activeBonuses.villaMediciHealPercent}%</strong> (
             {activeBonuses.villaMediciGoldCost}g)
           </span>
+          {activeBonuses.permanentGoldBonusPercent > 0 && (
+            <span className="px-2 py-1 bg-[#4B3114] border border-[#D4B26A] text-[#FFE3A6]">
+              Ouro permanente: <strong>+{activeBonuses.permanentGoldBonusPercent}%</strong>
+            </span>
+          )}
+          {activeBonuses.permanentXpBonusPercent > 0 && (
+            <span className="px-2 py-1 bg-[#4B3114] border border-[#D4B26A] text-[#FFE3A6]">
+              Experiência permanente: <strong>+{activeBonuses.permanentXpBonusPercent}%</strong>
+            </span>
+          )}
           {activeBonuses.activeBuffs.map((buff) => {
             const remMin = Math.max(
               1,
@@ -1713,3 +1723,4 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
     </div>
   );
 };
+

@@ -621,7 +621,16 @@ export function resolveCombat(
 } {
   const nowMs = options.timestampMs ?? Date.now();
   const rng = createSeededRng(options.seed ?? nowMs);
-  const effectiveGuildState = options.ignoreGuildLibraryBuffs ? undefined : state.guildState;
+  const effectiveGuildState = options.ignoreGuildLibraryBuffs && state.guildState
+    ? {
+        ...state.guildState,
+        guilds: state.guildState.guilds.map((guild) =>
+          guild.id === state.guildState?.playerGuildId
+            ? { ...guild, activeBuffs: [] }
+            : guild
+        ),
+      }
+    : state.guildState;
   const playerStats = calculateDerivedStats(
     state.baseStats,
     state.equipped,
@@ -779,12 +788,17 @@ export function resolveCombat(
     const goldWithFocus = rawGold * focus.goldMultiplier;
     goldEarned = Math.max(
       1,
-      Math.round(goldWithFocus * (1 + guildBonuses.tempGoldBonusPercent / 100))
+      Math.round(
+        goldWithFocus *
+          (1 + (guildBonuses.tempGoldBonusPercent + guildBonuses.permanentGoldBonusPercent) / 100)
+      )
     );
 
     const baseXp = enemy.xpReward * focus.xpMultiplier;
     const totalXpBonusPercent =
-      playerStats.xpBonusPercent + guildBonuses.tempXpBonusPercent;
+      playerStats.xpBonusPercent +
+      guildBonuses.tempXpBonusPercent +
+      guildBonuses.permanentXpBonusPercent;
     xpEarned = Math.max(1, Math.round(baseXp * (1 + totalXpBonusPercent / 100)));
     honorEarned = options.mode === 'arena' ? 20 + enemy.level * 8 : enemy.level * 3;
 
@@ -794,8 +808,14 @@ export function resolveCombat(
       droppedItems.push(createItemFromTemplate(tplId, `${nowMs}_drop`));
     }
   } else {
-    goldEarned = Math.max(4, Math.floor(enemy.goldMin * 0.25));
-    xpEarned = Math.max(5, Math.floor(enemy.xpReward * 0.25));
+    goldEarned = Math.round(
+      Math.max(4, Math.floor(enemy.goldMin * 0.25)) *
+        (1 + guildBonuses.permanentGoldBonusPercent / 100)
+    );
+    xpEarned = Math.round(
+      Math.max(5, Math.floor(enemy.xpReward * 0.25)) *
+        (1 + guildBonuses.permanentXpBonusPercent / 100)
+    );
   }
 
   const defeatDiagnosis: string[] = [];
@@ -939,6 +959,8 @@ export function claimPendingReward(
       extraGoldFromOverflow += item.sellPrice;
     }
   }
+  const overflowGoldBonus = getActiveGuildBonuses(state.guildState).permanentGoldBonusPercent;
+  extraGoldFromOverflow = Math.round(extraGoldFromOverflow * (1 + overflowGoldBonus / 100));
 
   const derivedAfter = calculateDerivedStats(
     state.baseStats,
@@ -1307,7 +1329,9 @@ export function buyItemFromMarket(
  */
 export function sellItemFromInventory(
   state: GameState,
-  inventoryItemId: string
+  inventoryItemId: string,
+  goldMultiplier: number =
+    1 + getActiveGuildBonuses(state.guildState).permanentGoldBonusPercent / 100
 ): { state: GameState; goldReceived: number; error?: string } {
   const idx = state.inventory.findIndex((i) => i.id === inventoryItemId);
   if (idx === -1) {
@@ -1315,17 +1339,18 @@ export function sellItemFromInventory(
   }
 
   const item = state.inventory[idx];
+  const goldReceived = Math.round(item.sellPrice * Math.max(1, goldMultiplier));
   const nextInventory = [...state.inventory];
   nextInventory.splice(idx, 1);
 
   return {
     state: {
       ...state,
-      gold: state.gold + item.sellPrice,
+      gold: state.gold + goldReceived,
       discoveredTemplates: [...new Set([...(state.discoveredTemplates ?? []), item.templateId])],
       inventory: nextInventory,
     },
-    goldReceived: item.sellPrice,
+    goldReceived,
   };
 }
 
@@ -1729,8 +1754,19 @@ export function calculateElapsedIdleProgress(
     windowEndMs
   );
 
-  const goldWindowMult = 1 + (goldBuffOverlap.bonusPercent / 100) * goldBuffOverlap.ratio;
-  const xpWindowMult = 1 + (xpBuffOverlap.bonusPercent / 100) * xpBuffOverlap.ratio;
+  const permanentGuildBonuses = getActiveGuildBonuses(state.guildState, windowStartMs);
+  const permanentGoldMultiplier =
+    1 + permanentGuildBonuses.permanentGoldBonusPercent / 100;
+  const permanentXpMultiplier =
+    1 + permanentGuildBonuses.permanentXpBonusPercent / 100;
+  const goldWindowMult =
+    (1 + (permanentGuildBonuses.permanentGoldBonusPercent +
+      goldBuffOverlap.bonusPercent * goldBuffOverlap.ratio) / 100) /
+    permanentGoldMultiplier;
+  const xpWindowMult =
+    (1 + (permanentGuildBonuses.permanentXpBonusPercent +
+      xpBuffOverlap.bonusPercent * xpBuffOverlap.ratio) / 100) /
+    permanentXpMultiplier;
 
   const scaleFactor = cyclesToExecute / sampleCount;
   const totalVictories = Math.round(sampleWins * scaleFactor);
@@ -1959,3 +1995,4 @@ export function parseAndValidateSaveState(
 }
 
 export { ARENA_OPPONENTS, DUNGEONS, EXPEDITION_REGIONS };
+
