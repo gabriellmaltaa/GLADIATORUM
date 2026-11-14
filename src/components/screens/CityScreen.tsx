@@ -7,6 +7,8 @@ import { ItemArtwork } from '../../design/assets';
 import {
   DUNGEONS,
   DungeonDifficulty,
+  FORGE_STAT_META,
+  ForgeStatKey,
   GAME_CONFIG,
   GameItem,
   ITEM_TEMPLATES,
@@ -30,6 +32,8 @@ import {
   GameState,
   getEffectiveTrainingCost,
   getMedicalTreatmentCost,
+  getForgeableStats,
+  getForgeUpgradeCost,
   getPlayerSnapshotForRankings,
 } from '../../game/rules';
 import {
@@ -48,6 +52,7 @@ import { RankingScreen } from './RankingScreen';
 export type CitySubTab =
   | 'chronicle'
   | 'training'
+  | 'forge'
   | 'market'
   | 'medicina'
   | 'dungeons'
@@ -84,6 +89,7 @@ interface CityScreenProps {
   initialSubTab?: CitySubTab;
   onSubTabChange?: (tab: CitySubTab) => void;
   onTrainStat: (stat: PrimaryStatKey) => void;
+  onForgeUpgrade: (itemId: string, stat: ForgeStatKey) => void;
   onBuyMarketItem: (marketItemId: string) => void;
   onSellInventoryItem: (inventoryItemId: string) => void;
   onApplyMedicalTreatment?: (treatmentId: string) => void;
@@ -139,6 +145,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
   initialSubTab = 'training',
   onSubTabChange,
   onTrainStat,
+  onForgeUpgrade,
   onBuyMarketItem,
   onSellInventoryItem,
   onApplyMedicalTreatment,
@@ -183,6 +190,8 @@ export const CityScreen: React.FC<CityScreenProps> = ({
     'Todas' | DungeonDifficulty
   >('Todas');
   const [selectedDungeonId, setSelectedDungeonId] = useState<string>(DUNGEONS[0].id);
+  const [selectedForgeItemId, setSelectedForgeItemId] = useState<string | null>(null);
+  const [selectedForgeStat, setSelectedForgeStat] = useState<ForgeStatKey | null>(null);
 
   useEffect(() => {
     setSubTab(initialSubTab);
@@ -249,6 +258,25 @@ export const CityScreen: React.FC<CityScreenProps> = ({
     activeDungeon.encounters[0];
 
   const medicineInBag = state.inventory.filter((i) => Boolean(i.consumable));
+  const equippedForgeItems = Object.values(state.equipped).filter(
+    (item): item is GameItem => Boolean(item && !item.consumable)
+  );
+  const forgeableItems = [
+    ...equippedForgeItems,
+    ...state.inventory.filter((item) => !item.consumable),
+  ];
+  const selectedForgeItem =
+    forgeableItems.find((item) => item.id === selectedForgeItemId) ?? forgeableItems[0] ?? null;
+  const forgeableStats = selectedForgeItem ? getForgeableStats(selectedForgeItem) : [];
+  const activeForgeStat = selectedForgeStat && forgeableStats.includes(selectedForgeStat)
+    ? selectedForgeStat
+    : forgeableStats[0] ?? null;
+  const selectedForgeCost = selectedForgeItem
+    ? getForgeUpgradeCost(selectedForgeItem.forgeLevel ?? 0)
+    : null;
+  const selectedItemIsEquipped = Boolean(
+    selectedForgeItem && equippedForgeItems.some((item) => item.id === selectedForgeItem.id)
+  );
   const servicesRef = useRef<HTMLDivElement>(null);
   const totalDungeonsCompleted = Object.values(state.dungeonProgress).reduce(
     (acc, p) => acc + (p?.completedCount ?? 0),
@@ -262,6 +290,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
         <div className="city-locations" aria-label="Serviços da cidade">
           {([
             ['training', 'Campo de Treino', 'character', 'Aprimore seus atributos'],
+            ['forge', 'Forja de Cápua', 'city', 'Aprimore seu equipamento'],
             ['market', 'Mercado', 'inventory', 'Armas e equipamentos'],
             ['medicina', 'Casa de Medicina', 'city', 'Cuidados e remédios'],
             ['dungeons', 'Catacumbas', 'arena', 'Explore as masmorras'],
@@ -279,7 +308,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
         <span>Objetivos, tesouros e novas fronteiras <span aria-hidden="true">↗</span></span>
       </button>
       {subTab === 'chronicle' && <ChronicleScreen state={state} onClaim={onClaimContract} />}
-      <div className="grid grid-cols-2 sm:grid-cols-6 gap-1.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-1.5">
         <button
           type="button"
           onClick={() => selectSubTab('training')}
@@ -290,6 +319,17 @@ export const CityScreen: React.FC<CityScreenProps> = ({
           }`}
         >
           Treinamento
+        </button>
+        <button
+          type="button"
+          onClick={() => selectSubTab('forge')}
+          className={`min-h-[46px] px-2.5 py-2 font-roman font-bold text-xs sm:text-sm border-2 rounded-[2px] transition-colors cursor-pointer ${
+            subTab === 'forge'
+              ? 'bg-[#792B28] text-[#EFE2C4] border-[#D4B26A]'
+              : 'bg-[#2B2119] text-[#D6C29A] border-[#5E4527] hover:text-[#EFE2C4]'
+          }`}
+        >
+          Forja
         </button>
         <button
           type="button"
@@ -432,6 +472,154 @@ export const CityScreen: React.FC<CityScreenProps> = ({
               );
             })}
           </div>
+        </RomanPanel>
+      )}
+
+      {subTab === 'forge' && (
+        <RomanPanel
+          title="Forja de Cápua"
+          subtitle={`Ouro: ${state.gold} denários · Até ${GAME_CONFIG.forge.maxItemLevel} melhorias por equipamento`}
+          variant="stone"
+        >
+          <p className="mb-4 text-xs leading-relaxed text-[#C9B894] sm:text-sm">
+            O ferreiro pode temperar armas e reforçar qualquer atributo que já exista no item.
+            Escolha o equipamento e confira o ganho e o preço antes de confirmar.
+          </p>
+
+          {forgeableItems.length === 0 ? (
+            <div className="border border-[#5E4527] bg-[#17120F] p-5 text-center text-sm text-[#B8A686]">
+              Você ainda não tem equipamentos para forjar. Visite o Mercado ou conquiste itens em combate.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
+              <section className="border border-[#5E4527] bg-[#17120F]/80 p-3">
+                <h3 className="mb-3 font-roman text-sm font-bold uppercase tracking-wide text-[#D4B26A]">
+                  Equipamentos disponíveis
+                </h3>
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                  {forgeableItems.map((item) => {
+                    const equipped = equippedForgeItems.some((candidate) => candidate.id === item.id);
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        aria-pressed={selectedForgeItem?.id === item.id}
+                        onClick={() => setSelectedForgeItemId(item.id)}
+                        className={`flex min-h-[112px] flex-col items-center gap-1.5 rounded-sm border p-2 text-center transition-colors ${
+                          selectedForgeItem?.id === item.id
+                            ? 'border-[#E3BE72] bg-[#3B2B1C] shadow-[0_0_16px_#D4B26A44]'
+                            : 'border-[#5E4527] bg-[#211913] hover:border-[#A98146]'
+                        }`}
+                      >
+                        <span
+                          className="relative flex h-16 w-16 items-center justify-center border-2 bg-[#17120F]"
+                          style={{ borderColor: DESIGN_TOKENS.colors.rarity[item.rarity].border }}
+                        >
+                          <ItemArtwork iconId={item.iconId} rarity={item.rarity} size={54} />
+                          <span className="absolute bottom-0 right-0 border border-[#5E4527] bg-[#17120F]/95 px-1 text-[9px] font-bold text-[#F0D49B]">
+                            +{item.forgeLevel ?? 0}
+                          </span>
+                        </span>
+                        <span className="line-clamp-2 text-[10px] font-semibold leading-tight text-[#EFE2C4] sm:text-xs">
+                          {item.name}
+                        </span>
+                        <span className="text-[9px] uppercase tracking-wide text-[#B8A686]">
+                          {equipped ? 'Equipado' : 'Mochila'} · {item.forgeLevel ?? 0}/
+                          {GAME_CONFIG.forge.maxItemLevel}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              {selectedForgeItem && (
+                <section className="border border-[#7B5B32] bg-gradient-to-br from-[#2B2119] to-[#17120F] p-3 sm:p-4">
+                  <div className="mb-4 flex items-center gap-3 border-b border-[#5E4527] pb-3">
+                    <div
+                      className="flex h-16 w-16 shrink-0 items-center justify-center border-2 bg-[#17120F]"
+                      style={{ borderColor: DESIGN_TOKENS.colors.rarity[selectedForgeItem.rarity].border }}
+                    >
+                      <ItemArtwork iconId={selectedForgeItem.iconId} rarity={selectedForgeItem.rarity} size={54} />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-roman text-base font-bold text-[#F0D49B]">{selectedForgeItem.name}</h3>
+                      <p className="text-xs text-[#B8A686]">
+                        {selectedItemIsEquipped ? 'Equipado no gladiador' : 'Guardado na mochila'}
+                        {' · '}Forja {selectedForgeItem.forgeLevel ?? 0}/{GAME_CONFIG.forge.maxItemLevel}
+                      </p>
+                    </div>
+                  </div>
+
+                  {forgeableStats.length > 0 ? (
+                    <>
+                      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#D4B26A]">
+                        Escolha o bônus para temperar
+                      </p>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {forgeableStats.map((stat) => {
+                          const currentValue = stat === 'damage'
+                            ? `${selectedForgeItem.stats.damageMin ?? 0}–${selectedForgeItem.stats.damageMax ?? 0}`
+                            : selectedForgeItem.stats[stat] ?? 0;
+                          const nextValue = stat === 'damage'
+                            ? `${(selectedForgeItem.stats.damageMin ?? 0) + 1}–${(selectedForgeItem.stats.damageMax ?? 0) + 1}`
+                            : (selectedForgeItem.stats[stat] ?? 0) + (stat === 'armor' ? 5 : stat === 'healthBonus' ? 10 : 1);
+                          return (
+                            <button
+                              key={stat}
+                              type="button"
+                              aria-pressed={activeForgeStat === stat}
+                              onClick={() => setSelectedForgeStat(stat)}
+                              className={`rounded-sm border px-3 py-2 text-left transition-colors ${
+                                activeForgeStat === stat
+                                  ? 'border-[#E3BE72] bg-[#4A3420]'
+                                  : 'border-[#5E4527] bg-[#1B1510] hover:border-[#A98146]'
+                              }`}
+                            >
+                              <span className="block text-xs font-bold text-[#EFE2C4]">{FORGE_STAT_META[stat].label}</span>
+                              <span className="block text-[10px] text-[#B8A686]">{currentValue} → {nextValue} · {FORGE_STAT_META[stat].description}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#5E4527] pt-3">
+                        <div>
+                          <p className="text-sm font-bold text-[#F0D49B]">
+                            {selectedForgeCost === null ? 'Limite de melhorias atingido' : `Custo: ${selectedForgeCost} denários`}
+                          </p>
+                          <p className="text-[11px] text-[#B8A686]">
+                            {selectedForgeCost === null
+                              ? 'Este item já recebeu todas as melhorias disponíveis.'
+                              : `Após a melhoria: Forja ${(selectedForgeItem.forgeLevel ?? 0) + 1}/${GAME_CONFIG.forge.maxItemLevel}. O preço sobe 50% a cada nível.`}
+                          </p>
+                        </div>
+                        <GameButton
+                          variant="crimson"
+                          size="lg"
+                          disabled={!activeForgeStat || selectedForgeCost === null || state.gold < selectedForgeCost}
+                          disabledReason={
+                            selectedForgeCost === null
+                              ? 'Nível máximo alcançado'
+                              : state.gold < selectedForgeCost
+                                ? `Faltam ${selectedForgeCost - state.gold} denários`
+                                : undefined
+                          }
+                          onClick={() => {
+                            if (activeForgeStat) onForgeUpgrade(selectedForgeItem.id, activeForgeStat);
+                          }}
+                        >
+                          Forjar melhoria
+                        </GameButton>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-[#B8A686]">Este item não tem bônus compatíveis para aprimorar.</p>
+                  )}
+                </section>
+              )}
+            </div>
+          )}
         </RomanPanel>
       )}
 

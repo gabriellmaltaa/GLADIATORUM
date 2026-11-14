@@ -8,6 +8,45 @@ import {
 } from '../server/onlineAuthorityEngine';
 import { createInitialGameState } from './rules';
 
+test('Forja online aplica bônus e custo no estado autoritativo e bloqueia bônus inválido ou saldo insuficiente', () => {
+  const engine = new OnlineAuthorityEngine();
+  const now = 1_750_000_000_000;
+  const boot = engine.bootstrapPlayer(
+    { uid: 'forge_online_1', email: 'forge@test.com', displayName: 'Ferreiro' },
+    now
+  );
+  const weapon = boot.state.equipped.weapon!;
+  const minBefore = weapon.stats.damageMin ?? 0;
+  const maxBefore = weapon.stats.damageMax ?? 0;
+  const forged = engine.executeAction(
+    'forge_online_1',
+    { opId: 'forge_valid_1', action: 'forge_upgrade', params: { itemId: weapon.id, stat: 'damage' } },
+    now + 100
+  );
+  assert.equal(forged.ok, true);
+  assert.equal(forged.state.gold, boot.state.gold - 100);
+  assert.equal(forged.state.equipped.weapon?.stats.damageMin, minBefore + 1);
+  assert.equal(forged.state.equipped.weapon?.stats.damageMax, maxBefore + 1);
+  assert.equal(forged.state.equipped.weapon?.forgeLevel, 1);
+
+  const invalid = engine.executeAction(
+    'forge_online_1',
+    { opId: 'forge_invalid_1', action: 'forge_upgrade', params: { itemId: weapon.id, stat: 'agility' } },
+    now + 200
+  );
+  assert.equal(invalid.ok, false);
+  assert.equal(invalid.state.gold, forged.state.gold);
+
+  const insufficient = engine.executeAction(
+    'forge_online_1',
+    { opId: 'forge_insufficient_1', action: 'forge_upgrade', params: { itemId: weapon.id, stat: 'damage' } },
+    now + 300
+  );
+  assert.equal(insufficient.ok, false);
+  assert.equal(insufficient.state.gold, forged.state.gold);
+  assert.equal(insufficient.state.equipped.weapon?.forgeLevel, 1);
+});
+
 function computePercentiles(samplesMs: number[]): {
   p50: number;
   p95: number;

@@ -6,6 +6,7 @@ import {
   DUNGEONS,
   EquipmentSlotType,
   EXPEDITION_REGIONS,
+  ForgeStatKey,
   GAME_CONFIG,
   IdleFocusMode,
   PrimaryStatKey,
@@ -55,6 +56,7 @@ import {
   createInitialGameState,
   createItemFromTemplate,
   equipItemFromInventory,
+  forgeItem,
   GameState,
   getNextObjective,
   getPlayerSnapshotForRankings,
@@ -933,6 +935,23 @@ export default function App() {
     );
   };
 
+  const handleForgeUpgrade = (itemId: string, stat: ForgeStatKey) => {
+    if (isOnlineMode) {
+      void executeOnlineAction('forge_upgrade', { itemId, stat });
+      return;
+    }
+    const result = forgeItem(gameState, itemId, stat);
+    if (result.error) {
+      showToast(result.error, 'error');
+      return;
+    }
+    setGameState(result.state);
+    showToast(
+      `${result.itemName ?? 'Equipamento'} aprimorado na Forja para o nível ${result.forgeLevel} (-${result.costPaid} denários).`,
+      'success'
+    );
+  };
+
   // Handler de Compra no Mercado
   const handleBuyMarketItem = (marketItemId: string) => {
     if (isOnlineMode) {
@@ -1530,6 +1549,7 @@ export default function App() {
             initialSubTab={citySubTab}
             onSubTabChange={setCitySubTab}
             onTrainStat={handleTrainStat}
+            onForgeUpgrade={handleForgeUpgrade}
             onBuyMarketItem={handleBuyMarketItem}
             onSellInventoryItem={handleSellItem}
             onUseMedicineItem={handleUseMedicineItem}
