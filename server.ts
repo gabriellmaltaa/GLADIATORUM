@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import {
   type AuthenticatedIdentity,
@@ -371,7 +372,10 @@ async function startServer() {
 }
 
 // Inicia apenas quando executado diretamente (permite importar createAuthoritativeExpressApp nos testes)
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
+) {
   startServer().catch((err) => {
     console.error('Erro fatal ao iniciar servidor:', err);
     process.exit(1);
