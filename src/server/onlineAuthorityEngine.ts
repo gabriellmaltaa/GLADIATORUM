@@ -90,6 +90,11 @@ export interface OnlinePublicPlayerProfile {
   updatedAtMs: number;
 }
 
+export interface OnlinePublicPlayerProfileDetails {
+  profile: OnlinePublicPlayerProfile;
+  equipped: Partial<Record<EquipmentSlotType, GameItem>>;
+}
+
 export interface AuthoritativePlayerRecord {
   uid: string;
   email: string;
@@ -922,6 +927,36 @@ export class OnlineAuthorityEngine {
     };
     this.cachedPublicProfiles.set(record.uid, profile);
     return profile;
+  }
+
+  /** Exposes only visual fields from currently equipped gear; never returns the backpack or wallet. */
+  public getPublicPlayerProfileDetails(
+    uid: string,
+    nowMs: number = Date.now()
+  ): OnlinePublicPlayerProfileDetails | null {
+    const record = this.players.get(uid);
+    if (!record) return null;
+
+    const equipped: Partial<Record<EquipmentSlotType, GameItem>> = {};
+    for (const [slot, item] of Object.entries(record.state.equipped) as [EquipmentSlotType, GameItem | undefined][]) {
+      if (!item || item.consumable || item.slot !== slot) continue;
+      equipped[slot] = {
+        id: `public-${slot}`,
+        templateId: item.templateId,
+        name: item.name,
+        slot: item.slot,
+        rarity: item.rarity,
+        levelReq: item.levelReq,
+        buyPrice: 0,
+        sellPrice: 0,
+        iconId: item.iconId,
+        description: '',
+        stats: {},
+        ...(item.forgeLevel ? { forgeLevel: item.forgeLevel } : {}),
+      };
+    }
+
+    return { profile: this.toPublicProfile(record, nowMs), equipped };
   }
 
   private normalizeIdentity(
@@ -3258,3 +3293,4 @@ export class OnlineAuthorityEngine {
     };
   }
 }
+

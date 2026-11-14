@@ -692,6 +692,8 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
         open={Boolean(inspectedPlayerId)}
         playerId={inspectedPlayerId}
         state={state}
+        isOnlineMode={isOnlineMode}
+        onlineSummary={onlinePlayersPage.find((player) => player.id === inspectedPlayerId)}
         onClose={() => setInspectedPlayerId(null)}
         onInspectGuild={(gId) => {
           setInspectedPlayerId(null);
@@ -714,3 +716,4 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
     </div>
   );
 };
+

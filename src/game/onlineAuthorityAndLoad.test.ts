@@ -10,6 +10,21 @@ import {
 import { calculateDerivedStats, createInitialGameState, createItemFromTemplate } from './rules';
 import { ENDGAME_REGIONS, OBSIDIAN_ITEMS } from './expansion';
 
+test('detalhes do perfil público online incluem apenas equipamento vestido e dados públicos', () => {
+  const engine = new OnlineAuthorityEngine({ seedInitialOnlineGuilds: false });
+  const uid = 'public_profile_player';
+  engine.bootstrapPlayer({ uid, email: 'private@example.test', displayName: 'Gladiador Público' }, 1_750_000_000_000);
+  const payload = engine.getPublicPlayerProfileDetails(uid, 1_750_000_000_001);
+  assert.ok(payload);
+  assert.equal(payload.profile.uid, uid);
+  assert.equal(payload.profile.name, 'Gladiador Público');
+  assert.ok(Object.keys(payload.equipped).length > 0);
+  assert.ok(Object.values(payload.equipped).every(item => item?.buyPrice === 0 && item.sellPrice === 0));
+  assert.equal(JSON.stringify(payload).includes('private@example.test'), false);
+  assert.equal(JSON.stringify(payload).includes('inventory'), false);
+  assert.equal(engine.getPublicPlayerProfileDetails('unknown_player'), null);
+});
+
 test('repetir a mesma operação online de chefe devolve o mesmo jackpot sem sortear outra peça', () => {
   const uid = 'obsidian_online_jackpot';
   const now = 1_750_000_000_000;
@@ -744,3 +759,4 @@ test('5. Bateria Reproduzível de 1.000 Jogadores (Parte A: Volume + Parte B: Ra
     })
   );
 });
+
