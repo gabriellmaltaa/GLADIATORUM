@@ -443,6 +443,9 @@ export interface GuildRecord {
   warehouseItems: GameItem[];
   internalMarketTemplateIds: string[];
   activeBuffs: ActiveLibraryBuff[];
+  /** Permanent, server-owned VIP rewards. Missing values on older saves mean no bonus. */
+  permanentGoldBonusPercent?: number;
+  permanentXpBonusPercent?: number;
   bankHistory: GuildBankTransaction[];
   auditLog: GuildAuditEntry[];
   announcements: GuildAnnouncement[];
@@ -488,6 +491,8 @@ export interface ActiveGuildBonuses {
   tempDamageBonusPercent: number;
   tempGoldBonusPercent: number;
   tempXpBonusPercent: number;
+  permanentGoldBonusPercent: number;
+  permanentXpBonusPercent: number;
   activeBuffs: ActiveLibraryBuff[];
 }
 
@@ -1118,6 +1123,8 @@ export function getActiveGuildBonuses(
       tempDamageBonusPercent: 0,
       tempGoldBonusPercent: 0,
       tempXpBonusPercent: 0,
+      permanentGoldBonusPercent: 0,
+      permanentXpBonusPercent: 0,
       activeBuffs: [],
     };
   }
@@ -1137,6 +1144,8 @@ export function getActiveGuildBonuses(
       tempDamageBonusPercent: 0,
       tempGoldBonusPercent: 0,
       tempXpBonusPercent: 0,
+      permanentGoldBonusPercent: 0,
+      permanentXpBonusPercent: 0,
       activeBuffs: [],
     };
   }
@@ -1177,6 +1186,8 @@ export function getActiveGuildBonuses(
     tempDamageBonusPercent,
     tempGoldBonusPercent,
     tempXpBonusPercent,
+    permanentGoldBonusPercent: Math.max(0, guild.permanentGoldBonusPercent ?? 0),
+    permanentXpBonusPercent: Math.max(0, guild.permanentXpBonusPercent ?? 0),
     activeBuffs: validBuffs,
   };
 }
@@ -1427,3 +1438,4 @@ export function computeGuildRankings(
     rank: idx + 1,
   }));
 }
+

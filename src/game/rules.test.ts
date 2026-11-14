@@ -125,7 +125,6 @@ test('A Forja concede a vida máxima adicional ao aprimorar bônus de vitalidade
   assert.equal(result.state.equipped.amulet?.stats.healthBonus, 20);
   assert.equal(result.state.currentHp, state.currentHp + 10);
 });
-
 test('Regeneração preserva frações entre ticks de 1s e depois de salvar/carregar', () => {
   const start = 1_000_000;
   let state = { ...createInitialGameState(start), energy: 0, currentHp: 10 };
