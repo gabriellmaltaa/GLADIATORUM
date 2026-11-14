@@ -674,13 +674,14 @@ test('Inspeção de save migra v2/v3 para v4 preservando progresso e getNextObje
   assert.ok(obj.title.length > 0);
 });
 
-test('Valida 32 Masmorras em 7 Dificuldades, 13 Raridades de Itens e Sistema de Medicina', () => {
-  // 1. Pelo menos 32 masmorras (1 original + 31 novas) distribuídas em 7 dificuldades
-  assert.ok(DUNGEONS.length >= 32, `Esperado >= 32 masmorras, encontrado ${DUNGEONS.length}`);
+test('Valida masmorras até nível 150, 13 graus, 13 raridades e Sistema de Medicina', () => {
+  // 1. Pelo menos 44 masmorras, do nível 1 ao 150, distribuídas em 13 graus
+  assert.ok(DUNGEONS.length >= 44, `Esperado >= 44 masmorras, encontrado ${DUNGEONS.length}`);
+  assert.equal(Math.max(...DUNGEONS.map(dungeon => dungeon.minLevel)), 150);
   const difficulties = new Set(DUNGEONS.map((d) => d.difficulty));
   assert.deepEqual(
     Array.from(difficulties).sort(),
-    ['Abissal', 'Divino', 'Elite', 'Iniciante', 'Mestre', 'Pesadelo', 'Veterano']
+    ['Abissal', 'Apocalíptico', 'Celestial', 'Divino', 'Elite', 'Imortal', 'Iniciante', 'Lendário', 'Mestre', 'Mítico', 'Pesadelo', 'Transcendente', 'Veterano']
   );
 
   // Todas as masmorras possuem encontros e espólios garantidos válidos
@@ -805,14 +806,14 @@ test('progressão até o nível 50 oferece quatro conjuntos completos e um conju
   }
 });
 
-test('regiões de endgame desbloqueiam nos níveis 20, 30, 40 e 50 e só oferecem itens da faixa', () => {
-  assert.deepEqual(ENDGAME_REGIONS.map(region => region.minLevel), [20, 30, 40, 50]);
+test('regiões de endgame desbloqueiam dos níveis 20 a 150 e oferecem itens da faixa', () => {
+  assert.deepEqual(ENDGAME_REGIONS.map(region => region.minLevel), [20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150]);
   for (let index = 0; index < ENDGAME_REGIONS.length; index++) {
     const region = ENDGAME_REGIONS[index];
-    const expectedRarity = ['celestial', 'astral', 'primordial', 'transcendent'][index];
+    const expectedRarity = ['celestial', 'astral', 'primordial', 'transcendent'][index] ?? 'transcendent';
     assert.equal(region.enemies.length, 3);
     for (const enemy of region.enemies) {
-      assert.ok(enemy.level >= region.minLevel);
+      assert.ok(index < 4 ? enemy.level >= region.minLevel : enemy.level >= region.minLevel - 2 && enemy.level <= region.minLevel);
       for (const templateId of enemy.dropPool) {
         const item = ENDGAME_ITEMS[templateId];
         assert.ok(item, `${templateId} deve pertencer à faixa da região`);
@@ -956,5 +957,4 @@ test('Arena limita cada bônus Obsidiano ao equivalente Transcendente com os mes
   assert.ok(pve.report.playerMaxHp > arena.report.playerMaxHp, 'PvE preserva o HP completo Obsidiano');
   assert.equal(arena.report.playerMaxHp, calculateDerivedStats(state.baseStats, capped, state.level).maxHp);
 });
-
 

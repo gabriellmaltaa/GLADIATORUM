@@ -141,6 +141,16 @@ const ENDGAME_REGION_DEFS = [
   { id: 'parthian_kingdom', name: 'Reino Parta', subtitle: 'Flechas além do horizonte', minLevel: 30, rarity: 'astral', theme: 'as rotas de seda guardadas por arqueiros montados' },
   { id: 'carthage_walls', name: 'Muralhas de Cartago', subtitle: 'Cinzas do antigo império', minLevel: 40, rarity: 'primordial', theme: 'os portões de pedra defendidos por veteranos cartagineses' },
   { id: 'hades_gates', name: 'Portões de Hades', subtitle: 'A última descida', minLevel: 50, rarity: 'transcendent', theme: 'as catacumbas sob Roma, onde repousa o guardião final' },
+  { id: 'eternal_forge', name: 'Forja Eterna de Vulcano', subtitle: 'O aço que atravessa os séculos', minLevel: 60, rarity: 'transcendent', theme: 'as fornalhas divinas de Vulcano, onde o fogo nunca se apaga' },
+  { id: 'sibyl_oracle', name: 'Oráculo das Sete Sibilas', subtitle: 'Profecias escritas em bronze', minLevel: 70, rarity: 'transcendent', theme: 'as câmaras proféticas guardadas pelas sete vozes de Roma' },
+  { id: 'titanic_causeway', name: 'Calçada dos Titãs', subtitle: 'Passos que abalam o Lácio', minLevel: 80, rarity: 'transcendent', theme: 'a estrada colossal construída pelos Titãs antes da fundação de Roma' },
+  { id: 'void_adriatic', name: 'Fenda do Adriático', subtitle: 'Além das águas conhecidas', minLevel: 90, rarity: 'transcendent', theme: 'as fortalezas submersas onde os antigos mapas terminam' },
+  { id: 'styx_delta', name: 'Delta Sombrio do Estige', subtitle: 'A travessia dos imortais', minLevel: 100, rarity: 'transcendent', theme: 'o delta escuro do Estige, patrulhado pelos remadores de Caronte' },
+  { id: 'hercules_west', name: 'Colunas de Hércules', subtitle: 'O limite do mundo romano', minLevel: 110, rarity: 'transcendent', theme: 'as colunas no extremo ocidente, além das rotas de Hércules' },
+  { id: 'saturn_golden_age', name: 'Jardins da Era Dourada', subtitle: 'O domínio de Saturno', minLevel: 120, rarity: 'transcendent', theme: 'os jardins de Saturno, suspensos no tempo antes da guerra dos deuses' },
+  { id: 'ages_colosseum', name: 'Coliseu das Eras', subtitle: 'Todos os campeões em uma arena', minLevel: 130, rarity: 'transcendent', theme: 'a arena que reúne gladiadores de todas as eras de Roma' },
+  { id: 'romulus_pinnacle', name: 'Cume de Rômulo', subtitle: 'O juramento do fundador', minLevel: 140, rarity: 'transcendent', theme: 'o primeiro palácio de Rômulo, reconstruído no topo do mundo' },
+  { id: 'ludus_aeternus', name: 'Ludus Aeternus', subtitle: 'O último desafio', minLevel: 150, rarity: 'transcendent', theme: 'a arena final, onde cada campeão enfrenta o legado de Roma' },
 ] as const;
 
 export const ENDGAME_REGIONS: ExpeditionRegion[] = ENDGAME_REGION_DEFS.map((region, regionIndex) => {
@@ -156,14 +166,20 @@ export const ENDGAME_REGIONS: ExpeditionRegion[] = ENDGAME_REGION_DEFS.map((regi
     durationSeconds: 45 + regionIndex * 10,
     ambientDescription: `Explore ${region.theme} e recupere o arsenal da região.`,
     enemies: [0, 1, 2].map((index) => {
-      const level = region.minLevel + index * 2;
+      const level = regionIndex < 4
+        ? region.minLevel + index * 2
+        : region.minLevel - 2 + index;
       const isBoss = index === 2;
       const enemyNames = [
         ['Batedor Dácio', 'Centurião da Montanha', 'Rei dos Limes'],
         ['Lanceiro Parta', 'Arqueiro do Sol', 'Xá das Rotas'],
         ['Legionário Cartaginês', 'Campeão de Baal', 'Colosso das Muralhas'],
         ['Guardião das Catacumbas', 'Arauto do Submundo', 'Guardião de Hades'],
-      ][regionIndex];
+      ][regionIndex] ?? [
+        `Vigia de ${region.name}`,
+        `Campeão de ${region.name}`,
+        `Guardião de ${region.name}`,
+      ];
       return {
         id: `${region.id}_${index}`,
         name: enemyNames[index],
@@ -184,8 +200,11 @@ export const ENDGAME_REGIONS: ExpeditionRegion[] = ENDGAME_REGION_DEFS.map((regi
         xpReward: 300 + level * 30,
         dropChance: isBoss ? 0.65 : 0.4,
         dropPool,
-        ...(regionIndex === 3 && isBoss
-          ? { specialDropChance: 0.001, specialDropPool: Object.keys(OBSIDIAN_ITEMS) }
+        ...(regionIndex >= 3 && isBoss
+          ? {
+              specialDropChance: 0.001 + Math.max(0, region.minLevel - 50) / 100_000,
+              specialDropPool: Object.keys(OBSIDIAN_ITEMS),
+            }
           : {}),
       };
     }),

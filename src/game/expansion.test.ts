@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ENDGAME_REGIONS, EXPANSION_ITEMS, EXPANSION_REGIONS } from './expansion';
-import { ITEM_TEMPLATES, EXPEDITION_REGIONS, INITIAL_MARKET_TEMPLATE_IDS } from './config';
-import { createInitialGameState, claimPendingReward, buyItemFromMarket, sellItemFromInventory } from './rules';
+import { ENDGAME_REGIONS, EXPANSION_ITEMS, EXPANSION_REGIONS, OBSIDIAN_ITEMS } from './expansion';
+import { DUNGEONS, ITEM_TEMPLATES, EXPEDITION_REGIONS, INITIAL_MARKET_TEMPLATE_IDS } from './config';
+import { createInitialGameState, claimPendingReward, buyItemFromMarket, createItemFromTemplate, resolveCombat, sellItemFromInventory } from './rules';
 import { OnlineAuthorityEngine } from '../server/onlineAuthorityEngine';
 import { CONTRACTS, claimContract, contractProgress } from './contracts';
 
@@ -21,11 +21,51 @@ test('48 equipamentos novos possuem IDs únicos, oito slots e origem obtível', 
 
 test('regiões de expansão e endgame têm progressão e pools de loot válidos', () => {
   assert.equal(EXPANSION_REGIONS.length, 3);
-  assert.equal(ENDGAME_REGIONS.length, 4);
-  assert.equal(EXPEDITION_REGIONS.length, 10);
+  assert.equal(ENDGAME_REGIONS.length, 14);
+  assert.equal(EXPEDITION_REGIONS.length, 20);
   for (const region of EXPEDITION_REGIONS) {
     for (const enemy of region.enemies) for (const id of enemy.dropPool) assert.ok(ITEM_TEMPLATES[id], id);
   }
+});
+
+test('novas expedições cobrem os níveis 60 a 150 e liberam o jackpot secreto somente em chefes', () => {
+  const highLevelRegions = ENDGAME_REGIONS.slice(4);
+  assert.deepEqual(highLevelRegions.map(region => region.minLevel), [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]);
+  for (const region of highLevelRegions) {
+    assert.deepEqual(region.enemies.map(enemy => enemy.level), [region.minLevel - 2, region.minLevel - 1, region.minLevel]);
+    const boss = region.enemies.at(-1)!;
+    assert.ok(boss.specialDropChance !== undefined && boss.specialDropChance > 0.001 && boss.specialDropChance <= 0.002);
+    assert.deepEqual(new Set(boss.specialDropPool), new Set(Object.keys(OBSIDIAN_ITEMS)));
+    assert.ok(region.enemies.slice(0, -1).every(enemy => enemy.specialDropChance === undefined));
+  }
+});
+
+test('masmorras avançadas cobrem até nível 150 e chefes de alto nível podem liberar Obsidiana', () => {
+  const highLevelDungeons = DUNGEONS.filter(dungeon => dungeon.minLevel >= 40);
+  assert.deepEqual(highLevelDungeons.map(dungeon => dungeon.minLevel), [40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150]);
+  assert.equal(Math.max(...DUNGEONS.map(dungeon => dungeon.minLevel)), 150);
+  for (const dungeon of highLevelDungeons.filter(dungeon => dungeon.minLevel >= 50)) {
+    const boss = dungeon.encounters.at(-1)!;
+    assert.equal(boss.specialDropChance, 0.001 + Math.max(0, dungeon.minLevel - 50) / 100_000);
+    assert.deepEqual(new Set(boss.specialDropPool), new Set(Object.keys(OBSIDIAN_ITEMS)));
+  }
+});
+
+test('gladiador de nível 150 com arsenal Transcendente consegue vencer o chefe final', () => {
+  const state = createInitialGameState(1_000_000);
+  state.level = 150;
+  state.baseStats = { strength: 1_000, skill: 1_000, agility: 1_000, constitution: 1_000, charisma: 1_000, intelligence: 1_000 };
+  for (const item of Object.values(ITEM_TEMPLATES).filter(item => item.rarity === 'transcendent')) {
+    state.equipped[item.slot] = createItemFromTemplate(item.templateId, `level150_${item.slot}`);
+  }
+  state.currentHp = 100_000;
+  const finalDungeon = DUNGEONS.find(dungeon => dungeon.minLevel === 150)!;
+  const outcome = resolveCombat(state, finalDungeon.encounters.at(-1)!, {
+    mode: 'dungeon', locationName: finalDungeon.name, seed: 15150, timestampMs: 1_000_001,
+  });
+  assert.equal(outcome.report.victory, true, JSON.stringify({ rounds: outcome.report.rounds, playerDamage: outcome.report.totalPlayerDamageDealt, enemyDamage: outcome.report.totalEnemyDamageDealt, playerHp: outcome.report.playerEndHp, enemyHp: outcome.report.enemyEndHp }));
+  assert.equal(outcome.report.enemyLevel, 150);
+  assert.ok(outcome.rewardBatch.xp >= 1);
 });
 
 test('contrato bloqueia requisito não cumprido e paga uma única vez', () => {
@@ -102,4 +142,3 @@ test('espólio convertido por mochila cheia continua descoberto na coleção', (
   assert.equal(claimed.inventory.length, 20);
   assert.ok(claimed.discoveredTemplates?.includes(rewardItem.templateId));
 });
-
