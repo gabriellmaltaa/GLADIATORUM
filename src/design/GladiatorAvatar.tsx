@@ -1,60 +1,82 @@
 import React, { useId } from 'react';
-import bodies from '../assets/images/character-bodies.png';
-import equipment from '../assets/images/character-arms-helmets.png';
-import limbs from '../assets/images/character-limbs.png';
+import bodies from '../assets/images/dressed-bodies.png';
+import weapons from '../assets/images/dressed-weapons.png';
+import shields from '../assets/images/dressed-shields.png';
+import wear from '../assets/images/dressed-wear.png';
 import { getCharacterAppearance, type EquippedAppearance } from '../game/appearance';
+import { getDressedParts } from '../game/dressedAppearance';
 import { getItemRadiance } from '../game/itemRadiance';
 import type { GameItem } from '../game/config';
 
-/** Atlas fragments share the same body coordinates; equipment never changes gameplay. */
-function Fragment({ src, sheet, crop, box }: { src: string; sheet: [number, number]; crop: [number, number, number, number]; box: [number, number, number, number] }) {
-  return <svg x={box[0]} y={box[1]} width={box[2]} height={box[3]} viewBox={crop.join(' ')} preserveAspectRatio="none" overflow="hidden"><image href={src} width={sheet[0]} height={sheet[1]}/></svg>;
+const CELL = 443.5;
+/** All regions are painted on a complete character. Never stretch a loose item onto a limb. */
+function Figure({ src, column = 0, x = 0, y = 0 }: { src: string; column?: number; x?: number; y?: number }) {
+  return <image href={src} x={x - column * CELL} y={y} width="1774" height="887"/>;
 }
+
 export function GladiatorAvatar({ equipped, level, name }: { equipped: EquippedAppearance; level: number; name: string }) {
   const { layers, bodyColumn, aura } = getCharacterAppearance(equipped, level);
+  const parts = getDressedParts(equipped);
+  const variant = (slot: string) => parts.find(part => part.slot === slot)?.variant ?? 0;
   const id = useId().replace(/:/g, '');
   const ref = (part: string) => `url(#${id}-${part})`;
-  const body = <Fragment src={bodies} sheet={[1774,887]} crop={[bodyColumn * 443.5,0,443.5,887]} box={[0,0,444,888]}/>;
   const gearProps = (item: GameItem) => {
     const light = getItemRadiance(item.rarity);
     return { 'data-equipped-slot': item.slot, 'data-icon': item.iconId, 'data-rarity': item.rarity,
       style: { filter: light.strength ? `drop-shadow(0 0 ${2 + light.strength * 5}px ${light.color})` : undefined } };
   };
-  const head = layers.helmet?.iconId;
-  const trident = layers.weapon?.iconId === 'trident_neptune';
-  const dagger = layers.weapon?.iconId === 'pugio_assassin';
-  const goldBlade = /imperial|bronze/.test(layers.weapon?.iconId ?? '');
   const visibleGear = Object.values(layers).map(item => item.name).join(', ');
-  return <div className="living-gladiator painted-gladiator" data-aura-tier={aura.tier} style={{ '--aura-color': aura.color, '--aura-strength': aura.strength } as React.CSSProperties}>
+  // The weapon sheet has five figures. These are hand landmarks, not item offsets.
+  const handCenters = [56, 420, 775, 1130, 1487];
+  const weaponX = 65 - handCenters[variant('weapon')];
+  const weaponContours = [
+    'M22 195L53 220L76 395L93 400L91 420L101 435L96 474L93 515H34L29 470L28 410L17 223Z',
+    'M18 195L48 205L76 390L98 402L94 420L101 436L96 477L94 517H33L30 470L28 410Z',
+    'M24 45L64 45L85 385L110 385V413L99 423L101 476L105 530H28V478L27 418L17 410V385H40Z',
+    'M36 310L65 315L82 405L99 408L96 430L100 473L92 512H35L31 470L28 410Z',
+    'M0 20H125V200H80V400H104V480H80V880H48V480H26V402H48V200H0Z',
+  ];
+  const bracerContours = [
+    'M40 330Q70 318 110 343L90 419Q60 412 38 418Z',
+    'M39 324Q65 311 112 335L91 419Q65 411 39 419Z',
+    'M41 319Q74 314 114 333L95 419Q62 412 39 420Z',
+  ];
+  // Replace the entire lower body at the cloth belt, never cut through bare knees.
+  const lowerBody = 'M128 355H316L350 550L443.5 560V888H0V560L94 550Z';
+  return <div className="living-gladiator dressed-gladiator" data-aura-tier={aura.tier} style={{ '--aura-color': aura.color, '--aura-strength': aura.strength } as React.CSSProperties}>
     <div className="gladiator-aura" aria-hidden="true"/>
-    <svg viewBox="-65 -65 574 970" className="gladiator-body" role="img" aria-label={`${name}, nível ${level}. ${visibleGear ? `Equipado com ${visibleGear}.` : 'Sem equipamentos.'} ${aura.label}.`}>
+    <svg viewBox="-62 -100 570 1070" className="gladiator-body" role="img" aria-label={`${name}, nível ${level}. ${visibleGear ? `Equipado com ${visibleGear}.` : 'Sem equipamentos.'} ${aura.label}.`}>
       <defs>
-        <clipPath id={`${id}-body`}><path d="M168 15Q222 0 279 20L285 134L354 166L402 432L403 514L351 520L344 600L391 888H49L89 600L96 520L38 520L36 430L85 166L161 134Z"/></clipPath>
-        <clipPath id={`${id}-torso`}><path d="M162 139L284 139L371 170L362 297L315 306L348 580L306 600L143 600L96 579L128 306L80 293L78 170Z"/></clipPath>
-        <clipPath id={`${id}-grip`}><path d="M49 457Q68 450 83 465L87 490L72 506L52 493Z"/></clipPath>
-        <mask id={`${id}-open-face`} maskUnits="userSpaceOnUse" x="140" y="-40" width="170" height="220"><rect x="140" y="-40" width="170" height="220" fill="white"/><path d="M183 80Q222 70 260 80L255 105L246 111L244 127Q222 147 201 127L198 112L188 106Z" fill="black"/></mask>
+        <clipPath id={`${id}-cell`}><rect width="443.5" height="887"/></clipPath>
+        <mask id={`${id}-body`} maskUnits="userSpaceOnUse" x="0" y="0" width="444" height="888">
+          <rect width="444" height="888" fill="white"/>
+          {layers.helmet && <rect x="150" y="0" width="145" height="137" fill="black"/>}
+          {layers.weapon && <path d="M20 408H105V480H20Z" fill="black"/>}
+          {layers.shield && <path d="M320 250H444V490H320Z" fill="black"/>}
+          {layers.boots && <path d={lowerBody} fill="black"/>}
+        </mask>
+        <clipPath id={`${id}-head`}><path d="M120 -95H325V110L270 143H175L120 110Z"/></clipPath>
+        <clipPath id={`${id}-torso`}><path d="M145 132H299L365 165L367 240L320 263L345 548H99L125 265L76 240L79 165Z"/></clipPath>
+        <clipPath id={`${id}-bracers`}><path d={bracerContours[variant('gloves')]}/><path d={bracerContours[variant('gloves')]} transform="translate(443.5 0) scale(-1 1)"/></clipPath>
+        <clipPath id={`${id}-legs`}><path d={lowerBody}/></clipPath>
+        <clipPath id={`${id}-weapon`}><path d={weaponContours[variant('weapon')]}/></clipPath>
+        <clipPath id={`${id}-shield`}><path d={variant('shield') === 2 ? 'M310 235H443V590H249V350L280 303L310 288Z' : 'M310 220H443V650H250V280L270 250L310 245Z'}/></clipPath>
       </defs>
-      <ellipse cx="222" cy="871" rx="154" ry="13" fill="#000" opacity=".4"/>
-      <g clipPath={ref('body')}>{body}</g>
-      {layers.armor && <g {...gearProps(layers.armor)}><g clipPath={ref('torso')}>{body}</g></g>}
-      {layers.boots && <g {...gearProps(layers.boots)}>{[false,true].map(right => <g key={String(right)} transform={right ? 'translate(444 0) scale(-1 1)' : undefined}>
-        {layers.boots!.iconId === 'caligae_leather' ? <Fragment src={limbs} sheet={[1536,1024]} crop={[138,570,250,435]} box={[70,774,96,106]}/> : <g transform="rotate(5 130 750)"><Fragment src={limbs} sheet={[1536,1024]} crop={layers.boots!.iconId === 'ocrea_imperial' ? [1164,465,221,540] : [670,466,206,540]} box={[89,612,87,270]}/></g>}
-      </g>)}</g>}
-      {layers.gloves && <g {...gearProps(layers.gloves)}>{[false,true].map(right => <g key={String(right)} transform={right ? 'translate(444 0) scale(-1 1)' : undefined}><g transform="rotate(14 79 397)"><Fragment src={limbs} sheet={[1536,1024]} crop={layers.gloves!.iconId === 'manica_leather' ? [138,20,245,420] : layers.gloves!.iconId === 'manica_bronze' ? [643,20,250,420] : [1130,20,267,420]} box={[53,327,61,119]}/></g></g>)}</g>}
+      <ellipse cx="222" cy="881" rx="169" ry="13" fill="#000" opacity=".35"/>
+      <g clipPath={ref('cell')} mask={ref('body')}><Figure src={bodies} column={bodyColumn}/></g>
+      {layers.boots && <g {...gearProps(layers.boots)} clipPath={ref('legs')}><g transform="translate(-9 -34) scale(1.04)"><Figure src={wear} column={variant('boots')}/></g></g>}
+      {layers.armor && <g {...gearProps(layers.armor)} clipPath={ref('torso')}><Figure src={bodies} column={bodyColumn}/></g>}
+      {layers.gloves && <g {...gearProps(layers.gloves)} clipPath={ref('bracers')}><Figure src={wear} column={variant('gloves')} y={-22}/></g>}
+      {layers.helmet && <g {...gearProps(layers.helmet)} clipPath={ref('head')}><Figure src={wear} column={variant('helmet')} y={-40}/></g>}
       {layers.amulet && <g {...gearProps(layers.amulet)}>
-        <path d="M181 150Q181 220 222 238Q265 220 264 150" fill="none" stroke="#695135" strokeWidth="5"/><path d="M181 150Q181 220 222 238Q265 220 264 150" fill="none" stroke="#c8a469" strokeWidth="2"/>
-        <circle cx="222" cy="240" r="17" fill="#9a7340" stroke="#e6c487" strokeWidth="3"/><circle cx="222" cy="240" r="12" fill="#46382a" stroke="#b99558"/><path d="M225 229L215 242H224L219 251L231 237H222Z" fill={layers.amulet.iconId === 'bulla_jupiter' ? '#d3d8ac' : '#bc935a'}/>
+        <path d="M186 134Q179 207 222 225Q265 207 258 134" fill="none" stroke="#614320" strokeWidth="6"/>
+        <path d="M186 134Q179 207 222 225Q265 207 258 134" fill="none" stroke="#d9b363" strokeWidth="3"/>
+        <circle cx="222" cy="229" r="17" fill="#a77932" stroke="#f0ce78" strokeWidth="3"/><circle cx="222" cy="229" r="12" fill="#64471e"/>
+        <path d={variant('amulet') ? 'M225 217L213 231H224L218 241L232 226H222Z' : 'M217 219H227V235H217ZM214 223H230'} fill="#ebc568" stroke="#ebc568" strokeWidth="2"/>
       </g>}
-      {layers.helmet && <g {...gearProps(layers.helmet)} mask={head === 'galea_murmillo' ? undefined : ref('open-face')}>
-        <Fragment src={equipment} sheet={[1247,1261]} crop={head === 'galea_recruit' ? [93,58,256,341] : head === 'galea_centurion' ? [497,8,255,390] : [833,8,376,395]} box={head === 'galea_recruit' ? [166,5,112,149] : head === 'galea_centurion' ? [166,-22,112,174] : [143,-29,158,181]}/>
-      </g>}
-      {layers.weapon && <g {...gearProps(layers.weapon)} transform={`rotate(${trident ? -7 : -17} 68 480)`}>
-        {trident && <><path d="M67 465L67 844" stroke="#392819" strokeWidth="8"/><path d="M65 470L65 836" stroke="#9e7542" strokeWidth="2"/></>}
-        <Fragment src={equipment} sheet={[1247,1261]} crop={trident ? [962,415,130,420] : goldBlade ? [580,419,89,415] : [179,430,83,401]} box={trident ? [32,70,72,420] : dagger ? [46,310,44,218] : [43,175,48,350]}/>
-      </g>}
-      {layers.weapon && <g clipPath={ref('grip')}>{body}</g>}
-      {layers.ring && <g {...gearProps(layers.ring)}><path d="M57 484Q63 490 70 486" fill="none" stroke="#e2ba63" strokeWidth="3"/><circle cx="63" cy="487" r="3" fill={layers.ring.iconId === 'anulus_ruby' ? '#c84445' : '#aa813e'}/></g>}
-      {layers.shield && <g {...gearProps(layers.shield)} transform="rotate(-8 385 480)"><Fragment src={equipment} sheet={[1247,1261]} crop={layers.shield.iconId === 'parma_bronze' ? [840,850,370,395] : layers.shield.iconId === 'scutum_wood' ? [86,852,258,395] : [496,850,257,397]} box={layers.shield.iconId === 'parma_bronze' ? [299,376,182,193] : [298,336,181,294]}/></g>}
+      {layers.weapon && <g {...gearProps(layers.weapon)} clipPath={ref('weapon')}><Figure src={weapons} x={weaponX} y={38}/></g>}
+      {layers.ring && <g {...gearProps(layers.ring)}><path d={layers.weapon ? 'M44 445Q55 451 68 447' : 'M49 440Q60 449 73 444'} fill="none" stroke="#edc66f" strokeWidth="4"/>{variant('ring') === 1 && <circle cx="57" cy="447" r="5" fill="#ae1537" stroke="#e6b95f" strokeWidth="2"/>}</g>}
+      {layers.shield && <g {...gearProps(layers.shield)} clipPath={ref('shield')}><Figure src={shields} column={variant('shield')}/></g>}
     </svg>
     <span className="gladiator-aura-caption">{aura.label} <span>· Nível {level}</span></span>
   </div>;

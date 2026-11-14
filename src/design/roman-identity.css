@@ -167,3 +167,6 @@
 @keyframes item-star-breathe { 0%,100% { opacity:.5; transform:scale(.8); } 50% { opacity:1; transform:scale(1.1); } }
 @media (prefers-reduced-motion:reduce) { .item-portrait-stars { animation:none; } }
 
+
+/* Keep level/aura text clear of both feet and the character name. */
+.dressed-gladiator .gladiator-aura-caption { top: 7px; bottom: auto; left: -25px; right: -25px; }
