@@ -1,5 +1,12 @@
 import type { RarityKey } from '../design/tokens.ts';
-import { EXPANSION_ITEMS, EXPANSION_REGIONS, EXPANSION_MARKET_IDS } from './expansion.ts';
+import {
+  ENDGAME_ITEMS,
+  ENDGAME_REGIONS,
+  EXPANSION_ITEMS,
+  EXPANSION_REGIONS,
+  EXPANSION_MARKET_IDS,
+  OBSIDIAN_ITEMS,
+} from './expansion.ts';
 import type { EnemyAvatarId, ItemIconId } from '../design/assets.tsx';
 import {
   EXPANDED_EQUIPMENT_TEMPLATES,
@@ -152,6 +159,8 @@ export interface EnemyDefinition {
   xpReward: number;
   dropChance: number; // 0 to 1
   dropPool: string[]; // templateIds
+  specialDropChance?: number; // independent 0 to 1 roll after a victory
+  specialDropPool?: string[]; // templateIds for rare special drops
 }
 
 export interface ExpeditionRegion {
@@ -509,6 +518,8 @@ export const ITEM_TEMPLATES: Record<string, Omit<GameItem, 'id'>> = {
   ...MEDICINE_ITEM_TEMPLATES,
   ...EXPANDED_EQUIPMENT_TEMPLATES,
   ...EXPANSION_ITEMS,
+  ...ENDGAME_ITEMS,
+  ...OBSIDIAN_ITEMS,
 };
 
 export { MEDICAL_TREATMENTS, MEDICINE_ITEM_TEMPLATES };
@@ -657,7 +668,7 @@ export const EXPEDITION_REGIONS: ExpeditionRegion[] = [
   },
 ];
 
-EXPEDITION_REGIONS.push(...EXPANSION_REGIONS);
+EXPEDITION_REGIONS.push(...EXPANSION_REGIONS, ...ENDGAME_REGIONS);
 
 export interface SimulatedArenaOpponent extends EnemyDefinition {
   arenaRank: number;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { GameState } from '../../game/rules';
 import { ITEM_TEMPLATES, EQUIPMENT_SLOT_LABELS, EquipmentSlotType } from '../../game/config';
 import { CONTRACTS, contractProgress } from '../../game/contracts';
-import { COLLECTIONS } from '../../game/expansion';
+import { COLLECTIONS, getItemsVisibleByDiscovery, isRarityDiscovered } from '../../game/expansion';
 import { DESIGN_TOKENS, RarityKey } from '../../design/tokens';
 import { ItemArtwork } from '../../design/assets';
 
@@ -12,9 +12,13 @@ export function ChronicleScreen({ state, onClaim }: { state: GameState; onClaim:
   const [rarity, setRarity] = useState('all');
   const [slot, setSlot] = useState('all');
   const [maxLevel, setMaxLevel] = useState(false);
-  const discovered = new Set([...(state.discoveredTemplates ?? []), ...state.inventory.map(i => i.templateId),
-    ...Object.values(state.equipped).filter(Boolean).map(i => i!.templateId)]);
-  const items = Object.values(ITEM_TEMPLATES).filter(i => !i.consumable);
+  const discoveredTemplates = [...new Set([...(state.discoveredTemplates ?? []), ...state.inventory.map(i => i.templateId),
+    ...Object.values(state.equipped).filter(Boolean).map(i => i!.templateId)])];
+  const discovered = new Set(discoveredTemplates);
+  const items = getItemsVisibleByDiscovery(
+    Object.values(ITEM_TEMPLATES).filter(i => !i.consumable),
+    discoveredTemplates
+  );
   const filtered = items.filter(i => i.name.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')) &&
     (rarity === 'all' || i.rarity === rarity) && (slot === 'all' || i.slot === slot) && (!maxLevel || i.levelReq <= state.level));
   return <section className="chronicle">
@@ -37,11 +41,11 @@ export function ChronicleScreen({ state, onClaim }: { state: GameState; onClaim:
         </article>;
       })}</div>
     </> : <>
-      <div className="section-intro"><span className="eyebrow">ARSENAL DA PROVÍNCIA</span><h2>Tesouros para conquistar.</h2><p>Conheça as oito raridades e planeje sua próxima melhoria. Itens descobertos permanecem no registro.</p></div>
+      <div className="section-intro"><span className="eyebrow">ARSENAL DA PROVÍNCIA</span><h2>Tesouros para conquistar.</h2><p>Conheça os equipamentos disponíveis e planeje sua próxima melhoria.</p></div>
       <div className="collection-themes">{COLLECTIONS.map(c => <span key={c.id}>{c.name}<small>Nv. {c.level} · {c.origin}</small></span>)}</div>
       <div className="collection-filters">
         <input aria-label="Buscar equipamento na coleção" placeholder="Buscar equipamento…" value={search} onChange={e => setSearch(e.target.value)} />
-        <select aria-label="Filtrar raridade" value={rarity} onChange={e => setRarity(e.target.value)}><option value="all">Todas as raridades</option>{Object.entries(DESIGN_TOKENS.colors.rarity).map(([id, r]) => <option key={id} value={id}>{r.label}</option>)}</select>
+        <select aria-label="Filtrar raridade" value={rarity} onChange={e => setRarity(e.target.value)}><option value="all">Todas as raridades</option>{Object.entries(DESIGN_TOKENS.colors.rarity).filter(([id]) => isRarityDiscovered(id as RarityKey, discoveredTemplates)).map(([id, r]) => <option key={id} value={id}>{r.label}</option>)}</select>
         <select aria-label="Filtrar slot" value={slot} onChange={e => setSlot(e.target.value)}><option value="all">Todos os slots</option>{Object.entries(EQUIPMENT_SLOT_LABELS).map(([id, name]) => <option value={id} key={id}>{name}</option>)}</select>
         <label><input type="checkbox" checked={maxLevel} onChange={e => setMaxLevel(e.target.checked)} /> Meu nível</label>
       </div>

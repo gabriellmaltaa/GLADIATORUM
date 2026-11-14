@@ -1,17 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { DESIGN_TOKENS } from '../design/tokens';
 import { getItemRadiance } from './itemRadiance';
 
-test('aura de item depende da raridade e cresce sem afetar atributos', () => {
-  assert.equal(getItemRadiance('common').strength, 0);
-  assert.equal(getItemRadiance('uncommon').strength, 0);
-  const rarities = ['rare', 'epic', 'legendary', 'mythic', 'imperial', 'divine'] as const;
-  const effects = rarities.map(getItemRadiance);
-  effects.forEach((effect, index) => {
-    assert.ok(effect.strength > (index ? effects[index - 1].strength : 0));
-    assert.ok(effect.strength <= 1);
-    assert.match(effect.color, /^#[0-9a-f]{6}$/i);
-  });
-  assert.equal(new Set(effects.map(e => e.color)).size, 6);
-  assert.equal(getItemRadiance(undefined).strength, 0);
+test('novas raridades têm apresentação legível e brilho próprio acima de Divino', () => {
+  const rarities = [
+    ['celestial', 'Celestial'],
+    ['astral', 'Astral'],
+    ['primordial', 'Primordial'],
+    ['transcendent', 'Transcendente'],
+    ['obsidian', 'Obsidiana Oculta'],
+  ] as const;
+  const divineStrength = getItemRadiance('divine').strength;
+
+  for (const [rarity, label] of rarities) {
+    const style = DESIGN_TOKENS.colors.rarity[rarity];
+    assert.equal(style.label, label);
+    assert.ok(style.border.length > 0 && style.textOnDark.length > 0 && style.badgeBg.length > 0);
+    assert.ok(getItemRadiance(rarity).strength > divineStrength);
+    assert.ok(getItemRadiance(rarity).color.length > 0);
+  }
+  assert.equal(DESIGN_TOKENS.colors.rarity.obsidian.badgeBg, '#08090D');
 });

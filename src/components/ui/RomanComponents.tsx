@@ -22,6 +22,7 @@ import {
   NextObjectiveInfo,
   PendingRewardBatch,
 } from '../../game/rules';
+import { shouldConcealRewardItem } from '../../game/rewardPresentation';
 
 export type MainTabId = 'character' | 'expeditions' | 'arena' | 'inventory' | 'city';
 
@@ -870,16 +871,21 @@ export const RewardPanel: React.FC<RewardPanelProps> = ({ batch, onClaim }) => {
           </span>
           <div className="flex flex-wrap gap-2">
             {batch.items.map((it) => (
-              <div
-                key={it.id}
-                className="flex items-center gap-2 bg-[#211711] text-[#EFE2C4] p-1.5 border border-[#947044]"
-              >
-                <ItemArtwork iconId={it.iconId} rarity={it.rarity} size={32} />
-                <div className="text-xs">
-                  <div className="font-semibold">{it.name}</div>
-                  <div className="text-[10px] text-[#B8A686]">Nível {it.levelReq}</div>
-                </div>
-              </div>
+              (() => {
+                const concealed = shouldConcealRewardItem(it, batch.claimed);
+                return <div
+                  key={it.id}
+                  className="flex items-center gap-2 bg-[#211711] text-[#EFE2C4] p-1.5 border border-[#947044]"
+                >
+                  {concealed
+                    ? <div className="grid h-8 w-8 place-items-center border border-[#5E4527] bg-[#08090D] text-[#B8A686] font-roman font-bold" aria-label="Item por revelar">?</div>
+                    : <ItemArtwork iconId={it.iconId} rarity={it.rarity} size={32} />}
+                  <div className="text-xs">
+                    <div className="font-semibold">{concealed ? 'Item por revelar' : it.name}</div>
+                    <div className="text-[10px] text-[#B8A686]">{concealed ? 'Resgate para revelar' : `Nível ${it.levelReq}`}</div>
+                  </div>
+                </div>;
+              })()
             ))}
           </div>
         </div>

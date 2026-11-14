@@ -222,7 +222,12 @@ export const CityScreen: React.FC<CityScreenProps> = ({
         item.rarity === 'legendary' ||
         item.rarity === 'mythic' ||
         item.rarity === 'imperial' ||
-        item.rarity === 'divine'
+        item.rarity === 'divine' ||
+        item.rarity === 'celestial' ||
+        item.rarity === 'astral' ||
+        item.rarity === 'primordial' ||
+        item.rarity === 'transcendent' ||
+        item.rarity === 'obsidian'
       );
     }
     return true;
@@ -627,10 +632,10 @@ export const CityScreen: React.FC<CityScreenProps> = ({
         <div className="space-y-4">
           <RomanPanel
             title="Mercado de Armamentos e Raridades do Fórum"
-            subtitle={`Saldo: ${state.gold} denários · Mochila: ${state.inventory.length}/${GAME_CONFIG.maxInventorySlots} · 8 Raridades (Comum a Divino)`}
+            subtitle={`Saldo: ${state.gold} denários · Mochila: ${state.inventory.length}/${GAME_CONFIG.maxInventorySlots} · 12 raridades conquistáveis`}
             variant="stone"
           >
-            <EquipmentFilters value={equipmentFilter} onChange={setEquipmentFilter} />
+            <EquipmentFilters value={equipmentFilter} onChange={setEquipmentFilter} discoveredTemplates={state.discoveredTemplates} />
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-[#5E4527]">
               <div className="flex items-center gap-2">
                 <GameButton
@@ -656,7 +661,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
                       { id: 'all', label: 'Todos' },
                       { id: 'equipment', label: 'Armas & Armaduras' },
                       { id: 'medicine', label: 'Medicina' },
-                      { id: 'high_rarity', label: 'Lendário / Mítico / Imperial / Divino' },
+                      { id: 'high_rarity', label: 'Raridades superiores' },
                     ] as const
                   ).map((f) => (
                     <button

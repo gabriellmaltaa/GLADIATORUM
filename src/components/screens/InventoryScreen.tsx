@@ -152,7 +152,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
               </div>
             ) : null}
 
-            <EquipmentFilters value={equipmentFilter} onChange={setEquipmentFilter} />
+            <EquipmentFilters value={equipmentFilter} onChange={setEquipmentFilter} discoveredTemplates={state.discoveredTemplates} />
             <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
               {Array.from({ length: GAME_CONFIG.maxInventorySlots }).map((_, idx) => {
                 const item: GameItem | undefined = filteredItems[idx];

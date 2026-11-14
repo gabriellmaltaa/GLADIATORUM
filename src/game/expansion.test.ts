@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { EXPANSION_ITEMS, EXPANSION_REGIONS } from './expansion';
+import { ENDGAME_REGIONS, EXPANSION_ITEMS, EXPANSION_REGIONS } from './expansion';
 import { ITEM_TEMPLATES, EXPEDITION_REGIONS, INITIAL_MARKET_TEMPLATE_IDS } from './config';
 import { createInitialGameState, claimPendingReward, buyItemFromMarket, sellItemFromInventory } from './rules';
 import { OnlineAuthorityEngine } from '../server/onlineAuthorityEngine';
@@ -19,9 +19,10 @@ test('48 equipamentos novos possuem IDs únicos, oito slots e origem obtível', 
   }
 });
 
-test('três novas regiões têm progressão e pools de loot válidos', () => {
+test('regiões de expansão e endgame têm progressão e pools de loot válidos', () => {
   assert.equal(EXPANSION_REGIONS.length, 3);
-  assert.equal(EXPEDITION_REGIONS.length, 6);
+  assert.equal(ENDGAME_REGIONS.length, 4);
+  assert.equal(EXPEDITION_REGIONS.length, 10);
   for (const region of EXPEDITION_REGIONS) {
     for (const enemy of region.enemies) for (const id of enemy.dropPool) assert.ok(ITEM_TEMPLATES[id], id);
   }

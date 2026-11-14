@@ -2,6 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { shouldConcealRewardItem } from './rewardPresentation';
+
+test('o jackpot Obsidiano permanece selado no painel até resgatar a recompensa', () => {
+  assert.equal(shouldConcealRewardItem({ rarity: 'obsidian' }, false), true);
+  assert.equal(shouldConcealRewardItem({ rarity: 'obsidian' }, true), false);
+  assert.equal(shouldConcealRewardItem({ rarity: 'divine' }, false), false);
+});
 
 test('A navegação da Cidade mantém os sete locais dentro da altura mobile do panorama', () => {
   const css = fs.readFileSync(path.resolve(process.cwd(), 'src/design/roman-identity.css'), 'utf8');
