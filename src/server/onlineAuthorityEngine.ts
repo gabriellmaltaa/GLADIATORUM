@@ -243,6 +243,7 @@ const MAX_RETAINED_OP_IDS = 120;
 const MAX_RETAINED_LEDGER_ENTRIES = 50;
 const MAX_RETAINED_AUDIT_ENTRIES = 50;
 const MAX_RETAINED_ANNOUNCEMENTS = 20;
+const GOVERNO_VIP_OWNER_UID = 'fB4SJKCiOgU8eEXnpLBimgKglvf1';
 
 import { MIGRATION_COMPETITIVE_CAPS } from '../game/onlinePolicy.ts';
 export { MIGRATION_COMPETITIVE_CAPS } from '../game/onlinePolicy.ts';
@@ -292,6 +293,10 @@ export class OnlineAuthorityEngine {
     }
     if (this.guilds.size === 0 && (options?.seedInitialOnlineGuilds ?? true)) {
       this.seedFoundationalOnlineGuilds(Date.now());
+    }
+    const governoOwner = this.players.get(GOVERNO_VIP_OWNER_UID);
+    if (governoOwner && this.ensureGovernoVipGuild(governoOwner, Date.now())) {
+      this.saveToDisk();
     }
   }
 
@@ -701,6 +706,139 @@ export class OnlineAuthorityEngine {
     return this.cachedMemberToGuildMap.get(uid) ?? null;
   }
 
+  private getPermanentGuildRewardPercent(uid: string, kind: 'gold' | 'xp'): number {
+    const guildId = this.findPlayerGuildId(uid);
+    const guild = guildId ? this.guilds.get(guildId) : undefined;
+    if (!guild || !guild.members.some((member) => member.id === uid)) return 0;
+    return Math.max(
+      0,
+      kind === 'gold'
+        ? guild.permanentGoldBonusPercent ?? 0
+        : guild.permanentXpBonusPercent ?? 0
+    );
+  }
+
+  private ensureGovernoVipGuild(record: AuthoritativePlayerRecord, nowMs: number): boolean {
+    if (record.uid !== GOVERNO_VIP_OWNER_UID) return false;
+
+    const guildId = 'vip_guild_governo_xxmalta';
+    let guild = this.guilds.get(guildId);
+    if (!guild) {
+      const nameConflict = Array.from(this.guilds.values()).find(
+        (candidate) => candidate.name.trim().toLowerCase() === 'governo'
+      );
+      if (nameConflict) {
+        console.warn(
+          `A guilda VIP GOVERNO não foi provisionada: o nome já pertence à guilda [${nameConflict.tag}].`
+        );
+        return false;
+      }
+
+      guild = {
+        id: guildId,
+        name: 'GOVERNO',
+        tag: 'GOV',
+        emblemId: 'aquila_imperial',
+        description: 'Guilda VIP exclusiva de XXMALTA. Edifícios no nível máximo e bônus permanentes de +50% Ouro e +50% XP.',
+        recruitmentStatus: 'closed',
+        minLevelReq: 1,
+        minHonorReq: 0,
+        treasuryGold: 0,
+        buildings: {
+          forum_gladiatorius: GUILD_CONFIG.maxBuildingLevel,
+          banco: GUILD_CONFIG.maxBuildingLevel,
+          campo_treino: GUILD_CONFIG.maxBuildingLevel,
+          balneario: GUILD_CONFIG.maxBuildingLevel,
+          villa_medici: GUILD_CONFIG.maxBuildingLevel,
+          biblioteca: GUILD_CONFIG.maxBuildingLevel,
+          armazem: GUILD_CONFIG.maxBuildingLevel,
+          mercado_interno: GUILD_CONFIG.maxBuildingLevel,
+        },
+        members: [],
+        applications: [],
+        warehouseItems: [],
+        internalMarketTemplateIds: getInternalMarketTemplateIdsForLevel(GUILD_CONFIG.maxBuildingLevel),
+        activeBuffs: [],
+        permanentGoldBonusPercent: 50,
+        permanentXpBonusPercent: 50,
+        bankHistory: [],
+        announcements: [
+          {
+            id: 'ann_guild_governo_vip',
+            authorName: record.state.name,
+            authorRole: 'leader',
+            content: 'GOVERNO fundada como guilda VIP: todos os edifícios no nível máximo e +50% permanente de Ouro e XP.',
+            timestampMs: nowMs,
+          },
+        ],
+        auditLog: [
+          {
+            id: 'audit_guild_governo_vip',
+            actorName: record.state.name,
+            action: 'GOVERNO fundada como guilda VIP com todos os edifícios no nível máximo.',
+            timestampMs: nowMs,
+          },
+        ],
+        createdAtMs: nowMs,
+        isSimulatedSeed: false,
+      };
+      this.guilds.set(guildId, guild);
+    } else {
+      guild.name = 'GOVERNO';
+      guild.tag = 'GOV';
+      guild.recruitmentStatus = 'closed';
+      guild.permanentGoldBonusPercent = 50;
+      guild.permanentXpBonusPercent = 50;
+      guild.buildings = Object.fromEntries(
+        Object.keys(GUILD_BUILDING_DEFINITIONS).map((id) => [
+          id,
+          GUILD_CONFIG.maxBuildingLevel,
+        ])
+      ) as GuildRecord['buildings'];
+      guild.internalMarketTemplateIds = getInternalMarketTemplateIdsForLevel(GUILD_CONFIG.maxBuildingLevel);
+    }
+
+    for (const candidate of this.guilds.values()) {
+      candidate.applications = candidate.applications.filter(
+        (application) => application.applicantId !== record.uid
+      );
+      if (candidate.id === guildId) continue;
+      const previousMember = candidate.members.find((member) => member.id === record.uid);
+      if (!previousMember) continue;
+      candidate.members = candidate.members.filter((member) => member.id !== record.uid);
+      if (previousMember.role === 'leader' && candidate.members.length > 0) {
+        const successor = candidate.members.find((member) => member.role === 'admin') ?? candidate.members[0];
+        successor.role = 'leader';
+      }
+    }
+
+    const featsCount = evaluateUnlockedFeats(record.state).length;
+    const owner: GuildMemberRecord = {
+      id: record.uid,
+      name: record.state.name,
+      title: record.state.title,
+      isPlayer: false,
+      role: 'leader',
+      level: record.state.level,
+      honor: record.state.honor,
+      fame: record.state.fame,
+      wins: record.state.wins,
+      goldLooted: record.state.goldLooted,
+      featsCount,
+      goldContributed: 0,
+      joinedAtMs: guild.members.find((member) => member.id === record.uid)?.joinedAtMs ?? nowMs,
+    };
+    guild.members = [owner];
+    record.state.guildState = {
+      ...record.state.guildState,
+      playerGuildId: guildId,
+      guilds: [],
+      simulatedGladiators: [],
+    };
+    this.invalidateRankingCaches();
+    return true;
+  }
+
   private syncPlayerIntoSharedGuildMember(record: AuthoritativePlayerRecord) {
     this.cachedPublicProfiles.delete(record.uid);
     const guildId = this.findPlayerGuildId(record.uid);
@@ -866,17 +1004,21 @@ export class OnlineAuthorityEngine {
       this.metrics.writesObserved += 2;
       this.invalidateRankingCaches();
       this.saveToDisk();
-    } else {
+    }
+    const vipGuildChanged = this.ensureGovernoVipGuild(record, serverNowMs);
+    if (!isNewAccount) {
       const hydrated = this.buildClientGameStateForPlayer(record, serverNowMs);
       const elapsedRes = calculateElapsedIdleProgress(hydrated, serverNowMs);
       record.state = elapsedRes.state;
       record.updatedAtMs = serverNowMs;
       offlineBatchCreated = elapsedRes.offlineBatchCreated;
       this.syncPlayerIntoSharedGuildMember(record);
-      if (offlineBatchCreated) {
+      if (offlineBatchCreated || vipGuildChanged) {
         this.metrics.writesObserved += 1;
         this.saveToDisk();
       }
+    } else if (vipGuildChanged) {
+      this.saveToDisk();
     }
 
     const clientState = this.buildClientGameStateForPlayer(record, serverNowMs);
@@ -1267,7 +1409,9 @@ export class OnlineAuthorityEngine {
 
         case 'sell_item': {
           const itemId = String(params.itemId ?? '');
-          const res = sellItemFromInventory(record.state, itemId);
+          const goldMultiplier =
+            1 + this.getPermanentGuildRewardPercent(identity.uid, 'gold') / 100;
+          const res = sellItemFromInventory(record.state, itemId, goldMultiplier);
           if (res.error) return fail(res.error);
           record.state = res.state;
           message = `Item vendido por +${res.goldReceived} denários de ouro.`;
@@ -1500,8 +1644,18 @@ export class OnlineAuthorityEngine {
             ? {
                 ...combatRes.rewardBatch,
                 sourceTitle: `${dungeon.name} — Chefe Derrotado (${enemy.name})`,
-                gold: combatRes.rewardBatch.gold + dungeon.completionBonusGold,
-                xp: combatRes.rewardBatch.xp + dungeon.completionBonusXp,
+                gold:
+                  combatRes.rewardBatch.gold +
+                  Math.round(
+                    dungeon.completionBonusGold *
+                      (1 + this.getPermanentGuildRewardPercent(identity.uid, 'gold') / 100)
+                  ),
+                xp:
+                  combatRes.rewardBatch.xp +
+                  Math.round(
+                    dungeon.completionBonusXp *
+                      (1 + this.getPermanentGuildRewardPercent(identity.uid, 'xp') / 100)
+                  ),
                 items: [
                   ...combatRes.rewardBatch.items,
                   createItemFromTemplate(
@@ -1574,7 +1728,13 @@ export class OnlineAuthorityEngine {
         case 'claim_contract': {
           const result = claimContract(record.state, String(params.contractId ?? ''));
           if (result.error) return fail(result.error);
-          record.state = result.state;
+          const contractGold = result.state.gold - record.state.gold;
+          const goldMultiplier =
+            1 + this.getPermanentGuildRewardPercent(identity.uid, 'gold') / 100;
+          record.state = {
+            ...result.state,
+            gold: record.state.gold + Math.round(contractGold * goldMultiplier),
+          };
           message = 'Contrato concluído. Denários creditados no servidor.';
           break;
         }
@@ -2013,6 +2173,9 @@ export class OnlineAuthorityEngine {
 
           const actorMember = guild.members.find((m) => m.id === identity.uid);
           if (!actorMember) return fail('Membro não encontrado na guilda.');
+          if (guild.id === 'vip_guild_governo_xxmalta') {
+            return fail('A guilda VIP GOVERNO está vinculada permanentemente a XXMALTA.');
+          }
 
           if (actorMember.role === 'leader' && guild.members.length > 1) {
             return fail(
@@ -2046,6 +2209,9 @@ export class OnlineAuthorityEngine {
           if (!guild) return fail('Guilda não encontrada.');
 
           const actorMember = guild.members.find((m) => m.id === identity.uid);
+          if (guild.id === 'vip_guild_governo_xxmalta') {
+            return fail('A liderança da guilda VIP GOVERNO não pode ser transferida.');
+          }
           if (!actorMember || !GUILD_PERMISSIONS[actorMember.role].transferLeadership) {
             return fail('Apenas o Líder atual pode transferir a liderança.');
           }
@@ -2081,6 +2247,9 @@ export class OnlineAuthorityEngine {
           if (!guildId) return fail('Você não pertence a uma guilda.');
           const guild = this.guilds.get(guildId);
           if (!guild) return fail('Guilda não encontrada.');
+          if (guild.id === 'vip_guild_governo_xxmalta') {
+            return fail('A guilda VIP GOVERNO é permanente e não pode ser dissolvida.');
+          }
 
           const actorMember = guild.members.find((m) => m.id === identity.uid);
           if (!actorMember || !GUILD_PERMISSIONS[actorMember.role].dissolveGuild) {
@@ -2185,8 +2354,10 @@ export class OnlineAuthorityEngine {
             String(params.description ?? guild.description).trim().slice(0, 220) ||
             guild.description;
           guild.recruitmentStatus =
-            (params.recruitmentStatus as GuildRecruitmentStatus) ??
-            guild.recruitmentStatus;
+            guild.id === 'vip_guild_governo_xxmalta'
+              ? 'closed'
+              : (params.recruitmentStatus as GuildRecruitmentStatus) ??
+                guild.recruitmentStatus;
           guild.minLevelReq = Math.max(
             1,
             Math.floor(Number(params.minLevelReq ?? guild.minLevelReq))
@@ -3073,3 +3244,4 @@ export class OnlineAuthorityEngine {
     };
   }
 }
+
