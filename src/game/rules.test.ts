@@ -9,6 +9,8 @@ import {
   claimPendingReward,
   createInitialGameState,
   equipItemFromInventory,
+  forgeItem,
+  getForgeUpgradeCost,
   getEffectiveTrainingCost,
   getNextObjective,
   getPlayerSnapshotForRankings,
@@ -43,6 +45,86 @@ import {
   useVillaMedici,
 } from './guildActions';
 
+test('A Forja cobra pelo nível atual e impede a próxima melhoria após o limite', () => {
+  assert.equal(getForgeUpgradeCost(0), 100);
+  assert.equal(getForgeUpgradeCost(1), 150);
+  assert.equal(getForgeUpgradeCost(10), null);
+});
+
+test('A Forja melhora arma equipada, salva nível e cobra ouro uma única vez', () => {
+  const state = { ...createInitialGameState(100_000), gold: 1_000 };
+  const weapon = state.equipped.weapon!;
+  const originalMin = weapon.stats.damageMin ?? 0;
+  const originalMax = weapon.stats.damageMax ?? 0;
+
+  const result = forgeItem(state, weapon.id, 'damage');
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.costPaid, 100);
+  assert.equal(result.state.gold, 900);
+  assert.equal(result.state.equipped.weapon?.forgeLevel, 1);
+  assert.equal(result.state.equipped.weapon?.stats.damageMin, originalMin + 1);
+  assert.equal(result.state.equipped.weapon?.stats.damageMax, originalMax + 1);
+  const reloaded = inspectAndLoadSaveState(JSON.stringify(result.state), 101_000).state;
+  assert.equal(reloaded.equipped.weapon?.forgeLevel, 1);
+  assert.equal(reloaded.equipped.weapon?.stats.damageMin, originalMin + 1);
+});
+
+test('A Forja aplica atributo compatível ao item da mochila sem forjar consumíveis', () => {
+  const state = { ...createInitialGameState(100_000), gold: 1_000 };
+  const helmet = state.inventory.find((item) => item.slot === 'helmet')!;
+  const originalAgility = helmet.stats.agility ?? 0;
+  const forged = forgeItem(state, helmet.id, 'agility');
+
+  assert.equal(forged.error, undefined);
+  const forgedHelmet = forged.state.inventory.find((item) => item.id === helmet.id)!;
+  assert.equal(forgedHelmet.stats.agility, originalAgility + 1);
+  assert.equal(forgedHelmet.forgeLevel, 1);
+
+  const consumable = state.inventory.find((item) => item.consumable)!;
+  const rejected = forgeItem(state, consumable.id, 'strength');
+  assert.ok(rejected.error);
+  assert.equal(rejected.state.gold, state.gold);
+});
+
+test('A Forja rejeita ouro insuficiente, nível máximo, bônus incompatível e item ausente sem alterar o estado', () => {
+  const base = createInitialGameState(100_000);
+  const weapon = base.equipped.weapon!;
+
+  const poor = forgeItem({ ...base, gold: 99 }, weapon.id, 'damage');
+  assert.ok(poor.error);
+  assert.equal(poor.state.gold, 99);
+  assert.equal(poor.state.equipped.weapon?.forgeLevel, undefined);
+
+  const cappedState = {
+    ...base,
+    gold: 1_000_000,
+    equipped: { ...base.equipped, weapon: { ...weapon, forgeLevel: 10 } },
+  };
+  const capped = forgeItem(cappedState, weapon.id, 'damage');
+  assert.ok(capped.error);
+  assert.equal(capped.state.gold, cappedState.gold);
+
+  const unsupported = forgeItem({ ...base, gold: 1_000 }, weapon.id, 'agility');
+  assert.ok(unsupported.error);
+  const missing = forgeItem({ ...base, gold: 1_000 }, 'unknown-item', 'damage');
+  assert.ok(missing.error);
+});
+
+test('A Forja concede a vida máxima adicional ao aprimorar bônus de vitalidade', () => {
+  const base = createInitialGameState(100_000);
+  const amulet = { ...base.inventory[0], id: 'amulet-test', slot: 'amulet' as const, stats: { constitution: 1, healthBonus: 10 } };
+  const state = {
+    ...base,
+    gold: 1_000,
+    equipped: { ...base.equipped, amulet },
+    inventory: base.inventory.filter((item) => item.id !== amulet.id),
+  };
+  const result = forgeItem(state, amulet.id, 'healthBonus');
+  assert.equal(result.error, undefined);
+  assert.equal(result.state.equipped.amulet?.stats.healthBonus, 20);
+  assert.equal(result.state.currentHp, state.currentHp + 10);
+});
 test('Regeneração preserva frações entre ticks de 1s e depois de salvar/carregar', () => {
   const start = 1_000_000;
   let state = { ...createInitialGameState(start), energy: 0, currentHp: 10 };

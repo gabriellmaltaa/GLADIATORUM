@@ -8,6 +8,7 @@ import {
   type EquipmentSlotType,
   EXPEDITION_REGIONS,
   GAME_CONFIG,
+  type ForgeStatKey,
   type GameItem,
   type IdleFocusMode,
   ITEM_TEMPLATES,
@@ -48,6 +49,7 @@ import {
   createItemFromTemplate,
   equipItemFromInventory,
   evaluateUnlockedFeats,
+  forgeItem,
   type GameState,
   inspectAndLoadSaveState,
   type PendingRewardBatch,
@@ -170,6 +172,7 @@ export type AuthoritativeActionType =
   | 'sell_item'
   | 'buy_market_item'
   | 'train_stat'
+  | 'forge_upgrade'
   | 'heal_barracks'
   | 'restore_health_barracks'
   | 'use_medicine_item'
@@ -1448,6 +1451,17 @@ export class OnlineAuthorityEngine {
             res.discountAmount > 0
               ? `Atributo treinado (-${res.costPaid}g com desconto de -${res.discountAmount}g da Guilda)!`
               : `Atributo treinado com sucesso (-${res.costPaid} denários)!`;
+          break;
+        }
+
+        case 'forge_upgrade': {
+          const itemId = String(params.itemId ?? '');
+          const stat = String(params.stat ?? '') as ForgeStatKey;
+          const stateWithGuild = this.buildClientGameStateForPlayer(record, serverNowMs);
+          const res = forgeItem(stateWithGuild, itemId, stat);
+          if (res.error) return fail(res.error);
+          record.state = res.state;
+          message = `${res.itemName ?? 'Equipamento'} aprimorado na Forja para o nível ${res.forgeLevel} (-${res.costPaid} denários).`;
           break;
         }
 
@@ -3244,4 +3258,3 @@ export class OnlineAuthorityEngine {
     };
   }
 }
-

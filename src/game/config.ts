@@ -31,6 +31,8 @@ export type PrimaryStatKey =
   | 'charisma'
   | 'intelligence';
 
+export type ForgeStatKey = 'damage' | PrimaryStatKey | 'armor' | 'healthBonus';
+
 export type IdleFocusMode = 'gold' | 'xp' | 'loot';
 
 export interface IdleFocusDefinition {
@@ -104,6 +106,7 @@ export interface GameItem {
   iconId: ItemIconId;
   description: string;
   stats: StatBonuses;
+  forgeLevel?: number;
   consumable?: ConsumableEffect;
 }
 
@@ -186,7 +189,28 @@ export const GAME_CONFIG = {
   energyRegenIntervalSeconds: 180, // +1 ponto de energia a cada 3 minutos
   hpRegenPerMinute: 12,
   defeatMinHpPercent: 0.15,
+  forge: {
+    maxItemLevel: 10,
+    baseUpgradeCost: 100,
+    costMultiplier: 1.5,
+    damagePerUpgrade: 1,
+    primaryStatPerUpgrade: 1,
+    armorPerUpgrade: 5,
+    healthBonusPerUpgrade: 10,
+  },
 } as const;
+
+export const FORGE_STAT_META: Record<ForgeStatKey, { label: string; description: string }> = {
+  damage: { label: 'Dano', description: '+1 dano mínimo e máximo' },
+  strength: { label: 'Força', description: '+1 Força' },
+  skill: { label: 'Habilidade', description: '+1 Habilidade' },
+  agility: { label: 'Agilidade', description: '+1 Agilidade' },
+  constitution: { label: 'Constituição', description: '+1 Constituição' },
+  charisma: { label: 'Carisma', description: '+1 Carisma' },
+  intelligence: { label: 'Inteligência', description: '+1 Inteligência' },
+  armor: { label: 'Armadura', description: '+5 Armadura' },
+  healthBonus: { label: 'Vida bônus', description: '+10 PV máximos' },
+};
 
 export const EQUIPMENT_SLOT_LABELS: Record<EquipmentSlotType, string> = {
   helmet: 'Elmo',

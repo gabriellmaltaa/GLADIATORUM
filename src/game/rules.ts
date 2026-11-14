@@ -5,6 +5,7 @@ import {
   EQUIPMENT_SLOT_LABELS,
   type EquipmentSlotType,
   EXPEDITION_REGIONS,
+  type ForgeStatKey,
   GAME_CONFIG,
   type GameItem,
   getTrainingCost,
@@ -368,6 +369,121 @@ export function getEffectiveTrainingCost(
     discountPercent,
     discountAmount,
     finalCost,
+  };
+}
+
+/** Custo da melhoria no nível atual; null indica nível inválido ou limite atingido. */
+export function getForgeUpgradeCost(forgeLevel: number): number | null {
+  const { maxItemLevel, baseUpgradeCost, costMultiplier } = GAME_CONFIG.forge;
+  if (!Number.isSafeInteger(forgeLevel) || forgeLevel < 0 || forgeLevel >= maxItemLevel) {
+    return null;
+  }
+  return Math.ceil(baseUpgradeCost * Math.pow(costMultiplier, forgeLevel));
+}
+
+/** Lista apenas bônus positivos que o item já possui e que a Forja pode aprimorar. */
+export function getForgeableStats(item: GameItem): ForgeStatKey[] {
+  if (item.consumable) return [];
+  const stats: ForgeStatKey[] = [];
+  const primaryStats: PrimaryStatKey[] = [
+    'strength',
+    'skill',
+    'agility',
+    'constitution',
+    'charisma',
+    'intelligence',
+  ];
+  if ((item.stats.damageMin ?? 0) > 0 || (item.stats.damageMax ?? 0) > 0) {
+    stats.push('damage');
+  }
+  primaryStats.forEach((stat) => {
+    if ((item.stats[stat] ?? 0) > 0) stats.push(stat);
+  });
+  if ((item.stats.armor ?? 0) > 0) stats.push('armor');
+  if ((item.stats.healthBonus ?? 0) > 0) stats.push('healthBonus');
+  return stats;
+}
+
+/** Melhora um item do inventário ou equipado, cobrando ouro e atualizando a vida máxima. */
+export function forgeItem(
+  state: GameState,
+  itemId: string,
+  stat: ForgeStatKey
+): {
+  state: GameState;
+  costPaid: number;
+  itemName?: string;
+  forgeLevel?: number;
+  error?: string;
+} {
+  const equippedEntry = Object.entries(state.equipped).find(([, item]) => item?.id === itemId);
+  const inventoryItem = state.inventory.find((item) => item.id === itemId);
+  const item = equippedEntry?.[1] ?? inventoryItem;
+  if (!item) return { state, costPaid: 0, error: 'Equipamento não encontrado.' };
+  if (item.consumable) {
+    return { state, costPaid: 0, error: 'Consumíveis não podem ser aprimorados na Forja.' };
+  }
+  if (!getForgeableStats(item).includes(stat)) {
+    return { state, costPaid: 0, error: 'Esse bônus não é compatível com o equipamento.' };
+  }
+
+  const forgeLevel = item.forgeLevel ?? 0;
+  const cost = getForgeUpgradeCost(forgeLevel);
+  if (cost === null) {
+    return { state, costPaid: 0, error: `Este item já atingiu o limite de ${GAME_CONFIG.forge.maxItemLevel} melhorias.` };
+  }
+  if (state.gold < cost) {
+    return { state, costPaid: 0, error: `Ouro insuficiente. Necessário: ${cost} denários.` };
+  }
+
+  const nextStats = { ...item.stats };
+  switch (stat) {
+    case 'damage':
+      nextStats.damageMin = (nextStats.damageMin ?? 0) + GAME_CONFIG.forge.damagePerUpgrade;
+      nextStats.damageMax = (nextStats.damageMax ?? 0) + GAME_CONFIG.forge.damagePerUpgrade;
+      break;
+    case 'armor':
+      nextStats.armor = (nextStats.armor ?? 0) + GAME_CONFIG.forge.armorPerUpgrade;
+      break;
+    case 'healthBonus':
+      nextStats.healthBonus = (nextStats.healthBonus ?? 0) + GAME_CONFIG.forge.healthBonusPerUpgrade;
+      break;
+    default:
+      nextStats[stat] = (nextStats[stat] ?? 0) + GAME_CONFIG.forge.primaryStatPerUpgrade;
+  }
+
+  const upgradedItem: GameItem = { ...item, stats: nextStats, forgeLevel: forgeLevel + 1 };
+  const prevDerived = calculateDerivedStats(
+    state.baseStats,
+    state.equipped,
+    state.level,
+    state.guildState
+  );
+  const nextEquipped = equippedEntry
+    ? { ...state.equipped, [equippedEntry[0] as EquipmentSlotType]: upgradedItem }
+    : state.equipped;
+  const nextInventory = equippedEntry
+    ? state.inventory
+    : state.inventory.map((entry) => (entry.id === itemId ? upgradedItem : entry));
+  const nextDerived = calculateDerivedStats(
+    state.baseStats,
+    nextEquipped,
+    state.level,
+    state.guildState
+  );
+  const hpGain = Math.max(0, nextDerived.maxHp - prevDerived.maxHp);
+
+  return {
+    state: {
+      ...state,
+      gold: state.gold - cost,
+      equipped: nextEquipped,
+      inventory: nextInventory,
+      currentHp: Math.min(nextDerived.maxHp, state.currentHp + hpGain),
+    },
+    costPaid: cost,
+    itemName: item.name,
+    forgeLevel: upgradedItem.forgeLevel,
   };
 }
 
@@ -1995,4 +2111,3 @@ export function parseAndValidateSaveState(
 }
 
 export { ARENA_OPPONENTS, DUNGEONS, EXPEDITION_REGIONS };
-
