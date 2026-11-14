@@ -26,6 +26,40 @@ test('detalhes do perfil público online incluem apenas equipamento vestido e da
   assert.equal(engine.getPublicPlayerProfileDetails('unknown_player'), null);
 });
 
+test('bootstrap completa campos novos em contas online antigas sem mailbox', () => {
+  const now = 1_750_000_000_100;
+  const uid = 'legacy_mailbox_player';
+  const state = createInitialGameState(now);
+  const legacyState = { ...state } as Record<string, unknown>;
+  delete legacyState.mailbox;
+  delete legacyState.inventoryCapacity;
+  delete legacyState.temporaryEnergyBoostExpiresAtMs;
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gladiatorum-legacy-state-'));
+  const persistencePath = path.join(tempDir, 'authority.json');
+  const record = {
+    uid,
+    email: 'legacy@example.test',
+    competitiveStatus: 'verified_online',
+    migratedFromLocal: false,
+    migrationSummary: null,
+    state: legacyState,
+    processedOpIds: [],
+    lastVillaMediciUseMs: 0,
+    createdAtMs: now,
+    updatedAtMs: now,
+  };
+  fs.writeFileSync(persistencePath, JSON.stringify({ launchId: null, players: [[uid, record]], guilds: [] }));
+  try {
+    const engine = new OnlineAuthorityEngine({ persistencePath, seedInitialOnlineGuilds: false });
+    const boot = engine.bootstrapPlayer({ uid, email: record.email, displayName: state.name }, now + 1);
+    assert.deepEqual(boot.state.mailbox, []);
+    assert.equal(boot.state.inventoryCapacity, GAME_CONFIG.maxInventorySlots);
+    assert.equal(boot.state.temporaryEnergyBoostExpiresAtMs, 0);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('repetir a mesma operação online de chefe devolve o mesmo jackpot sem sortear outra peça', () => {
   const uid = 'obsidian_online_jackpot';
   const now = 1_750_000_000_000;
