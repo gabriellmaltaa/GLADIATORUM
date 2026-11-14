@@ -49,7 +49,6 @@ import {
 } from '../ui/RomanComponents';
 import { GuildScreen } from './GuildScreen';
 import { RankingScreen } from './RankingScreen';
-import { MailboxScreen } from './MailboxScreen';
 
 export type CitySubTab =
   | 'chronicle'
@@ -59,8 +58,7 @@ export type CitySubTab =
   | 'medicina'
   | 'dungeons'
   | 'guild'
-  | 'rankings'
-  | 'mail';
+  | 'rankings';
 
 const DUNGEON_DIFFICULTIES: ('Todas' | DungeonDifficulty)[] = [
   'Todas',
@@ -85,7 +83,6 @@ const DIFFICULTY_BADGE_STYLES: Record<DungeonDifficulty, string> = {
 
 interface CityScreenProps {
   onClaimContract: (id: string) => void;
-  onClaimMail: (messageId: string) => void;
   state: GameState;
   derived: DerivedStats;
   isOnlineMode?: boolean;
@@ -143,7 +140,6 @@ interface CityScreenProps {
 
 export const CityScreen: React.FC<CityScreenProps> = ({
   onClaimContract,
-  onClaimMail,
   state,
   derived,
   isOnlineMode = false,
@@ -321,7 +317,6 @@ export const CityScreen: React.FC<CityScreenProps> = ({
         <span>Objetivos, tesouros e novas fronteiras <span aria-hidden="true">↗</span></span>
       </button>
       {subTab === 'chronicle' && <ChronicleScreen state={state} onClaim={onClaimContract} />}
-      {subTab === 'mail' && <MailboxScreen state={state} onClaim={onClaimMail} />}
       <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-1.5">
         <button
           type="button"
@@ -399,13 +394,6 @@ export const CityScreen: React.FC<CityScreenProps> = ({
           }`}
         >
           Classificação (#{playerRank})
-        </button>
-        <button
-          type="button"
-          onClick={() => selectSubTab('mail')}
-          className={`min-h-[46px] px-2.5 py-2 font-roman font-bold text-xs sm:text-sm border-2 rounded-[2px] transition-colors cursor-pointer ${subTab === 'mail' ? 'bg-[#792B28] text-[#EFE2C4] border-[#D4B26A]' : 'bg-[#2B2119] text-[#D6C29A] border-[#5E4527] hover:text-[#EFE2C4]'}`}
-        >
-          Correio ({(state.mailbox ?? []).filter((message) => message.claimedAtMs === null).length})
         </button>
       </div>
 

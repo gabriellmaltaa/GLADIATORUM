@@ -95,6 +95,7 @@ export interface PendingRewardBatch {
   focusMode?: IdleFocusMode;
   createdAt: number;
   gold: number;
+  goldCredited?: boolean;
   xp: number;
   honor: number;
   items: GameItem[];
@@ -182,7 +183,8 @@ export interface GameState {
   idle: IdleActivityState;
   dungeonProgress: Record<string, DungeonProgressState>;
   pendingRewards: PendingRewardBatch[];
-  mailbox: GameMailMessage[];
+  /** Campo legado; migra para o saldo e é removido após a primeira leitura. */
+  mailbox?: GameMailMessage[];
   claimedRewardIds: string[];
   combatHistory: CombatReport[];
   tutorial: TutorialState;
@@ -597,7 +599,6 @@ export function createInitialGameState(nowMs: number = Date.now()): GameState {
       },
     },
     pendingRewards: [],
-    mailbox: [],
     claimedRewardIds: [],
     combatHistory: [],
     tutorial: {
@@ -1134,7 +1135,8 @@ export function claimPendingReward(
     ? derivedAfter.maxHp
     : Math.min(state.currentHp, derivedAfter.maxHp);
 
-  const updatedPending = state.pendingRewards.map((batch) =>
+  const credited = creditRewardGold(state, targetBatch);
+  const updatedPending = credited.state.pendingRewards.map((batch) =>
     batch.claimId === claimId ? { ...batch, claimed: true } : batch
   );
 
@@ -1146,29 +1148,17 @@ export function claimPendingReward(
       : targetBatch.victories * 4;
 
   const rawNextState: GameState = {
-    ...state,
+    ...credited.state,
     level: newLevel,
     xp: newXp,
-    gold: state.gold,
+    gold: credited.state.gold + extraGoldFromOverflow,
     honor: state.honor + targetBatch.honor,
     fame: state.fame + fameGain + (leveledUp ? 15 : 0),
-    goldLooted: state.goldLooted + targetBatch.gold,
+    goldLooted: credited.state.goldLooted,
     currentHp: newCurrentHp,
     inventory: newInventory,
     discoveredTemplates: [...new Set([...(state.discoveredTemplates ?? []), ...targetBatch.items.map(item => item.templateId)])],
     pendingRewards: updatedPending.filter((b) => !b.claimed),
-    mailbox: [
-      ...(state.mailbox ?? []),
-      {
-        id: `mail_battle_${claimId}`,
-        source: 'battle',
-        title: `Espólios: ${targetBatch.sourceTitle}`,
-        body: `O combate trouxe ${targetBatch.gold + extraGoldFromOverflow} denários. Recolha o anexo para creditar o ouro.`,
-        goldAmount: targetBatch.gold + extraGoldFromOverflow,
-        createdAtMs: targetBatch.createdAt,
-        claimedAtMs: null,
-      },
-    ],
     claimedRewardIds: [...state.claimedRewardIds.slice(-99), claimId],
     tutorial: advanceTutorialIfMatching(state.tutorial, 'claim_reward'),
   };
@@ -1180,21 +1170,53 @@ export function claimPendingReward(
   };
 }
 
-export function claimMailMessage(
+export function creditRewardGold(
   state: GameState,
-  messageId: string,
-  nowMs: number = Date.now()
-): { state: GameState; claimedNow: boolean } {
-  const message = (state.mailbox ?? []).find((entry) => entry.id === messageId);
-  if (!message || message.claimedAtMs !== null) return { state, claimedNow: false };
-  return {
-    state: {
-      ...state,
-      gold: state.gold + message.goldAmount,
-      mailbox: (state.mailbox ?? []).map((entry) => entry.id === messageId ? { ...entry, claimedAtMs: nowMs } : entry),
-    },
-    claimedNow: true,
+  batch: PendingRewardBatch
+): { state: GameState; batch: PendingRewardBatch } {
+  if (batch.goldCredited) return { state, batch };
+  const gold = Math.max(0, Math.floor(Number.isFinite(batch.gold) ? batch.gold : 0));
+  const creditedState = syncPlayerWithGuildAndFeats({
+    ...state,
+    gold: state.gold + gold,
+    goldLooted: state.goldLooted + gold,
+  });
+  return { state: creditedState, batch: { ...batch, goldCredited: true } };
+}
+
+/** Migra anexos antigos e lotes pendentes para crédito automático, sem duplicar ao repetir. */
+export function migrateLegacyRewardGold(state: GameState): { state: GameState; changed: boolean } {
+  const pending = state.pendingRewards ?? [];
+  let goldToCredit = 0;
+  let lootToCredit = 0;
+  let changed = false;
+  const migratedPending = pending.map((batch) => {
+    if (batch.goldCredited) return batch;
+    changed = true;
+    if (!batch.claimed) {
+      const gold = Math.max(0, Math.floor(Number.isFinite(batch.gold) ? batch.gold : 0));
+      goldToCredit += gold;
+      lootToCredit += gold;
+    }
+    return { ...batch, goldCredited: true };
+  });
+  if (Array.isArray(state.mailbox)) {
+    changed = true;
+    for (const message of state.mailbox) {
+      if (message.claimedAtMs === null) {
+        goldToCredit += Math.max(0, Math.floor(Number.isFinite(message.goldAmount) ? message.goldAmount : 0));
+      }
+    }
+  }
+  if (!changed) return { state, changed: false };
+  const migrated = {
+    ...state,
+    gold: state.gold + goldToCredit,
+    goldLooted: state.goldLooted + lootToCredit,
+    pendingRewards: migratedPending,
+    mailbox: undefined,
   };
+  return { state: syncPlayerWithGuildAndFeats(migrated), changed: true };
 }
 
 export function getInventoryCapacity(state: GameState): number {
@@ -2030,6 +2052,7 @@ export function calculateElapsedIdleProgress(
         focusMode,
         createdAt: nowMs,
         gold: totalGold,
+        goldCredited: true,
         xp: totalXp,
         honor: totalHonor,
         items: droppedItems,
@@ -2043,6 +2066,8 @@ export function calculateElapsedIdleProgress(
 
   const nextState: GameState = {
     ...state,
+    gold: state.gold + (batch ? totalGold : 0),
+    goldLooted: state.goldLooted + (batch ? totalGold : 0),
     energy: nextEnergy,
     currentHp: nextHp,
     wins: state.wins + totalVictories,
@@ -2191,7 +2216,6 @@ export function inspectAndLoadSaveState(
         ...(parsed.dungeonProgress || {}),
       },
       pendingRewards: Array.isArray(parsed.pendingRewards) ? parsed.pendingRewards : [],
-      mailbox: Array.isArray(parsed.mailbox) ? parsed.mailbox : [],
       inventoryCapacity: Number.isFinite(parsed.inventoryCapacity)
         ? Math.min(60, Math.max(GAME_CONFIG.maxInventorySlots, parsed.inventoryCapacity))
         : GAME_CONFIG.maxInventorySlots,
@@ -2204,7 +2228,8 @@ export function inspectAndLoadSaveState(
       guildState: migratedGuildState,
     };
 
-    const syncedState = syncPlayerWithGuildAndFeats(rawMigrated);
+    const { state: migratedGold } = migrateLegacyRewardGold(rawMigrated);
+    const syncedState = syncPlayerWithGuildAndFeats(migratedGold);
 
     return {
       status: 'loaded',
