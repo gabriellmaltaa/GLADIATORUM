@@ -6,6 +6,11 @@ import {
   buyMedicineTemplate,
   calculateDerivedStats,
   calculateElapsedIdleProgress,
+  claimMailMessage,
+  buyInventoryExpansion,
+  getInventoryCapacity,
+  getInventoryExpansionCost,
+  buyGuildTemporaryEnergy,
   claimPendingReward,
   createInitialGameState,
   createItemFromTemplate,
@@ -261,12 +266,21 @@ test('Combate automático e Resgate Idempotente atualizam Honra, Fama, Ouro Saqu
   const firstClaim = claimPendingReward(stateWithPending, outcome.rewardBatch.claimId);
   assert.equal(firstClaim.claimedNow, true);
   assert.equal(firstClaim.state.goldLooted, outcome.rewardBatch.gold);
+  assert.equal(firstClaim.state.gold, joined.state.gold, 'ouro da batalha deve permanecer no anexo do correio');
+  const mail = firstClaim.state.mailbox[0];
+  assert.equal(mail?.goldAmount, outcome.rewardBatch.gold);
   assert.equal(firstClaim.state.honor, joined.state.honor + outcome.rewardBatch.honor);
 
   // Segundo resgate com mesmo claimId deve ser ignorado (idempotente)
   const secondClaim = claimPendingReward(firstClaim.state, outcome.rewardBatch.claimId);
   assert.equal(secondClaim.claimedNow, false);
   assert.equal(secondClaim.state.gold, firstClaim.state.gold);
+
+  const mailClaim = claimMailMessage(firstClaim.state, mail.id, 100300);
+  assert.equal(mailClaim.claimedNow, true);
+  assert.equal(mailClaim.state.gold, joined.state.gold + outcome.rewardBatch.gold);
+  assert.equal(claimMailMessage(mailClaim.state, mail.id, 100400).claimedNow, false);
+  assert.equal(claimMailMessage(mailClaim.state, mail.id, 100400).state.gold, mailClaim.state.gold);
 
   // Classificação da guilda recalcula imediatamente com a nova honra do jogador
   const rankingsAfter = computeGuildRankings(
@@ -275,6 +289,33 @@ test('Combate automático e Resgate Idempotente atualizam Honra, Fama, Ouro Saqu
   );
   const lfcAfter = rankingsAfter.find((g) => g.id === 'guild_legio_ferrea')!;
   assert.equal(lfcAfter.totalHonor, lfcBefore.totalHonor + outcome.rewardBatch.honor);
+});
+
+test('expansão de mochila cobra ouro, aumenta cinco espaços até 60 e rejeita saldo insuficiente', () => {
+  const state = { ...createInitialGameState(1_000_000), gold: 1_500 };
+  assert.equal(getInventoryCapacity(state), 20);
+  assert.equal(getInventoryExpansionCost(state), 500);
+  const bought = buyInventoryExpansion(state);
+  assert.equal(bought.costPaid, 500);
+  assert.equal(bought.state.inventoryCapacity, 25);
+  assert.equal(bought.state.gold, state.gold - 500);
+  const poor = buyInventoryExpansion({ ...state, gold: 0 });
+  assert.ok(poor.error);
+  assert.equal(poor.state.inventoryCapacity, 20);
+});
+
+test('expansão temporária da guilda concede 20 de energia por duas horas e vence no servidor', () => {
+  const state = { ...createInitialGameState(1_000_000), gold: 1_500 };
+  const notMember = buyGuildTemporaryEnergy(state, 1_000_000);
+  assert.ok(notMember.error);
+  const memberState = { ...state, guildState: { ...state.guildState, playerGuildId: 'guild_test' } };
+  const bought = buyGuildTemporaryEnergy(memberState, 1_000_000);
+  assert.equal(bought.error, undefined);
+  assert.equal(bought.state.maxEnergy, GAME_CONFIG.baseMaxEnergy + 20);
+  assert.equal(bought.state.temporaryEnergyBoostExpiresAtMs, 1_000_000 + 7_200_000);
+  const expired = calculateElapsedIdleProgress(bought.state, 1_000_000 + 7_200_001).state;
+  assert.equal(expired.maxEnergy, GAME_CONFIG.baseMaxEnergy);
+  assert.ok(expired.energy <= GAME_CONFIG.baseMaxEnergy);
 });
 
 test('Criar guilda, impedir participação simultânea em duas guildas e validar candidatura/cancelamento', () => {
@@ -896,4 +937,5 @@ test('Arena limita cada bônus Obsidiano ao equivalente Transcendente com os mes
   assert.ok(pve.report.playerMaxHp > arena.report.playerMaxHp, 'PvE preserva o HP completo Obsidiano');
   assert.equal(arena.report.playerMaxHp, calculateDerivedStats(state.baseStats, capped, state.level).maxHp);
 });
+
 

@@ -21,6 +21,7 @@ import {
   calculateDerivedStats,
   createItemFromTemplate,
   GameState,
+  getInventoryCapacity,
   getPlayerSnapshotForRankings,
   syncPlayerWithGuildAndFeats,
 } from './rules';
@@ -1896,7 +1897,7 @@ export function withdrawItemFromGuildWarehouse(
     };
   }
 
-  if (state.inventory.length >= GAME_CONFIG.maxInventorySlots) {
+  if (state.inventory.length >= getInventoryCapacity(state)) {
     return {
       state,
       success: false,
@@ -1995,7 +1996,7 @@ export function buyFromGuildInternalMarket(
     };
   }
 
-  if (state.inventory.length >= GAME_CONFIG.maxInventorySlots) {
+  if (state.inventory.length >= getInventoryCapacity(state)) {
     return {
       state,
       success: false,
@@ -2088,3 +2089,4 @@ export function setPlayerRoleInCurrentGuildLocalMode(
     message: `Cargo ajustado para ${targetRole.toUpperCase()} (Modo Local).`,
   };
 }
+

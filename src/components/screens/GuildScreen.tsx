@@ -21,6 +21,7 @@ import {
 import {
   DerivedStats,
   GameState,
+  getInventoryCapacity,
   getPlayerSnapshotForRankings,
 } from '../../game/rules';
 import {
@@ -71,6 +72,7 @@ export interface GuildScreenProps {
   onDepositWarehouseItem: (inventoryItemId: string) => void;
   onWithdrawWarehouseItem: (warehouseItemId: string) => void;
   onBuyInternalMarketItem: (templateId: string) => void;
+  onBuyTemporaryEnergy: () => void;
   onSetLocalTestRole: (role: GuildRole) => void;
   onOpenRankings: () => void;
 }
@@ -101,6 +103,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
   onDepositWarehouseItem,
   onWithdrawWarehouseItem,
   onBuyInternalMarketItem,
+  onBuyTemporaryEnergy,
   onSetLocalTestRole,
   onOpenRankings,
 }) => {
@@ -138,6 +141,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
   const snap = getPlayerSnapshotForRankings(state);
   const guildRankings = computeGuildRankings(state.guildState, snap);
   const activeBonuses = getActiveGuildBonuses(state.guildState, nowMs);
+  const inventoryCapacity = getInventoryCapacity(state);
 
   const playerGuild = state.guildState.playerGuildId
     ? state.guildState.guilds.find((g) => g.id === state.guildState.playerGuildId) ?? null
@@ -820,6 +824,19 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
         <div className="space-y-4">
           {/* Serviços Diretos da Sede: Villa Medici, Biblioteca e Mercado Interno */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <RomanPanel
+              title="Reserva de Energia"
+              subtitle="Expansão individual · +20 de energia por 2 horas"
+              variant="wood"
+            >
+              <div className="space-y-2 text-xs">
+                <p className="text-[#D6C29A]">Custa 250 denários da sua bolsa. Pode ser comprada novamente quando o efeito terminar.</p>
+                <p className="text-[#EFE2C4]">Energia máxima: <strong>{state.maxEnergy}</strong>{(state.temporaryEnergyBoostExpiresAtMs ?? 0) > nowMs ? ` · termina em ${Math.ceil((state.temporaryEnergyBoostExpiresAtMs! - nowMs) / 60000)} min` : ''}</p>
+                <GameButton variant="bronze" size="sm" fullWidth onClick={onBuyTemporaryEnergy} disabled={state.gold < 250 || (state.temporaryEnergyBoostExpiresAtMs ?? 0) > nowMs}>
+                  {(state.temporaryEnergyBoostExpiresAtMs ?? 0) > nowMs ? 'Expansão ativa' : 'Comprar +20 energia · 250 ouro'}
+                </GameButton>
+              </div>
+            </RomanPanel>
             {/* Villa Medici */}
             <RomanPanel
               title={`Villa Medici (Nv.${playerGuild.buildings.villa_medici ?? 1})`}
@@ -941,7 +958,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                   );
                   const canAfford = state.gold >= memberPrice;
                   const bagFull =
-                    state.inventory.length >= GAME_CONFIG.maxInventorySlots;
+                    state.inventory.length >= inventoryCapacity;
 
                   return (
                     <div
@@ -1516,7 +1533,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
           {/* Armazém (Horreum) */}
           <RomanPanel
             title={`Armazém Coletivo (Horreum Nv.${playerGuild.buildings.armazem ?? 1})`}
-            subtitle={`Ocupação do Armazém: ${playerGuild.warehouseItems.length}/${warehouseCap} slots · Sua Mochila: ${state.inventory.length}/${GAME_CONFIG.maxInventorySlots}`}
+            subtitle={`Ocupação do Armazém: ${playerGuild.warehouseItems.length}/${warehouseCap} slots · Sua Mochila: ${state.inventory.length}/${inventoryCapacity}`}
             variant="stone"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
@@ -1549,10 +1566,10 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                           size="sm"
                           onClick={() => onWithdrawWarehouseItem(item.id)}
                           disabled={
-                            state.inventory.length >= GAME_CONFIG.maxInventorySlots
+                            state.inventory.length >= inventoryCapacity
                           }
                           disabledReason={
-                            state.inventory.length >= GAME_CONFIG.maxInventorySlots
+                            state.inventory.length >= inventoryCapacity
                               ? 'Mochila cheia'
                               : undefined
                           }
@@ -1567,7 +1584,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
 
               <div>
                 <h3 className="font-roman font-bold text-[#D4B26A] uppercase mb-2">
-                  Depositar da Sua Mochila ({state.inventory.length}/{GAME_CONFIG.maxInventorySlots})
+                  Depositar da Sua Mochila ({state.inventory.length}/{inventoryCapacity})
                 </h3>
                 {state.inventory.length === 0 ? (
                   <p className="text-[#B8A686]">Sua mochila pessoal está vazia.</p>
@@ -1723,4 +1740,5 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
     </div>
   );
 };
+
 

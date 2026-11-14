@@ -35,6 +35,7 @@ import {
   getForgeableStats,
   getForgeUpgradeCost,
   getPlayerSnapshotForRankings,
+  getInventoryCapacity,
 } from '../../game/rules';
 import {
   EnemyCard,
@@ -48,6 +49,7 @@ import {
 } from '../ui/RomanComponents';
 import { GuildScreen } from './GuildScreen';
 import { RankingScreen } from './RankingScreen';
+import { MailboxScreen } from './MailboxScreen';
 
 export type CitySubTab =
   | 'chronicle'
@@ -57,7 +59,8 @@ export type CitySubTab =
   | 'medicina'
   | 'dungeons'
   | 'guild'
-  | 'rankings';
+  | 'rankings'
+  | 'mail';
 
 const DUNGEON_DIFFICULTIES: ('Todas' | DungeonDifficulty)[] = [
   'Todas',
@@ -82,6 +85,7 @@ const DIFFICULTY_BADGE_STYLES: Record<DungeonDifficulty, string> = {
 
 interface CityScreenProps {
   onClaimContract: (id: string) => void;
+  onClaimMail: (messageId: string) => void;
   state: GameState;
   derived: DerivedStats;
   isOnlineMode?: boolean;
@@ -133,11 +137,13 @@ interface CityScreenProps {
   onDepositWarehouseItem: (inventoryItemId: string) => void;
   onWithdrawWarehouseItem: (warehouseItemId: string) => void;
   onBuyInternalMarketItem: (templateId: string) => void;
+  onBuyTemporaryEnergy: () => void;
   onSetLocalTestRole: (role: GuildRole) => void;
 }
 
 export const CityScreen: React.FC<CityScreenProps> = ({
   onClaimContract,
+  onClaimMail,
   state,
   derived,
   isOnlineMode = false,
@@ -174,6 +180,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
   onDepositWarehouseItem,
   onWithdrawWarehouseItem,
   onBuyInternalMarketItem,
+  onBuyTemporaryEnergy,
   onSetLocalTestRole,
 }) => {
   const [subTab, setSubTab] = useState<CitySubTab>(initialSubTab);
@@ -204,7 +211,8 @@ export const CityScreen: React.FC<CityScreenProps> = ({
     }
   };
 
-  const inventoryFull = state.inventory.length >= GAME_CONFIG.maxInventorySlots;
+  const inventoryCapacity = getInventoryCapacity(state);
+  const inventoryFull = state.inventory.length >= inventoryCapacity;
   const guildBonuses = getActiveGuildBonuses(state.guildState);
   const snap = getPlayerSnapshotForRankings(state);
   const playerRank =
@@ -313,6 +321,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
         <span>Objetivos, tesouros e novas fronteiras <span aria-hidden="true">↗</span></span>
       </button>
       {subTab === 'chronicle' && <ChronicleScreen state={state} onClaim={onClaimContract} />}
+      {subTab === 'mail' && <MailboxScreen state={state} onClaim={onClaimMail} />}
       <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-1.5">
         <button
           type="button"
@@ -390,6 +399,13 @@ export const CityScreen: React.FC<CityScreenProps> = ({
           }`}
         >
           Classificação (#{playerRank})
+        </button>
+        <button
+          type="button"
+          onClick={() => selectSubTab('mail')}
+          className={`min-h-[46px] px-2.5 py-2 font-roman font-bold text-xs sm:text-sm border-2 rounded-[2px] transition-colors cursor-pointer ${subTab === 'mail' ? 'bg-[#792B28] text-[#EFE2C4] border-[#D4B26A]' : 'bg-[#2B2119] text-[#D6C29A] border-[#5E4527] hover:text-[#EFE2C4]'}`}
+        >
+          Correio ({state.mailbox.filter((message) => message.claimedAtMs === null).length})
         </button>
       </div>
 
@@ -632,7 +648,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
         <div className="space-y-4">
           <RomanPanel
             title="Mercado de Armamentos e Raridades do Fórum"
-            subtitle={`Saldo: ${state.gold} denários · Mochila: ${state.inventory.length}/${GAME_CONFIG.maxInventorySlots} · 12 raridades conquistáveis`}
+            subtitle={`Saldo: ${state.gold} denários · Mochila: ${state.inventory.length}/${inventoryCapacity} · 12 raridades conquistáveis`}
             variant="stone"
           >
             <EquipmentFilters value={equipmentFilter} onChange={setEquipmentFilter} discoveredTemplates={state.discoveredTemplates} />
@@ -1213,6 +1229,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
           onDepositWarehouseItem={onDepositWarehouseItem}
           onWithdrawWarehouseItem={onWithdrawWarehouseItem}
           onBuyInternalMarketItem={onBuyInternalMarketItem}
+          onBuyTemporaryEnergy={onBuyTemporaryEnergy}
           onSetLocalTestRole={onSetLocalTestRole}
           onOpenRankings={() => selectSubTab('rankings')}
         />
@@ -1230,5 +1247,6 @@ export const CityScreen: React.FC<CityScreenProps> = ({
     </div>
   );
 };
+
 
 

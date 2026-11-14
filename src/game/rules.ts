@@ -106,6 +106,16 @@ export interface PendingRewardBatch {
   claimed: boolean;
 }
 
+export interface GameMailMessage {
+  id: string;
+  source: 'battle' | 'contract';
+  title: string;
+  body: string;
+  goldAmount: number;
+  createdAtMs: number;
+  claimedAtMs: number | null;
+}
+
 export interface IdleActivityState {
   active: boolean;
   regionId: string;
@@ -158,6 +168,8 @@ export interface GameState {
   currentHp: number;
   energy: number;
   maxEnergy: number;
+  temporaryEnergyBoostExpiresAtMs?: number;
+  inventoryCapacity?: number;
   lastEnergyTickMs: number;
   claimedContracts?: string[];
   discoveredTemplates?: string[];
@@ -170,6 +182,7 @@ export interface GameState {
   idle: IdleActivityState;
   dungeonProgress: Record<string, DungeonProgressState>;
   pendingRewards: PendingRewardBatch[];
+  mailbox: GameMailMessage[];
   claimedRewardIds: string[];
   combatHistory: CombatReport[];
   tutorial: TutorialState;
@@ -558,6 +571,8 @@ export function createInitialGameState(nowMs: number = Date.now()): GameState {
     currentHp: derived.maxHp,
     energy: GAME_CONFIG.baseMaxEnergy,
     maxEnergy: GAME_CONFIG.baseMaxEnergy,
+    temporaryEnergyBoostExpiresAtMs: 0,
+    inventoryCapacity: GAME_CONFIG.maxInventorySlots,
     lastEnergyTickMs: nowMs,
     lastSaveTimestampMs: nowMs,
     baseStats: initialBase,
@@ -582,6 +597,7 @@ export function createInitialGameState(nowMs: number = Date.now()): GameState {
       },
     },
     pendingRewards: [],
+    mailbox: [],
     claimedRewardIds: [],
     combatHistory: [],
     tutorial: {
@@ -1099,7 +1115,7 @@ export function claimPendingReward(
   let extraGoldFromOverflow = 0;
 
   for (const item of targetBatch.items) {
-    if (newInventory.length < GAME_CONFIG.maxInventorySlots) {
+    if (newInventory.length < getInventoryCapacity(state)) {
       newInventory.push(item);
     } else {
       extraGoldFromOverflow += item.sellPrice;
@@ -1133,7 +1149,7 @@ export function claimPendingReward(
     ...state,
     level: newLevel,
     xp: newXp,
-    gold: state.gold + targetBatch.gold + extraGoldFromOverflow,
+    gold: state.gold,
     honor: state.honor + targetBatch.honor,
     fame: state.fame + fameGain + (leveledUp ? 15 : 0),
     goldLooted: state.goldLooted + targetBatch.gold,
@@ -1141,6 +1157,18 @@ export function claimPendingReward(
     inventory: newInventory,
     discoveredTemplates: [...new Set([...(state.discoveredTemplates ?? []), ...targetBatch.items.map(item => item.templateId)])],
     pendingRewards: updatedPending.filter((b) => !b.claimed),
+    mailbox: [
+      ...(state.mailbox ?? []),
+      {
+        id: `mail_battle_${claimId}`,
+        source: 'battle',
+        title: `Espólios: ${targetBatch.sourceTitle}`,
+        body: `O combate trouxe ${targetBatch.gold + extraGoldFromOverflow} denários. Recolha o anexo para creditar o ouro.`,
+        goldAmount: targetBatch.gold + extraGoldFromOverflow,
+        createdAtMs: targetBatch.createdAt,
+        claimedAtMs: null,
+      },
+    ],
     claimedRewardIds: [...state.claimedRewardIds.slice(-99), claimId],
     tutorial: advanceTutorialIfMatching(state.tutorial, 'claim_reward'),
   };
@@ -1150,6 +1178,56 @@ export function claimPendingReward(
     claimedNow: true,
     leveledUp,
   };
+}
+
+export function claimMailMessage(
+  state: GameState,
+  messageId: string,
+  nowMs: number = Date.now()
+): { state: GameState; claimedNow: boolean } {
+  const message = (state.mailbox ?? []).find((entry) => entry.id === messageId);
+  if (!message || message.claimedAtMs !== null) return { state, claimedNow: false };
+  return {
+    state: {
+      ...state,
+      gold: state.gold + message.goldAmount,
+      mailbox: state.mailbox.map((entry) => entry.id === messageId ? { ...entry, claimedAtMs: nowMs } : entry),
+    },
+    claimedNow: true,
+  };
+}
+
+export function getInventoryCapacity(state: GameState): number {
+  return Math.min(60, Math.max(GAME_CONFIG.maxInventorySlots, state.inventoryCapacity ?? GAME_CONFIG.maxInventorySlots));
+}
+
+export function getInventoryExpansionCost(state: GameState): number | null {
+  const capacity = getInventoryCapacity(state);
+  if (capacity >= 60) return null;
+  return 500 * ((capacity - GAME_CONFIG.maxInventorySlots) / 5 + 1);
+}
+
+export function buyInventoryExpansion(state: GameState): { state: GameState; error?: string; costPaid?: number } {
+  const cost = getInventoryExpansionCost(state);
+  if (cost === null) return { state, error: 'Sua mochila já atingiu o limite de 60 espaços.' };
+  if (state.gold < cost) return { state, error: `Ouro insuficiente (${state.gold}/${cost}).` };
+  return { state: { ...state, gold: state.gold - cost, inventoryCapacity: getInventoryCapacity(state) + 5 }, costPaid: cost };
+}
+
+export const GUILD_TEMP_ENERGY_COST = 250;
+export const GUILD_TEMP_ENERGY_DURATION_MS = 2 * 60 * 60 * 1000;
+
+export function buyGuildTemporaryEnergy(state: GameState, nowMs: number): { state: GameState; error?: string } {
+  if (!state.guildState?.playerGuildId) return { state, error: 'Entre em uma guilda para comprar a expansão de energia.' };
+  if ((state.temporaryEnergyBoostExpiresAtMs ?? 0) > nowMs) return { state, error: 'Sua expansão temporária de energia já está ativa.' };
+  if (state.gold < GUILD_TEMP_ENERGY_COST) return { state, error: `Ouro insuficiente (${state.gold}/${GUILD_TEMP_ENERGY_COST}).` };
+  return { state: {
+    ...state,
+    gold: state.gold - GUILD_TEMP_ENERGY_COST,
+    maxEnergy: GAME_CONFIG.baseMaxEnergy + 20,
+    energy: Math.min(GAME_CONFIG.baseMaxEnergy + 20, state.energy + 20),
+    temporaryEnergyBoostExpiresAtMs: nowMs + GUILD_TEMP_ENERGY_DURATION_MS,
+  } };
 }
 
 /**
@@ -1317,7 +1395,7 @@ export function unequipSlotToInventory(
     return { state, error: 'Nenhum equipamento neste slot.' };
   }
 
-  if (state.inventory.length >= GAME_CONFIG.maxInventorySlots) {
+  if (state.inventory.length >= getInventoryCapacity(state)) {
     return { state, error: 'Inventário cheio! Venda ou descarte itens primeiro.' };
   }
 
@@ -1447,7 +1525,7 @@ export function buyItemFromMarket(
     };
   }
 
-  if (state.inventory.length >= GAME_CONFIG.maxInventorySlots) {
+  if (state.inventory.length >= getInventoryCapacity(state)) {
     return {
       state,
       error: 'Inventário cheio! Libere espaço antes de comprar.',
@@ -1619,7 +1697,7 @@ export function buyMedicineTemplate(
     };
   }
 
-  if (state.inventory.length >= GAME_CONFIG.maxInventorySlots) {
+  if (state.inventory.length >= getInventoryCapacity(state)) {
     return {
       state,
       error: 'Mochila cheia (20/20)! Consuma ou venda itens antes de comprar.',
@@ -1737,6 +1815,14 @@ export function calculateElapsedIdleProgress(
   state: GameState;
   offlineBatchCreated: PendingRewardBatch | null;
 } {
+  if ((state.temporaryEnergyBoostExpiresAtMs ?? 0) > 0 && state.temporaryEnergyBoostExpiresAtMs! <= nowMs) {
+    state = {
+      ...state,
+      maxEnergy: GAME_CONFIG.baseMaxEnergy,
+      energy: Math.min(state.energy, GAME_CONFIG.baseMaxEnergy),
+      temporaryEnergyBoostExpiresAtMs: 0,
+    };
+  }
   const rawElapsedSeconds = Math.max(0, (nowMs - state.lastSaveTimestampMs) / 1000);
   if (rawElapsedSeconds <= 0) {
     return { state, offlineBatchCreated: null };
@@ -2105,6 +2191,13 @@ export function inspectAndLoadSaveState(
         ...(parsed.dungeonProgress || {}),
       },
       pendingRewards: Array.isArray(parsed.pendingRewards) ? parsed.pendingRewards : [],
+      mailbox: Array.isArray(parsed.mailbox) ? parsed.mailbox : [],
+      inventoryCapacity: Number.isFinite(parsed.inventoryCapacity)
+        ? Math.min(60, Math.max(GAME_CONFIG.maxInventorySlots, parsed.inventoryCapacity))
+        : GAME_CONFIG.maxInventorySlots,
+      temporaryEnergyBoostExpiresAtMs: Number.isFinite(parsed.temporaryEnergyBoostExpiresAtMs)
+        ? parsed.temporaryEnergyBoostExpiresAtMs
+        : 0,
       claimedRewardIds: Array.isArray(parsed.claimedRewardIds) ? parsed.claimedRewardIds : [],
       combatHistory: Array.isArray(parsed.combatHistory) ? parsed.combatHistory : [],
       tutorial: migratedTutorial,
@@ -2141,3 +2234,4 @@ export function parseAndValidateSaveState(
 }
 
 export { ARENA_OPPONENTS, DUNGEONS, EXPEDITION_REGIONS };
+

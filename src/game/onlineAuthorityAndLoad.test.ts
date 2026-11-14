@@ -9,6 +9,7 @@ import {
 } from '../server/onlineAuthorityEngine';
 import { calculateDerivedStats, createInitialGameState, createItemFromTemplate } from './rules';
 import { ENDGAME_REGIONS, OBSIDIAN_ITEMS } from './expansion';
+import { GAME_CONFIG } from './config';
 
 test('detalhes do perfil público online incluem apenas equipamento vestido e dados públicos', () => {
   const engine = new OnlineAuthorityEngine({ seedInitialOnlineGuilds: false });
@@ -241,7 +242,17 @@ test('2. Autoridade do Servidor: recompensa só pode ser resgatada uma única ve
     now + 2000
   );
   assert.equal(claim1.ok, true);
-  assert.equal(claim1.state.gold, goldBeforeClaim + rewardBatch.gold);
+  assert.equal(claim1.state.gold, goldBeforeClaim);
+  const battleMail = claim1.state.mailbox.at(-1);
+  assert.equal(battleMail?.goldAmount, rewardBatch.gold);
+
+  const mailClaim1 = engine.executeAction(
+    'glad_auth_1',
+    { opId: 'op_mail_01', action: 'claim_mail', params: { messageId: battleMail!.id } },
+    now + 2050
+  );
+  assert.equal(mailClaim1.ok, true);
+  assert.equal(mailClaim1.state.gold, goldBeforeClaim + rewardBatch.gold);
 
   // Replay com o MESMO opId (duplo clique de rede) -> idempotente, não duplica ouro!
   const replaySameOpId = engine.executeAction(
@@ -268,6 +279,14 @@ test('2. Autoridade do Servidor: recompensa só pode ser resgatada uma única ve
   );
   assert.equal(duplicateClaim.ok, false);
   assert.equal(duplicateClaim.state.gold, goldBeforeClaim + rewardBatch.gold);
+
+  const duplicateMailClaim = engine.executeAction(
+    'glad_auth_1',
+    { opId: 'op_mail_02', action: 'claim_mail', params: { messageId: battleMail!.id } },
+    now + 2250
+  );
+  assert.equal(duplicateMailClaim.ok, false);
+  assert.equal(duplicateMailClaim.state.gold, goldBeforeClaim + rewardBatch.gold);
 
   // Tentativa de treinar atributo sem saldo suficiente -> saldo nunca fica negativo
   for (let i = 0; i < 20; i++) {
@@ -304,6 +323,11 @@ test('3. Migração Segura do Modo Local: aplica tetos competitivos, bloqueia re
   tamperedLocalSave.gold = 999_999;
   tamperedLocalSave.honor = 999_999;
   tamperedLocalSave.baseStats.strength = 500;
+  tamperedLocalSave.inventoryCapacity = 60;
+  tamperedLocalSave.inventory = Array.from({ length: 25 }, (_, index) => ({
+    ...tamperedLocalSave.inventory[0],
+    id: `tampered_slot_${index}`,
+  }));
   tamperedLocalSave.guildState.playerGuildId = 'guild_legio_ferrea'; // Guilda local simulada
 
   const mig1 = engine.migrateLocalSave(
@@ -315,6 +339,8 @@ test('3. Migração Segura do Modo Local: aplica tetos competitivos, bloqueia re
   assert.ok(mig1.report);
   assert.equal(mig1.state?.level, MIGRATION_COMPETITIVE_CAPS.maxLevel);
   assert.equal(mig1.state?.gold, MIGRATION_COMPETITIVE_CAPS.maxGold);
+  assert.equal(mig1.state?.inventoryCapacity, GAME_CONFIG.maxInventorySlots);
+  assert.equal(mig1.state?.inventory.length, GAME_CONFIG.maxInventorySlots);
   assert.equal(mig1.state?.honor, MIGRATION_COMPETITIVE_CAPS.maxHonor);
   assert.equal(
     mig1.state?.baseStats.strength,
