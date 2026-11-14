@@ -1,4 +1,4 @@
-import type { GameMailMessage, GameState } from './rules';
+import type { GameState } from './rules';
 export interface Contract { id: string; title: string; description: string; kind: 'wins' | 'loot' | 'training'; target: number; gold: number; }
 export const CONTRACTS: Contract[] = [
   { id: 'first_blood', title: 'O primeiro estandarte', description: 'Conquiste uma vitória em combate.', kind: 'wins', target: 1, gold: 40 },
@@ -19,19 +19,10 @@ export function claimContract(state: GameState, id: string): { state: GameState;
   const contract = CONTRACTS.find(c => c.id === id);
   if (!contract || state.claimedContracts?.includes(id)) return { state, error: 'Contrato inexistente ou já recolhido.' };
   if (contractProgress(state, contract) < contract.target) return { state, error: 'Conclua o objetivo antes de recolher.' };
-  const message: GameMailMessage = {
-    id: `mail_contract_${id}`,
-    source: 'contract',
-    title: `Contrato concluído: ${contract.title}`,
-    body: `${contract.description} Recolha os denários anexados.`,
-    goldAmount: contract.gold,
-    createdAtMs: state.lastSaveTimestampMs,
-    claimedAtMs: null,
-  };
   return {
     state: {
       ...state,
-      mailbox: [...(state.mailbox ?? []), message],
+      gold: state.gold + contract.gold,
       claimedContracts: [...(state.claimedContracts ?? []), id],
     },
   };

@@ -54,7 +54,7 @@ import {
   calculateDerivedStats,
   calculateElapsedIdleProgress,
   claimPendingReward,
-  claimMailMessage,
+  creditRewardGold,
   CombatReport,
   createInitialGameState,
   createItemFromTemplate,
@@ -755,10 +755,11 @@ export default function App() {
     });
 
     setGameState((prev) => {
+      const credited = creditRewardGold(prev, rewardBatch);
       const step1 = advanceTutorialIfMatching(prev.tutorial, 'start_expedition');
       const step2 = advanceTutorialIfMatching(step1, 'choose_next_activity');
       return {
-        ...prev,
+        ...credited.state,
         energy: Math.max(0, prev.energy - region.energyCost),
         currentHp: playerRemainingHp,
         wins: report.victory ? prev.wins + 1 : prev.wins,
@@ -768,7 +769,7 @@ export default function App() {
           ...prev.idle,
           focusMode,
         },
-        pendingRewards: [...prev.pendingRewards, rewardBatch],
+        pendingRewards: [...credited.state.pendingRewards, credited.batch],
         combatHistory: [report, ...prev.combatHistory.slice(0, 14)],
         tutorial: step2,
       };
@@ -901,17 +902,20 @@ export default function App() {
       honor: report.victory ? opponent.honorReward : 0,
     };
 
-    setGameState((prev) => ({
-      ...prev,
-      energy: Math.max(0, prev.energy - 1),
-      currentHp: playerRemainingHp,
-      wins: report.victory ? prev.wins + 1 : prev.wins,
-      losses: report.victory ? prev.losses : prev.losses + 1,
-      lastSaveTimestampMs: now,
-      pendingRewards: [...prev.pendingRewards, enrichedBatch],
-      combatHistory: [report, ...prev.combatHistory.slice(0, 14)],
-      tutorial: advanceTutorialIfMatching(prev.tutorial, 'choose_next_activity'),
-    }));
+    setGameState((prev) => {
+      const credited = creditRewardGold(prev, enrichedBatch);
+      return {
+        ...credited.state,
+        energy: Math.max(0, prev.energy - 1),
+        currentHp: playerRemainingHp,
+        wins: report.victory ? prev.wins + 1 : prev.wins,
+        losses: report.victory ? prev.losses : prev.losses + 1,
+        lastSaveTimestampMs: now,
+        pendingRewards: [...credited.state.pendingRewards, credited.batch],
+        combatHistory: [report, ...prev.combatHistory.slice(0, 14)],
+        tutorial: advanceTutorialIfMatching(prev.tutorial, 'choose_next_activity'),
+      };
+    });
 
     setInspectedReport(report);
   };
@@ -1083,27 +1087,30 @@ export default function App() {
         : currentProg.currentEncounterIndex + 1
       : currentProg.currentEncounterIndex;
 
-    setGameState((prev) => ({
-      ...prev,
-      energy: Math.max(0, prev.energy - dungeon.energyCost),
-      currentHp: playerRemainingHp,
-      wins: report.victory ? prev.wins + 1 : prev.wins,
-      losses: report.victory ? prev.losses : prev.losses + 1,
-      lastSaveTimestampMs: now,
-      dungeonProgress: {
-        ...prev.dungeonProgress,
-        [dungeon.id]: {
-          dungeonId: dungeon.id,
-          currentEncounterIndex: nextEncounterIdx,
-          completedCount: bossDefeated
-            ? currentProg.completedCount + 1
-            : currentProg.completedCount,
+    setGameState((prev) => {
+      const credited = creditRewardGold(prev, finalBatch);
+      return {
+        ...credited.state,
+        energy: Math.max(0, prev.energy - dungeon.energyCost),
+        currentHp: playerRemainingHp,
+        wins: report.victory ? prev.wins + 1 : prev.wins,
+        losses: report.victory ? prev.losses : prev.losses + 1,
+        lastSaveTimestampMs: now,
+        dungeonProgress: {
+          ...prev.dungeonProgress,
+          [dungeon.id]: {
+            dungeonId: dungeon.id,
+            currentEncounterIndex: nextEncounterIdx,
+            completedCount: bossDefeated
+              ? currentProg.completedCount + 1
+              : currentProg.completedCount,
+          },
         },
-      },
-      pendingRewards: [...prev.pendingRewards, finalBatch],
-      combatHistory: [report, ...prev.combatHistory.slice(0, 14)],
-      tutorial: advanceTutorialIfMatching(prev.tutorial, 'choose_next_activity'),
-    }));
+        pendingRewards: [...credited.state.pendingRewards, credited.batch],
+        combatHistory: [report, ...prev.combatHistory.slice(0, 14)],
+        tutorial: advanceTutorialIfMatching(prev.tutorial, 'choose_next_activity'),
+      };
+    });
 
     setInspectedReport(report);
   };
@@ -1146,8 +1153,8 @@ export default function App() {
     }
     showToast(
       res.leveledUp
-        ? `Recompensas resgatadas! Você alcançou o Nível ${res.state.level}!`
-        : 'Espólios de vitória recolhidos para o seu tesouro!',
+        ? `XP e itens recolhidos! O ouro já foi creditado. Você alcançou o Nível ${res.state.level}!`
+        : 'XP e itens recolhidos. O ouro já foi creditado automaticamente.',
       'success'
     );
   };
@@ -1551,10 +1558,6 @@ export default function App() {
               if (isOnlineMode) { void executeOnlineAction('guild_buy_energy_expansion'); return; }
               const result = buyGuildTemporaryEnergy(gameState, Date.now());
               if (!result.error) setGameState(result.state);
-            }}
-            onClaimMail={(messageId) => {
-              if (isOnlineMode) { void executeOnlineAction('claim_mail', { messageId }); return; }
-              setGameState((prev) => claimMailMessage(prev, messageId, Date.now()).state);
             }}
             onClaimContract={(contractId) => {
               if (isOnlineMode) { void executeOnlineAction('claim_contract', { contractId }); return; }

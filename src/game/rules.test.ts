@@ -6,12 +6,13 @@ import {
   buyMedicineTemplate,
   calculateDerivedStats,
   calculateElapsedIdleProgress,
-  claimMailMessage,
   buyInventoryExpansion,
   getInventoryCapacity,
   getInventoryExpansionCost,
   buyGuildTemporaryEnergy,
   claimPendingReward,
+  creditRewardGold,
+  migrateLegacyRewardGold,
   createInitialGameState,
   createItemFromTemplate,
   equipItemFromInventory,
@@ -238,7 +239,7 @@ test('Mercado valida saldo na compra, limite de inventário e credita valor corr
   assert.equal(sold.goldReceived, firstMarketItem.sellPrice);
 });
 
-test('Combate automático e Resgate Idempotente atualizam Honra, Fama, Ouro Saqueado e Honra da Guilda', () => {
+test('ouro da batalha entra no saldo ao gerar o lote e claim não duplica', () => {
   const initial = createInitialGameState(100000);
   const joined = applyOrJoinGuild(initial, 'guild_legio_ferrea', 'Entrar', 100100);
   assert.equal(joined.success, true);
@@ -258,29 +259,20 @@ test('Combate automático e Resgate Idempotente atualizam Honra, Fama, Ouro Saqu
     timestampMs: 100200,
   });
 
-  const stateWithPending = {
-    ...joined.state,
-    pendingRewards: [outcome.rewardBatch],
-  };
+  const credited = creditRewardGold(joined.state, outcome.rewardBatch);
+  const stateWithPending = { ...credited.state, pendingRewards: [credited.batch] };
 
   const firstClaim = claimPendingReward(stateWithPending, outcome.rewardBatch.claimId);
   assert.equal(firstClaim.claimedNow, true);
   assert.equal(firstClaim.state.goldLooted, outcome.rewardBatch.gold);
-  assert.equal(firstClaim.state.gold, joined.state.gold, 'ouro da batalha deve permanecer no anexo do correio');
-  const mail = firstClaim.state.mailbox[0];
-  assert.equal(mail?.goldAmount, outcome.rewardBatch.gold);
+  assert.equal(firstClaim.state.gold, joined.state.gold + outcome.rewardBatch.gold);
+  assert.equal(firstClaim.state.mailbox, undefined);
   assert.equal(firstClaim.state.honor, joined.state.honor + outcome.rewardBatch.honor);
 
   // Segundo resgate com mesmo claimId deve ser ignorado (idempotente)
   const secondClaim = claimPendingReward(firstClaim.state, outcome.rewardBatch.claimId);
   assert.equal(secondClaim.claimedNow, false);
   assert.equal(secondClaim.state.gold, firstClaim.state.gold);
-
-  const mailClaim = claimMailMessage(firstClaim.state, mail.id, 100300);
-  assert.equal(mailClaim.claimedNow, true);
-  assert.equal(mailClaim.state.gold, joined.state.gold + outcome.rewardBatch.gold);
-  assert.equal(claimMailMessage(mailClaim.state, mail.id, 100400).claimedNow, false);
-  assert.equal(claimMailMessage(mailClaim.state, mail.id, 100400).state.gold, mailClaim.state.gold);
 
   // Classificação da guilda recalcula imediatamente com a nova honra do jogador
   const rankingsAfter = computeGuildRankings(
@@ -289,6 +281,33 @@ test('Combate automático e Resgate Idempotente atualizam Honra, Fama, Ouro Saqu
   );
   const lfcAfter = rankingsAfter.find((g) => g.id === 'guild_legio_ferrea')!;
   assert.equal(lfcAfter.totalHonor, lfcBefore.totalHonor + outcome.rewardBatch.honor);
+});
+
+test('migração de ouro antigo credita correio e lotes pendentes uma única vez', () => {
+  const state = createInitialGameState(1000);
+  const legacy = {
+    ...state,
+    mailbox: [{ id: 'old_mail', source: 'battle' as const, title: 'Espólios', body: '', goldAmount: 25, createdAtMs: 900, claimedAtMs: null }],
+    pendingRewards: [{ claimId: 'old_batch', sourceTitle: 'Arena', sourceMode: 'arena' as const, createdAt: 950, gold: 15, xp: 1, honor: 0, items: [], cyclesCompleted: 1, victories: 1, defeats: 0, elapsedSecondsAccounted: 0, wasCappedAtMaxOffline: false, claimed: false }],
+  };
+  const migrated = migrateLegacyRewardGold(legacy);
+  assert.equal(migrated.state.gold, state.gold + 40);
+  assert.equal(migrated.state.goldLooted, state.goldLooted + 15);
+  assert.equal(migrated.state.pendingRewards[0].goldCredited, true);
+  assert.equal(migrated.state.mailbox, undefined);
+  const repeated = migrateLegacyRewardGold(migrated.state);
+  assert.equal(repeated.state.gold, migrated.state.gold);
+  assert.equal(repeated.changed, false);
+});
+
+test('patrulha ociosa credita ouro assim que cria a recompensa', () => {
+  const state = createInitialGameState(1_000_000);
+  state.idle.active = true;
+  const result = calculateElapsedIdleProgress(state, 1_060_000);
+  assert.ok(result.offlineBatchCreated);
+  assert.equal(result.offlineBatchCreated.goldCredited, true);
+  assert.equal(result.state.gold, state.gold + result.offlineBatchCreated.gold);
+  assert.equal(result.state.goldLooted, state.goldLooted + result.offlineBatchCreated.gold);
 });
 
 test('expansão de mochila cobra ouro, aumenta cinco espaços até 60 e rejeita saldo insuficiente', () => {

@@ -46,7 +46,7 @@ import {
   calculateDerivedStats,
   calculateElapsedIdleProgress,
   claimPendingReward,
-  claimMailMessage,
+  creditRewardGold,
   type CombatReport,
   createInitialGameState,
   createItemFromTemplate,
@@ -56,6 +56,7 @@ import {
   type GameState,
   getInventoryCapacity,
   inspectAndLoadSaveState,
+  migrateLegacyRewardGold,
   type PendingRewardBatch,
   resolveCombat,
   sellItemFromInventory,
@@ -195,7 +196,6 @@ export type AuthoritativeActionType =
   | 'fight_dungeon'
   | 'reset_dungeon'
   | 'claim_reward'
-  | 'claim_mail'
   | 'buy_inventory_expansion'
   | 'guild_buy_energy_expansion'
   | 'idle_start'
@@ -595,9 +595,18 @@ export class OnlineAuthorityEngine {
       if (Array.isArray(parsed.players)) {
         this.players = new Map(parsed.players);
       }
+      let migratedRewardGold = false;
+      for (const record of this.players.values()) {
+        const migrated = migrateLegacyRewardGold(record.state as GameState);
+        if (migrated.changed) {
+          record.state = migrated.state;
+          migratedRewardGold = true;
+        }
+      }
       if (Array.isArray(parsed.guilds)) {
         this.guilds = new Map(parsed.guilds);
       }
+      if (migratedRewardGold) this.saveToDisk();
       this.invalidateRankingCaches();
     } catch (error) {
       if (this.launchId) throw error;
@@ -632,9 +641,9 @@ export class OnlineAuthorityEngine {
    */
   private buildClientGameStateForPlayer(record: AuthoritativePlayerRecord, nowMs: number): GameState {
     const storedState = record.state as GameState;
+    const migrated = migrateLegacyRewardGold(storedState);
     record.state = {
-      ...storedState,
-      mailbox: Array.isArray(storedState.mailbox) ? storedState.mailbox : [],
+      ...migrated.state,
       inventoryCapacity: Number.isFinite(storedState.inventoryCapacity)
         ? Math.min(60, Math.max(GAME_CONFIG.maxInventorySlots, storedState.inventoryCapacity!))
         : GAME_CONFIG.maxInventorySlots,
@@ -1611,9 +1620,10 @@ export class OnlineAuthorityEngine {
 
           const step1 = advanceTutorialIfMatching(record.state.tutorial, 'start_expedition');
           const step2 = advanceTutorialIfMatching(step1, 'choose_next_activity');
+          const credited = creditRewardGold(record.state, combatRes.rewardBatch);
 
           record.state = {
-            ...record.state,
+            ...credited.state,
             energy: Math.max(0, record.state.energy - region.energyCost),
             currentHp: combatRes.playerRemainingHp,
             wins: combatRes.report.victory ? record.state.wins + 1 : record.state.wins,
@@ -1623,7 +1633,7 @@ export class OnlineAuthorityEngine {
               ...record.state.idle,
               focusMode,
             },
-            pendingRewards: [...record.state.pendingRewards.slice(-19), combatRes.rewardBatch],
+            pendingRewards: [...credited.state.pendingRewards.slice(-19), credited.batch],
             combatHistory: [combatRes.report, ...record.state.combatHistory.slice(0, 14)],
             tutorial: step2,
           };
@@ -1655,15 +1665,16 @@ export class OnlineAuthorityEngine {
             ...combatRes.rewardBatch,
             honor: combatRes.report.victory ? opponent.honorReward : 0,
           };
+          const credited = creditRewardGold(record.state, enrichedBatch);
 
           record.state = {
-            ...record.state,
+            ...credited.state,
             energy: Math.max(0, record.state.energy - 1),
             currentHp: combatRes.playerRemainingHp,
             wins: combatRes.report.victory ? record.state.wins + 1 : record.state.wins,
             losses: combatRes.report.victory ? record.state.losses : record.state.losses + 1,
             lastSaveTimestampMs: serverNowMs,
-            pendingRewards: [...record.state.pendingRewards.slice(-19), enrichedBatch],
+            pendingRewards: [...credited.state.pendingRewards.slice(-19), credited.batch],
             combatHistory: [combatRes.report, ...record.state.combatHistory.slice(0, 14)],
             tutorial: advanceTutorialIfMatching(
               record.state.tutorial,
@@ -1735,6 +1746,7 @@ export class OnlineAuthorityEngine {
                 ],
               }
             : combatRes.rewardBatch;
+          const credited = creditRewardGold(record.state, finalBatch);
 
           const nextEncounterIdx = combatRes.report.victory
             ? isBoss
@@ -1743,7 +1755,7 @@ export class OnlineAuthorityEngine {
             : currentProg.currentEncounterIndex;
 
           record.state = {
-            ...record.state,
+            ...credited.state,
             energy: Math.max(0, record.state.energy - dungeon.energyCost),
             currentHp: combatRes.playerRemainingHp,
             wins: combatRes.report.victory ? record.state.wins + 1 : record.state.wins,
@@ -1759,7 +1771,7 @@ export class OnlineAuthorityEngine {
                   : currentProg.completedCount,
               },
             },
-            pendingRewards: [...record.state.pendingRewards.slice(-19), finalBatch],
+            pendingRewards: [...credited.state.pendingRewards.slice(-19), credited.batch],
             combatHistory: [combatRes.report, ...record.state.combatHistory.slice(0, 14)],
             tutorial: advanceTutorialIfMatching(
               record.state.tutorial,
@@ -1798,17 +1810,13 @@ export class OnlineAuthorityEngine {
           if (result.error) return fail(result.error);
           const goldMultiplier =
             1 + this.getPermanentGuildRewardPercent(identity.uid, 'gold') / 100;
-          const contractMailId = `mail_contract_${String(params.contractId ?? '')}`;
-          const contractMail = result.state.mailbox.find((mail) => mail.id === contractMailId);
-          if (!contractMail) return fail('A recompensa do contrato não pôde ser enviada ao Correio.');
-          const mailGold = Math.round(contractMail.goldAmount * goldMultiplier);
+          const contractGold = result.state.gold - record.state.gold;
+          const bonusGold = Math.round(contractGold * goldMultiplier) - contractGold;
           record.state = {
             ...result.state,
-            mailbox: result.state.mailbox.map((mail) => mail.id === contractMailId
-              ? { ...mail, goldAmount: mailGold, body: `${mail.body} Total com bônus da guilda: ${mailGold} denários.` }
-              : mail),
+            gold: result.state.gold + bonusGold,
           };
-          message = 'Contrato concluído. Denários enviados ao Correio.';
+          message = 'Contrato concluído. Os denários foram creditados no seu saldo.';
           break;
         }
         case 'claim_reward': {
@@ -1822,16 +1830,8 @@ export class OnlineAuthorityEngine {
           leveledUp = claimRes.leveledUp;
           this.syncPlayerIntoSharedGuildMember(record);
           message = claimRes.leveledUp
-            ? `Recompensa enviada ao Correio! Você alcançou o Nível ${claimRes.state.level}!`
-            : 'XP e itens recolhidos; o ouro da batalha está no Correio.';
-          break;
-        }
-
-        case 'claim_mail': {
-          const result = claimMailMessage(record.state, String(params.messageId ?? ''), serverNowMs);
-          if (!result.claimedNow) return fail('Esta mensagem não existe ou o anexo já foi recolhido.');
-          record.state = result.state;
-          message = 'Denários recolhidos do Correio para sua bolsa.';
+            ? `XP e itens recolhidos; o ouro já foi creditado. Você alcançou o Nível ${claimRes.state.level}!`
+            : 'XP e itens recolhidos; o ouro já foi creditado automaticamente.';
           break;
         }
         case 'buy_inventory_expansion': {

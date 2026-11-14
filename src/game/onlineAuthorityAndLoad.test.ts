@@ -26,12 +26,12 @@ test('detalhes do perfil público online incluem apenas equipamento vestido e da
   assert.equal(engine.getPublicPlayerProfileDetails('unknown_player'), null);
 });
 
-test('bootstrap completa campos novos em contas online antigas sem mailbox', () => {
+test('bootstrap migra ouro não coletado do correio antigo para o saldo uma única vez', () => {
   const now = 1_750_000_000_100;
   const uid = 'legacy_mailbox_player';
   const state = createInitialGameState(now);
   const legacyState = { ...state } as Record<string, unknown>;
-  delete legacyState.mailbox;
+  legacyState.mailbox = [{ id: 'old_battle_mail', source: 'battle', title: 'Espólios', body: '', goldAmount: 17, createdAtMs: now, claimedAtMs: null }];
   delete legacyState.inventoryCapacity;
   delete legacyState.temporaryEnergyBoostExpiresAtMs;
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gladiatorum-legacy-state-'));
@@ -52,7 +52,10 @@ test('bootstrap completa campos novos em contas online antigas sem mailbox', () 
   try {
     const engine = new OnlineAuthorityEngine({ persistencePath, seedInitialOnlineGuilds: false });
     const boot = engine.bootstrapPlayer({ uid, email: record.email, displayName: state.name }, now + 1);
-    assert.deepEqual(boot.state.mailbox, []);
+    assert.equal(boot.state.mailbox, undefined);
+    assert.equal(boot.state.gold, state.gold + 17);
+    const secondBoot = engine.bootstrapPlayer({ uid, email: record.email, displayName: state.name }, now + 2);
+    assert.equal(secondBoot.state.gold, state.gold + 17);
     assert.equal(boot.state.inventoryCapacity, GAME_CONFIG.maxInventorySlots);
     assert.equal(boot.state.temporaryEnergyBoostExpiresAtMs, 0);
   } finally {
@@ -264,6 +267,8 @@ test('2. Autoridade do Servidor: recompensa só pode ser resgatada uma única ve
 
   const rewardBatch = expRes.state.pendingRewards[0];
   const goldBeforeClaim = expRes.state.gold;
+  assert.equal(goldBeforeClaim, boot.state.gold + rewardBatch.gold);
+  assert.equal(rewardBatch.goldCredited, true);
 
   // 1º resgate
   const claim1 = engine.executeAction(
@@ -277,16 +282,7 @@ test('2. Autoridade do Servidor: recompensa só pode ser resgatada uma única ve
   );
   assert.equal(claim1.ok, true);
   assert.equal(claim1.state.gold, goldBeforeClaim);
-  const battleMail = claim1.state.mailbox.at(-1);
-  assert.equal(battleMail?.goldAmount, rewardBatch.gold);
-
-  const mailClaim1 = engine.executeAction(
-    'glad_auth_1',
-    { opId: 'op_mail_01', action: 'claim_mail', params: { messageId: battleMail!.id } },
-    now + 2050
-  );
-  assert.equal(mailClaim1.ok, true);
-  assert.equal(mailClaim1.state.gold, goldBeforeClaim + rewardBatch.gold);
+  assert.equal(claim1.state.mailbox, undefined);
 
   // Replay com o MESMO opId (duplo clique de rede) -> idempotente, não duplica ouro!
   const replaySameOpId = engine.executeAction(
@@ -299,7 +295,7 @@ test('2. Autoridade do Servidor: recompensa só pode ser resgatada uma única ve
     now + 2100
   );
   assert.equal(replaySameOpId.idempotentReplay, true);
-  assert.equal(replaySameOpId.state.gold, goldBeforeClaim + rewardBatch.gold);
+  assert.equal(replaySameOpId.state.gold, goldBeforeClaim);
 
   // Tentativa com NOVO opId mas mesmo claimId -> recusado!
   const duplicateClaim = engine.executeAction(
@@ -312,15 +308,7 @@ test('2. Autoridade do Servidor: recompensa só pode ser resgatada uma única ve
     now + 2200
   );
   assert.equal(duplicateClaim.ok, false);
-  assert.equal(duplicateClaim.state.gold, goldBeforeClaim + rewardBatch.gold);
-
-  const duplicateMailClaim = engine.executeAction(
-    'glad_auth_1',
-    { opId: 'op_mail_02', action: 'claim_mail', params: { messageId: battleMail!.id } },
-    now + 2250
-  );
-  assert.equal(duplicateMailClaim.ok, false);
-  assert.equal(duplicateMailClaim.state.gold, goldBeforeClaim + rewardBatch.gold);
+  assert.equal(duplicateClaim.state.gold, goldBeforeClaim);
 
   // Tentativa de treinar atributo sem saldo suficiente -> saldo nunca fica negativo
   for (let i = 0; i < 20; i++) {

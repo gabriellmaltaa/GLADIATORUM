@@ -848,7 +848,9 @@ export const RewardPanel: React.FC<RewardPanelProps> = ({ batch, onClaim }) => {
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-center bg-[#C2AB7E]/50 p-2 border border-[#947044]">
         <div>
-          <span className="block text-[10px] uppercase font-bold text-[#5C4935]">Denários</span>
+          <span className="block text-[10px] uppercase font-bold text-[#5C4935]">
+            Denários · {batch.goldCredited ? 'creditados' : 'ao resgatar'}
+          </span>
           <span className="font-roman font-bold text-sm sm:text-base tabular-nums text-[#30251A]">
             +{batch.gold} Ouro
           </span>
