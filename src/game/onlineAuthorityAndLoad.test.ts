@@ -1,12 +1,84 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import {
   MIGRATION_COMPETITIVE_CAPS,
   OnlineAuthorityEngine,
 } from '../server/onlineAuthorityEngine';
-import { createInitialGameState } from './rules';
+import { calculateDerivedStats, createInitialGameState, createItemFromTemplate } from './rules';
+import { ENDGAME_REGIONS, OBSIDIAN_ITEMS } from './expansion';
+
+test('repetir a mesma operação online de chefe devolve o mesmo jackpot sem sortear outra peça', () => {
+  const uid = 'obsidian_online_jackpot';
+  const now = 1_750_000_000_000;
+  const state = createInitialGameState(now);
+  state.level = 50;
+  state.energy = 12;
+  state.baseStats = {
+    strength: 100, skill: 100, agility: 100, constitution: 100, charisma: 100, intelligence: 100,
+  };
+  state.equipped.weapon = createItemFromTemplate('obsidian_weapon', 'server_jackpot');
+  state.currentHp = calculateDerivedStats(state.baseStats, state.equipped, state.level).maxHp;
+  state.lastSaveTimestampMs = now;
+
+  const boss = ENDGAME_REGIONS[3].enemies[2];
+  const originalChance = boss.specialDropChance;
+  const originalPool = boss.specialDropPool;
+  const persistenceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gladiatorum-obsidian-'));
+  const persistencePath = path.join(persistenceDir, 'authority.json');
+  const record = {
+    uid,
+    email: 'obsidian@example.test',
+    competitiveStatus: 'verified_online',
+    migratedFromLocal: false,
+    migrationSummary: null,
+    state,
+    processedOpIds: [],
+    lastVillaMediciUseMs: 0,
+    createdAtMs: now,
+    updatedAtMs: now,
+  };
+  fs.writeFileSync(persistencePath, JSON.stringify({
+    launchId: null,
+    players: [[uid, record]],
+    guilds: [],
+  }));
+
+  try {
+    boss.maxHp = 1;
+    boss.skill = 0;
+    boss.agility = 0;
+    boss.armor = 0;
+    boss.damageMin = 0;
+    boss.damageMax = 0;
+    boss.dropChance = 0;
+    boss.dropPool = [];
+    boss.specialDropChance = 1;
+    boss.specialDropPool = ['obsidian_weapon'];
+    const engine = new OnlineAuthorityEngine({ persistencePath, seedInitialOnlineGuilds: false });
+    const payload = {
+      opId: 'obsidian_boss_operation',
+      action: 'start_expedition' as const,
+      params: { regionId: ENDGAME_REGIONS[3].id, enemyIndex: 2 },
+    };
+    const first = engine.executeAction(uid, payload, now + 1);
+    const replay = engine.executeAction(uid, payload, now + 2);
+    const pendingItems = first.state.pendingRewards.flatMap(batch => batch.items);
+
+    assert.equal(first.ok, true);
+    assert.equal(replay.idempotentReplay, true);
+    assert.equal(replay.state.pendingRewards.flatMap(batch => batch.items).length, pendingItems.length);
+    assert.deepEqual(replay.state.pendingRewards, first.state.pendingRewards);
+    assert.equal(pendingItems.filter(item => item.rarity === 'obsidian').length, 1);
+    assert.ok(OBSIDIAN_ITEMS[pendingItems.find(item => item.rarity === 'obsidian')!.templateId]);
+  } finally {
+    boss.specialDropChance = originalChance;
+    boss.specialDropPool = originalPool;
+    fs.rmSync(persistenceDir, { recursive: true, force: true });
+  }
+});
 
 test('Forja online aplica bônus e custo no estado autoritativo e bloqueia bônus inválido ou saldo insuficiente', () => {
   const engine = new OnlineAuthorityEngine();

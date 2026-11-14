@@ -1,4 +1,4 @@
-import type { GameItem, ExpeditionRegion, EquipmentSlotType } from './config';
+import type { GameItem, ExpeditionRegion, EquipmentSlotType, StatBonuses } from './config';
 import type { ItemIconId } from '../design/assets';
 import type { RarityKey } from '../design/tokens';
 
@@ -40,6 +40,158 @@ export const EXPANSION_ITEMS: Record<string, Omit<GameItem, 'id'>> = Object.from
       stats } satisfies Omit<GameItem, 'id'>];
   }))
 );
+
+export const ENDGAME_TIERS = [
+  { rarity: 'celestial', level: 20, power: 7, name: 'Celeste' },
+  { rarity: 'astral', level: 30, power: 8, name: 'Astral' },
+  { rarity: 'primordial', level: 40, power: 9, name: 'Primordial' },
+  { rarity: 'transcendent', level: 50, power: 10, name: 'Transcendente' },
+] as const;
+
+function getEndgameStats(slot: EquipmentSlotType, power: number): StatBonuses {
+  switch (slot) {
+    case 'weapon':
+      return { damageMin: 4 + power * 3, damageMax: 8 + power * 5, strength: power * 2 };
+    case 'shield':
+      return { armor: 12 + power * 9, constitution: power * 2, strength: power };
+    case 'helmet':
+      return { armor: 12 + power * 9, agility: power, constitution: power };
+    case 'armor':
+      return { armor: 12 + power * 20, constitution: power * 2, strength: power, healthBonus: power * 14 };
+    case 'gloves':
+      return { armor: 12 + power * 9, strength: power, skill: power * 2 };
+    case 'boots':
+      return { armor: 12 + power * 9, agility: power * 2, constitution: power };
+    case 'ring':
+      return { strength: power * 2, skill: power * 3, charisma: power * 2 };
+    case 'amulet':
+      return { intelligence: power * 3, healthBonus: power * 14, constitution: power };
+  }
+}
+
+export const ENDGAME_ITEMS: Record<string, Omit<GameItem, 'id'>> = Object.fromEntries(
+  ENDGAME_TIERS.flatMap((tier) => slots.map((slot) => {
+    const templateId = `endgame_${tier.rarity}_${slot.slot}`;
+    const multiplier = tier.level / 20;
+    return [templateId, {
+      templateId,
+      name: `${slot.name} ${tier.name}`,
+      slot: slot.slot,
+      rarity: tier.rarity,
+      levelReq: tier.level,
+      buyPrice: Math.round(2500 * multiplier * multiplier),
+      sellPrice: Math.round(1000 * multiplier * multiplier),
+      iconId: slot.icon,
+      description: `Peça do Arsenal ${tier.name}, forjada para os desafios de nível ${tier.level}. Encontrada nas expedições da sua faixa.`,
+      stats: getEndgameStats(slot.slot, tier.power),
+    } satisfies Omit<GameItem, 'id'>];
+  }))
+);
+
+function getMaxForgeIncrease(stat: keyof StatBonuses): number {
+  if (stat === 'armor') return 50;
+  if (stat === 'healthBonus') return 100;
+  return 10;
+}
+
+export const OBSIDIAN_ITEMS: Record<string, Omit<GameItem, 'id'>> = Object.fromEntries(
+  slots.map((slot) => {
+    const templateId = `obsidian_${slot.slot}`;
+    const transcendentId = `endgame_transcendent_${slot.slot}`;
+    const transcendent = ENDGAME_ITEMS[transcendentId];
+    const stats: StatBonuses = Object.fromEntries(
+      Object.entries(transcendent.stats).map(([stat, value]) => [
+        stat,
+        (value ?? 0) + getMaxForgeIncrease(stat as keyof StatBonuses) + 1,
+      ])
+    );
+    return [templateId, {
+      templateId,
+      name: `${slot.name} do Eclipse Obsidiano`,
+      slot: slot.slot,
+      rarity: 'obsidian',
+      levelReq: 50,
+      buyPrice: 0,
+      sellPrice: 25000,
+      iconId: slot.icon,
+      description: 'Relíquia secreta encontrada apenas no confronto final. Sua placa negra guarda um poder que supera qualquer arsenal comum.',
+      stats,
+    } satisfies Omit<GameItem, 'id'>];
+  })
+);
+
+export const OBSIDIAN_TO_TRANSCENDENT: Record<string, string> = Object.fromEntries(
+  slots.map((slot) => [`obsidian_${slot.slot}`, `endgame_transcendent_${slot.slot}`])
+);
+
+export function isRarityDiscovered(rarity: RarityKey, discoveredTemplates: readonly string[] = []): boolean {
+  if (rarity !== 'obsidian') return true;
+  return discoveredTemplates.some((templateId) => Object.hasOwn(OBSIDIAN_ITEMS, templateId));
+}
+
+export function getItemsVisibleByDiscovery<T extends Pick<GameItem, 'rarity' | 'templateId'>>(
+  items: readonly T[],
+  discoveredTemplates: readonly string[] = []
+): T[] {
+  return items.filter((item) => isRarityDiscovered(item.rarity, discoveredTemplates));
+}
+
+const ENDGAME_REGION_DEFS = [
+  { id: 'dacian_limes', name: 'Limes da Dácia', subtitle: 'A fronteira de ferro', minLevel: 20, rarity: 'celestial', theme: 'as montanhas da Dácia e suas legiões rebeldes' },
+  { id: 'parthian_kingdom', name: 'Reino Parta', subtitle: 'Flechas além do horizonte', minLevel: 30, rarity: 'astral', theme: 'as rotas de seda guardadas por arqueiros montados' },
+  { id: 'carthage_walls', name: 'Muralhas de Cartago', subtitle: 'Cinzas do antigo império', minLevel: 40, rarity: 'primordial', theme: 'os portões de pedra defendidos por veteranos cartagineses' },
+  { id: 'hades_gates', name: 'Portões de Hades', subtitle: 'A última descida', minLevel: 50, rarity: 'transcendent', theme: 'as catacumbas sob Roma, onde repousa o guardião final' },
+] as const;
+
+export const ENDGAME_REGIONS: ExpeditionRegion[] = ENDGAME_REGION_DEFS.map((region, regionIndex) => {
+  const dropPool = Object.values(ENDGAME_ITEMS)
+    .filter((item) => item.rarity === region.rarity)
+    .map((item) => item.templateId);
+  return {
+    id: region.id,
+    name: region.name,
+    subtitle: region.subtitle,
+    minLevel: region.minLevel,
+    energyCost: 3,
+    durationSeconds: 45 + regionIndex * 10,
+    ambientDescription: `Explore ${region.theme} e recupere o arsenal da região.`,
+    enemies: [0, 1, 2].map((index) => {
+      const level = region.minLevel + index * 2;
+      const isBoss = index === 2;
+      const enemyNames = [
+        ['Batedor Dácio', 'Centurião da Montanha', 'Rei dos Limes'],
+        ['Lanceiro Parta', 'Arqueiro do Sol', 'Xá das Rotas'],
+        ['Legionário Cartaginês', 'Campeão de Baal', 'Colosso das Muralhas'],
+        ['Guardião das Catacumbas', 'Arauto do Submundo', 'Guardião de Hades'],
+      ][regionIndex];
+      return {
+        id: `${region.id}_${index}`,
+        name: enemyNames[index],
+        title: isBoss ? 'Chefe Regional' : 'Veterano de Fronteira',
+        level,
+        avatarId: (isBoss ? 'praetorian_boss' : regionIndex === 1 ? 'retiarius' : 'centurion') as 'centurion' | 'retiarius' | 'praetorian_boss',
+        maxHp: 160 + level * 34,
+        strength: 10 + level * 2,
+        skill: 10 + level * 2,
+        agility: 8 + level,
+        constitution: 10 + level,
+        charisma: 8 + level,
+        armor: 30 + level * 14,
+        damageMin: 8 + level * 2,
+        damageMax: 13 + level * 3,
+        goldMin: 80 + level * 12,
+        goldMax: 120 + level * 16,
+        xpReward: 300 + level * 30,
+        dropChance: isBoss ? 0.65 : 0.4,
+        dropPool,
+        ...(regionIndex === 3 && isBoss
+          ? { specialDropChance: 0.001, specialDropPool: Object.keys(OBSIDIAN_ITEMS) }
+          : {}),
+      };
+    }),
+  };
+});
+
 const loot = (id: string) => slots.map(s => `collection_${id}_${s.slot}`);
 export const EXPANSION_MARKET_IDS = [...loot('capua'), ...loot('vesuvius')];
 export const EXPANSION_REGIONS: ExpeditionRegion[] = [

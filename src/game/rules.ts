@@ -27,6 +27,7 @@ import {
   type GuildStateContainer,
   syncPlayerMemberInGuilds,
 } from './guildsAndRankings.ts';
+import { OBSIDIAN_ITEMS, OBSIDIAN_TO_TRANSCENDENT } from './expansion.ts';
 
 export interface BaseAttributes {
   strength: number;
@@ -334,6 +335,26 @@ export function calculateDerivedStats(
     hpRegenPerMinute,
     tempDamageBonusPercent,
   };
+}
+
+/** Obsidian remains strongest in PvE, while Arena reads its Transcendent-equivalent stats. */
+export function prepareArenaEquipment(
+  equipped: Partial<Record<EquipmentSlotType, GameItem>>
+): Partial<Record<EquipmentSlotType, GameItem>> {
+  return Object.fromEntries(Object.entries(equipped).map(([slot, item]) => {
+    if (!item || item.rarity !== 'obsidian') return [slot, item];
+    const transcendentId = OBSIDIAN_TO_TRANSCENDENT[item.templateId];
+    const obsidianTemplate = OBSIDIAN_ITEMS[item.templateId];
+    const transcendentTemplate = transcendentId ? ITEM_TEMPLATES[transcendentId] : undefined;
+    if (!obsidianTemplate || !transcendentTemplate) return [slot, item];
+
+    const stats = { ...transcendentTemplate.stats };
+    for (const stat of Object.keys(item.stats) as (keyof GameItem['stats'])[]) {
+      const reforgedDelta = (item.stats[stat] ?? 0) - (obsidianTemplate.stats[stat] ?? 0);
+      stats[stat] = (transcendentTemplate.stats[stat] ?? 0) + reforgedDelta;
+    }
+    return [slot, { ...item, stats }];
+  })) as Partial<Record<EquipmentSlotType, GameItem>>;
 }
 
 /**
@@ -747,9 +768,12 @@ export function resolveCombat(
         ),
       }
     : state.guildState;
+  const combatEquipped = options.mode === 'arena'
+    ? prepareArenaEquipment(state.equipped)
+    : state.equipped;
   const playerStats = calculateDerivedStats(
     state.baseStats,
-    state.equipped,
+    combatEquipped,
     state.level,
     effectiveGuildState,
     nowMs
@@ -922,6 +946,12 @@ export function resolveCombat(
     if (enemy.dropPool.length > 0 && rng() <= effectiveDropChance) {
       const tplId = enemy.dropPool[Math.floor(rng() * enemy.dropPool.length)];
       droppedItems.push(createItemFromTemplate(tplId, `${nowMs}_drop`));
+    }
+    const specialDropChance = clamp(enemy.specialDropChance ?? 0, 0, 1);
+    const specialDropPool = enemy.specialDropPool ?? [];
+    if (specialDropPool.length > 0 && rng() <= specialDropChance) {
+      const tplId = specialDropPool[Math.floor(rng() * specialDropPool.length)];
+      droppedItems.push(createItemFromTemplate(tplId, `${nowMs}_special_drop`));
     }
   } else {
     goldEarned = Math.round(

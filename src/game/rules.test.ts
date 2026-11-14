@@ -8,6 +8,7 @@ import {
   calculateElapsedIdleProgress,
   claimPendingReward,
   createInitialGameState,
+  createItemFromTemplate,
   equipItemFromInventory,
   forgeItem,
   getForgeUpgradeCost,
@@ -15,6 +16,7 @@ import {
   getNextObjective,
   getPlayerSnapshotForRankings,
   inspectAndLoadSaveState,
+  prepareArenaEquipment,
   resolveCombat,
   sellItemFromInventory,
   trainGladiatorStat,
@@ -23,6 +25,14 @@ import {
 } from './rules';
 import { DUNGEONS, EXPEDITION_REGIONS, GAME_CONFIG, ITEM_TEMPLATES } from './config';
 import { DESIGN_TOKENS, RarityKey } from '../design/tokens';
+import {
+  ENDGAME_ITEMS,
+  ENDGAME_REGIONS,
+  getItemsVisibleByDiscovery,
+  isRarityDiscovered,
+  OBSIDIAN_ITEMS,
+  OBSIDIAN_TO_TRANSCENDENT,
+} from './expansion';
 import {
   computeGuildRankings,
   computePlayerRankings,
@@ -604,7 +614,7 @@ test('Inspeção de save migra v2/v3 para v4 preservando progresso e getNextObje
   assert.ok(obj.title.length > 0);
 });
 
-test('Valida 32 Masmorras em 7 Dificuldades, 8 Raridades de Itens e Sistema de Medicina', () => {
+test('Valida 32 Masmorras em 7 Dificuldades, 13 Raridades de Itens e Sistema de Medicina', () => {
   // 1. Pelo menos 32 masmorras (1 original + 31 novas) distribuídas em 7 dificuldades
   assert.ok(DUNGEONS.length >= 32, `Esperado >= 32 masmorras, encontrado ${DUNGEONS.length}`);
   const difficulties = new Set(DUNGEONS.map((d) => d.difficulty));
@@ -622,7 +632,7 @@ test('Valida 32 Masmorras em 7 Dificuldades, 8 Raridades de Itens e Sistema de M
     }
   }
 
-  // 2. Verifica as 8 raridades em DESIGN_TOKENS e ITEM_TEMPLATES
+  // 2. Verifica as raridades em DESIGN_TOKENS e ITEM_TEMPLATES
   const expectedRarities: RarityKey[] = [
     'common',
     'uncommon',
@@ -632,6 +642,11 @@ test('Valida 32 Masmorras em 7 Dificuldades, 8 Raridades de Itens e Sistema de M
     'mythic',
     'imperial',
     'divine',
+    'celestial',
+    'astral',
+    'primordial',
+    'transcendent',
+    'obsidian',
   ];
   const templatesList = Object.values(ITEM_TEMPLATES);
   for (const rarity of expectedRarities) {
@@ -684,5 +699,201 @@ test('Valida 32 Masmorras em 7 Dificuldades, 8 Raridades de Itens e Sistema de M
   assert.ok(treated.healedHp > 0);
   assert.ok(treated.restoredEnergy > 0);
   assert.equal(treated.state.gold, woundedAgain.gold - treated.costPaid);
+});
+
+test('progressão até o nível 50 oferece quatro conjuntos completos e um conjunto Obsidiana secreto', () => {
+  const regularTiers = [
+    { rarity: 'celestial', level: 20 },
+    { rarity: 'astral', level: 30 },
+    { rarity: 'primordial', level: 40 },
+    { rarity: 'transcendent', level: 50 },
+  ] as const;
+  const expectedSlots = ['amulet', 'armor', 'boots', 'gloves', 'helmet', 'ring', 'shield', 'weapon'];
+  const items = Object.values(ENDGAME_ITEMS);
+  assert.equal(items.length, 32);
+  assert.equal(new Set(items.map(item => item.templateId)).size, 32);
+
+  for (const { rarity, level } of regularTiers) {
+    const tierItems = items.filter(item => item.rarity === rarity);
+    assert.equal(tierItems.length, 8, `${rarity} deve preencher os oito espaços`);
+    assert.deepEqual(tierItems.map(item => item.slot).sort(), expectedSlots);
+    assert.ok(tierItems.every(item => item.levelReq === level));
+  }
+
+  for (let index = 1; index < regularTiers.length; index++) {
+    const previous = regularTiers[index - 1];
+    const current = regularTiers[index];
+    for (const slot of expectedSlots) {
+      const score = (rarity: string) => Object.values(
+        items.find(item => item.rarity === rarity && item.slot === slot)!.stats
+      ).reduce((sum, value) => sum + (value ?? 0), 0);
+      assert.ok(score(current.rarity) > score(previous.rarity), `${slot} deve progredir de ${previous.rarity} para ${current.rarity}`);
+    }
+  }
+
+  const obsidian = Object.values(OBSIDIAN_ITEMS);
+  assert.equal(obsidian.length, 8);
+  assert.equal(new Set(obsidian.map(item => item.templateId)).size, 8);
+  assert.deepEqual(obsidian.map(item => item.slot).sort(), expectedSlots);
+  assert.ok(obsidian.every(item => item.rarity === 'obsidian' && item.levelReq === 50));
+  assert.equal(Object.keys(OBSIDIAN_TO_TRANSCENDENT).length, 8);
+  for (const item of obsidian) {
+    const equivalentId = OBSIDIAN_TO_TRANSCENDENT[item.templateId];
+    assert.ok(equivalentId, `Obsidiana ${item.templateId} precisa de equivalente Transcendente`);
+    assert.ok(ENDGAME_ITEMS[equivalentId], `Equivalente ${equivalentId} precisa existir`);
+    assert.equal(ENDGAME_ITEMS[equivalentId].slot, item.slot);
+  }
+});
+
+test('regiões de endgame desbloqueiam nos níveis 20, 30, 40 e 50 e só oferecem itens da faixa', () => {
+  assert.deepEqual(ENDGAME_REGIONS.map(region => region.minLevel), [20, 30, 40, 50]);
+  for (let index = 0; index < ENDGAME_REGIONS.length; index++) {
+    const region = ENDGAME_REGIONS[index];
+    const expectedRarity = ['celestial', 'astral', 'primordial', 'transcendent'][index];
+    assert.equal(region.enemies.length, 3);
+    for (const enemy of region.enemies) {
+      assert.ok(enemy.level >= region.minLevel);
+      for (const templateId of enemy.dropPool) {
+        const item = ENDGAME_ITEMS[templateId];
+        assert.ok(item, `${templateId} deve pertencer à faixa da região`);
+        assert.equal(item.rarity, expectedRarity);
+      }
+    }
+  }
+});
+
+test('somente o chefe final de nível 50 tem jackpot Obsidiana de 0,1%', () => {
+  const eligibleBoss = ENDGAME_REGIONS[3].enemies[2];
+  assert.equal(eligibleBoss.specialDropChance, 0.001);
+  assert.deepEqual(new Set(eligibleBoss.specialDropPool), new Set(Object.keys(OBSIDIAN_ITEMS)));
+  assert.ok(ENDGAME_REGIONS.slice(0, 3).every(region =>
+    region.enemies.every(enemy => enemy.specialDropChance === undefined && enemy.specialDropPool === undefined)
+  ));
+  assert.ok(ENDGAME_REGIONS[3].enemies.slice(0, 2).every(enemy =>
+    enemy.specialDropChance === undefined && enemy.specialDropPool === undefined
+  ));
+});
+
+test('vitória no chefe sorteia uma peça Obsidiana separada do loot normal; derrota e inimigo comum não', () => {
+  const now = 1_000_000;
+  const state = createInitialGameState(now);
+  state.level = 50;
+  state.baseStats = {
+    strength: 100, skill: 100, agility: 100, constitution: 100, charisma: 100, intelligence: 100,
+  };
+  state.equipped.weapon = createItemFromTemplate('obsidian_weapon', 'jackpot_test');
+  state.currentHp = calculateDerivedStats(state.baseStats, state.equipped, state.level).maxHp;
+
+  const configuredBoss = ENDGAME_REGIONS[3].enemies[2];
+  const guaranteedTestBoss = {
+    ...configuredBoss,
+    maxHp: 1,
+    strength: 0,
+    skill: 0,
+    agility: 0,
+    constitution: 0,
+    charisma: 0,
+    armor: 0,
+    damageMin: 0,
+    damageMax: 0,
+    goldMin: 0,
+    goldMax: 0,
+    xpReward: 1,
+    dropChance: 0,
+    dropPool: [],
+    specialDropChance: 1,
+  };
+  const win = resolveCombat(state, guaranteedTestBoss, {
+    mode: 'expedition', locationName: 'Teste', seed: 1, timestampMs: now,
+  });
+  assert.equal(win.report.victory, true);
+  assert.equal(win.rewardBatch.items.length, 1);
+  assert.equal(win.rewardBatch.items[0].rarity, 'obsidian');
+  assert.ok(OBSIDIAN_ITEMS[win.rewardBatch.items[0].templateId]);
+
+  const losingBoss = {
+    ...configuredBoss,
+    maxHp: 500_000,
+    skill: 1_000,
+    damageMin: 10_000,
+    damageMax: 10_000,
+    dropChance: 0,
+    dropPool: [],
+    specialDropChance: 1,
+  };
+  const loss = resolveCombat({ ...state, currentHp: 1, baseStats: {
+    strength: 5, skill: 5, agility: 5, constitution: 5, charisma: 5, intelligence: 5,
+  } }, losingBoss, { mode: 'expedition', locationName: 'Teste', seed: 2, timestampMs: now });
+  assert.equal(loss.report.victory, false);
+  assert.equal(loss.rewardBatch.items.some(item => item.rarity === 'obsidian'), false);
+
+  const ordinaryEnemy = { ...guaranteedTestBoss, specialDropChance: undefined, specialDropPool: undefined };
+  const ordinaryWin = resolveCombat(state, ordinaryEnemy, {
+    mode: 'expedition', locationName: 'Teste', seed: 1, timestampMs: now,
+  });
+  assert.equal(ordinaryWin.report.victory, true);
+  assert.equal(ordinaryWin.rewardBatch.items.some(item => item.rarity === 'obsidian'), false);
+});
+
+test('raridade Obsidiana só aparece no filtro depois que uma peça for descoberta', () => {
+  assert.equal(isRarityDiscovered('celestial', []), true);
+  assert.equal(isRarityDiscovered('obsidian', []), false);
+  assert.equal(isRarityDiscovered('obsidian', ['obsidian_weapon']), true);
+});
+
+test('coleção oculta todo o conjunto Obsidiana até a primeira descoberta', () => {
+  const templates = [...Object.values(ENDGAME_ITEMS), ...Object.values(OBSIDIAN_ITEMS)];
+  const hidden = getItemsVisibleByDiscovery(templates, []);
+  assert.equal(hidden.some(item => item.rarity === 'obsidian'), false);
+  const discovered = getItemsVisibleByDiscovery(templates, ['obsidian_helmet']);
+  assert.equal(discovered.filter(item => item.rarity === 'obsidian').length, 8);
+});
+
+test('claim registra a descoberta Obsidiana e vender a peça não apaga seu registro', () => {
+  const now = 1_000_000;
+  const state = createInitialGameState(now);
+  const obsidian = createItemFromTemplate('obsidian_weapon', 'discovery_test');
+  const outcome = resolveCombat(state, ENDGAME_REGIONS[3].enemies[2], {
+    mode: 'expedition', locationName: 'Portões de Hades', seed: 1, timestampMs: now,
+  });
+  const reward = {
+    ...outcome.rewardBatch,
+    claimId: 'obsidian_discovery_claim',
+    items: [obsidian],
+  };
+  const claimed = claimPendingReward({ ...state, pendingRewards: [reward] }, reward.claimId).state;
+  assert.equal(isRarityDiscovered('obsidian', claimed.discoveredTemplates), true);
+  const sold = sellItemFromInventory(claimed, obsidian.id).state;
+  assert.equal(sold.inventory.some(item => item.id === obsidian.id), false);
+  assert.equal(isRarityDiscovered('obsidian', sold.discoveredTemplates), true);
+});
+
+test('Arena limita cada bônus Obsidiano ao equivalente Transcendente com os mesmos reforços', () => {
+  const equipped = Object.fromEntries(Object.keys(OBSIDIAN_ITEMS).map((templateId, index) => {
+    const item = createItemFromTemplate(templateId, `arena_cap_${index}`);
+    const upgradedStats = Object.fromEntries(Object.entries(item.stats).map(([key, value]) => [key, (value ?? 0) + 2]));
+    return [item.slot, { ...item, forgeLevel: 2, stats: upgradedStats }];
+  })) as ReturnType<typeof createInitialGameState>['equipped'];
+  const capped = prepareArenaEquipment(equipped);
+
+  for (const [slot, item] of Object.entries(equipped)) {
+    if (!item) continue;
+    const transcendentId = OBSIDIAN_TO_TRANSCENDENT[item.templateId];
+    const expected = createItemFromTemplate(transcendentId, `arena_expected_${slot}`);
+    for (const stat of Object.keys(item.stats) as (keyof typeof item.stats)[]) {
+      assert.equal(capped[slot as keyof typeof capped]?.stats[stat], (expected.stats[stat] ?? 0) + 2, `${slot}.${stat}`);
+    }
+  }
+
+  const state = createInitialGameState(1_000_000);
+  state.level = 50;
+  state.baseStats = { strength: 100, skill: 100, agility: 100, constitution: 100, charisma: 100, intelligence: 100 };
+  state.equipped = equipped;
+  state.currentHp = calculateDerivedStats(state.baseStats, equipped, state.level).maxHp;
+  const enemy = { ...ENDGAME_REGIONS[3].enemies[2], maxHp: 1, skill: 0, agility: 0, armor: 0, damageMin: 0, damageMax: 0, dropChance: 0, dropPool: [], specialDropChance: 0 };
+  const pve = resolveCombat(state, enemy, { mode: 'expedition', locationName: 'Teste', seed: 17, timestampMs: 1_000_001 });
+  const arena = resolveCombat(state, enemy, { mode: 'arena', locationName: 'Teste', seed: 17, timestampMs: 1_000_001 });
+  assert.ok(pve.report.playerMaxHp > arena.report.playerMaxHp, 'PvE preserva o HP completo Obsidiano');
+  assert.equal(arena.report.playerMaxHp, calculateDerivedStats(state.baseStats, capped, state.level).maxHp);
 });
 
