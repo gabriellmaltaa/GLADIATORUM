@@ -64,6 +64,7 @@ import {
   unequipSlotToInventory,
   useMedicineFromInventory,
 } from '../game/rules.ts';
+import { grantXxmaltaObsidianLoginGift } from './targetedLoginGift.ts';
 
 export type CompetitiveStatus = 'verified_online' | 'migrated_capped';
 
@@ -108,6 +109,7 @@ export interface AuthoritativePlayerRecord {
   migrationSummary: MigrationReport | null;
   state: GameState;
   processedOpIds: string[];
+  loginGiftIds?: string[];
   lastVillaMediciUseMs: number;
   createdAtMs: number;
   updatedAtMs: number;
@@ -1070,6 +1072,8 @@ export class OnlineAuthorityEngine {
       this.invalidateRankingCaches();
       this.saveToDisk();
     }
+    const loginGiftGranted = grantXxmaltaObsidianLoginGift(record);
+    if (loginGiftGranted) record.updatedAtMs = serverNowMs;
     const vipGuildChanged = this.ensureGovernoVipGuild(record, serverNowMs);
     if (!isNewAccount) {
       const hydrated = this.buildClientGameStateForPlayer(record, serverNowMs);
@@ -1078,11 +1082,11 @@ export class OnlineAuthorityEngine {
       record.updatedAtMs = serverNowMs;
       offlineBatchCreated = elapsedRes.offlineBatchCreated;
       this.syncPlayerIntoSharedGuildMember(record);
-      if (offlineBatchCreated || vipGuildChanged) {
+      if (offlineBatchCreated || vipGuildChanged || loginGiftGranted) {
         this.metrics.writesObserved += 1;
         this.saveToDisk();
       }
-    } else if (vipGuildChanged) {
+    } else if (vipGuildChanged || loginGiftGranted) {
       this.saveToDisk();
     }
 
