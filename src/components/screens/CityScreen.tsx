@@ -405,7 +405,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
           onClick={() => selectSubTab('mail')}
           className={`min-h-[46px] px-2.5 py-2 font-roman font-bold text-xs sm:text-sm border-2 rounded-[2px] transition-colors cursor-pointer ${subTab === 'mail' ? 'bg-[#792B28] text-[#EFE2C4] border-[#D4B26A]' : 'bg-[#2B2119] text-[#D6C29A] border-[#5E4527] hover:text-[#EFE2C4]'}`}
         >
-          Correio ({state.mailbox.filter((message) => message.claimedAtMs === null).length})
+          Correio ({(state.mailbox ?? []).filter((message) => message.claimedAtMs === null).length})
         </button>
       </div>
 

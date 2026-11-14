@@ -631,6 +631,17 @@ export class OnlineAuthorityEngine {
    * (marcando `isPlayer: true` apenas no membro correspondente ao `uid` autenticado).
    */
   private buildClientGameStateForPlayer(record: AuthoritativePlayerRecord, nowMs: number): GameState {
+    const storedState = record.state as GameState;
+    record.state = {
+      ...storedState,
+      mailbox: Array.isArray(storedState.mailbox) ? storedState.mailbox : [],
+      inventoryCapacity: Number.isFinite(storedState.inventoryCapacity)
+        ? Math.min(60, Math.max(GAME_CONFIG.maxInventorySlots, storedState.inventoryCapacity!))
+        : GAME_CONFIG.maxInventorySlots,
+      temporaryEnergyBoostExpiresAtMs: Number.isFinite(storedState.temporaryEnergyBoostExpiresAtMs)
+        ? storedState.temporaryEnergyBoostExpiresAtMs
+        : 0,
+    };
     if (record.state.tutorial.step === 'equip_item' && record.state.equipped.helmet) {
       record.state.tutorial = advanceTutorialIfMatching(record.state.tutorial, 'equip_item');
     }

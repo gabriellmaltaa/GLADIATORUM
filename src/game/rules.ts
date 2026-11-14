@@ -1191,7 +1191,7 @@ export function claimMailMessage(
     state: {
       ...state,
       gold: state.gold + message.goldAmount,
-      mailbox: state.mailbox.map((entry) => entry.id === messageId ? { ...entry, claimedAtMs: nowMs } : entry),
+      mailbox: (state.mailbox ?? []).map((entry) => entry.id === messageId ? { ...entry, claimedAtMs: nowMs } : entry),
     },
     claimedNow: true,
   };
