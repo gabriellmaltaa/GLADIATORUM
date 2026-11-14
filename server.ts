@@ -239,6 +239,15 @@ export function createAuthoritativeExpressApp(engine: OnlineAuthorityEngine) {
     }
   });
 
+  app.get('/api/online/players/:uid/profile', (req, res) => {
+    const profile = engine.getPublicPlayerProfileDetails(String(req.params.uid), Date.now());
+    if (!profile) {
+      res.status(404).json({ ok: false, error: 'Perfil público não encontrado.' });
+      return;
+    }
+    res.json({ ok: true, ...profile });
+  });
+
   app.get('/api/online/rankings/players', async (req: AuthenticatedRequest, res) => {
     try {
       let viewerUid: string | null = null;
@@ -368,3 +377,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   });
 }
+
