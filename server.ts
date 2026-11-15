@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import {
   type AuthenticatedIdentity,
@@ -171,11 +172,8 @@ export function createAuthoritativeExpressApp(engine: OnlineAuthorityEngine) {
   app.get('/api/online/health', (_req, res) => {
     res.json({
       ok: true,
-      projectId: firebaseConfig.projectId,
-      firestoreDatabaseId: firebaseConfig.firestoreDatabaseId,
-      environment: IS_PROD ? 'production' : 'development',
-      serverTimestampMs: Date.now(),
-      metrics: engine.getMetricsSnapshot(),
+      service: 'gladiatorum',
+      status: 'online',
     });
   });
 
@@ -237,6 +235,15 @@ export function createAuthoritativeExpressApp(engine: OnlineAuthorityEngine) {
         error: err instanceof Error ? err.message : 'Erro ao processar ação no servidor.',
       });
     }
+  });
+
+  app.get('/api/online/players/:uid/profile', (req, res) => {
+    const profile = engine.getPublicPlayerProfileDetails(String(req.params.uid), Date.now());
+    if (!profile) {
+      res.status(404).json({ ok: false, error: 'Perfil público não encontrado.' });
+      return;
+    }
+    res.json({ ok: true, ...profile });
   });
 
   app.get('/api/online/rankings/players', async (req: AuthenticatedRequest, res) => {
@@ -362,9 +369,13 @@ async function startServer() {
 }
 
 // Inicia apenas quando executado diretamente (permite importar createAuthoritativeExpressApp nos testes)
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
+) {
   startServer().catch((err) => {
     console.error('Erro fatal ao iniciar servidor:', err);
     process.exit(1);
   });
 }
+

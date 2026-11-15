@@ -290,6 +290,7 @@ export interface ItemSlotProps {
   item?: GameItem | null;
   slotType?: EquipmentSlotType;
   selected?: boolean;
+  disabled?: boolean;
   onClick?: () => void;
   size?: 'md' | 'lg';
   badgeText?: string;
@@ -299,6 +300,7 @@ export const ItemSlot: React.FC<ItemSlotProps> = ({
   item,
   slotType,
   selected = false,
+  disabled = false,
   onClick,
   size = 'md',
   badgeText,
@@ -327,12 +329,13 @@ export const ItemSlot: React.FC<ItemSlotProps> = ({
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={ariaLabel}
       title={item ? `${item.name} · ${rarityInfo.label} (Nv.${item.levelReq})` : ariaLabel}
       style={{
         borderColor: item ? rarityInfo.border : '#5E4527',
       }}
-      className={`equipment-slot relative ${dimClass} surface-leather border-2 rounded-[2px] flex flex-col items-center justify-center p-1 transition-transform duration-100 active:scale-95 focus-visible:outline-2 focus-visible:outline-[#D4B26A] cursor-pointer ${
+      className={`equipment-slot relative ${dimClass} surface-leather border-2 rounded-[2px] flex flex-col items-center justify-center p-1 transition-transform duration-100 active:scale-95 focus-visible:outline-2 focus-visible:outline-[#D4B26A] ${disabled ? 'cursor-default' : 'cursor-pointer'} ${
         selected ? 'ring-2 ring-[#D4B26A] shadow-md' : ''
       }`}
     >
@@ -440,6 +443,16 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
       label: 'Armadura',
       itemDisplay: `+${itemArmor}`,
       diff: isComparingDifferentItem ? itemArmor - eqArmor : undefined,
+    });
+  }
+
+  const itemCrit = item.stats.critChancePercent ?? 0;
+  const eqCrit = comparedEquippedItem?.stats.critChancePercent ?? 0;
+  if (itemCrit > 0 || (isComparingDifferentItem && eqCrit > 0)) {
+    comparisonRows.push({
+      label: 'Chance crítica',
+      itemDisplay: `+${itemCrit} p.p.`,
+      diff: isComparingDifferentItem ? itemCrit - eqCrit : undefined,
     });
   }
 
@@ -859,7 +872,9 @@ export const RewardPanel: React.FC<RewardPanelProps> = ({ batch, onClaim }) => {
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-center bg-[#C2AB7E]/50 p-2 border border-[#947044]">
         <div>
-          <span className="block text-[10px] uppercase font-bold text-[#5C4935]">Denários</span>
+          <span className="block text-[10px] uppercase font-bold text-[#5C4935]">
+            Denários · {batch.goldCredited ? 'creditados' : 'ao resgatar'}
+          </span>
           <span className="font-roman font-bold text-sm sm:text-base tabular-nums text-[#30251A]">
             +{batch.gold} Ouro
           </span>
@@ -1551,5 +1566,6 @@ export const GameShell: React.FC<GameShellProps> = ({
     </div>
   );
 };
+
 
 

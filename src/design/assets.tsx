@@ -66,6 +66,7 @@ interface ArtworkImageProps {
   alt: string;
   className?: string;
   fallbackType?: 'portrait' | 'banner';
+  loading?: 'lazy' | 'eager';
 }
 
 export const ArtworkImage: React.FC<ArtworkImageProps> = ({
@@ -73,6 +74,7 @@ export const ArtworkImage: React.FC<ArtworkImageProps> = ({
   alt,
   className = '',
   fallbackType = 'portrait',
+  loading = 'lazy',
 }) => {
   const [hasError, setHasError] = useState(false);
 
@@ -110,6 +112,8 @@ export const ArtworkImage: React.FC<ArtworkImageProps> = ({
     <img
       src={src}
       alt={alt}
+      loading={loading}
+      decoding="async"
       referrerPolicy="no-referrer"
       onError={() => setHasError(true)}
       className={`object-cover ${className}`}

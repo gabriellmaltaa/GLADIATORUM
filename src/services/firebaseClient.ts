@@ -26,6 +26,7 @@ import {
   CursorPaginatedGuildsResponse,
   CursorPaginatedPlayersResponse,
   MigrationReport,
+  OnlinePublicPlayerProfileDetails,
 } from '../server/onlineAuthorityEngine';
 import { PlayerRankingCategory } from '../game/guildsAndRankings';
 import {
@@ -586,6 +587,15 @@ export async function apiFetchOnlinePlayerRankings(options: {
   return data;
 }
 
+export async function apiFetchOnlinePlayerProfile(uid: string): Promise<OnlinePublicPlayerProfileDetails> {
+  const res = await fetch(`/api/online/players/${encodeURIComponent(uid)}/profile`);
+  const data = await res.json();
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || 'Falha ao consultar o perfil público.');
+  }
+  return { profile: data.profile, equipped: data.equipped } as OnlinePublicPlayerProfileDetails;
+}
+
 export async function apiFetchOnlineGuildRankings(options: {
   limit?: number;
   cursor?: string | null;
@@ -615,3 +625,4 @@ export async function apiFetchOnlineGuildRankings(options: {
   }
   return data;
 }
+

@@ -19,5 +19,12 @@ export function claimContract(state: GameState, id: string): { state: GameState;
   const contract = CONTRACTS.find(c => c.id === id);
   if (!contract || state.claimedContracts?.includes(id)) return { state, error: 'Contrato inexistente ou já recolhido.' };
   if (contractProgress(state, contract) < contract.target) return { state, error: 'Conclua o objetivo antes de recolher.' };
-  return { state: { ...state, gold: state.gold + contract.gold, claimedContracts: [...(state.claimedContracts ?? []), id] } };
+  return {
+    state: {
+      ...state,
+      gold: state.gold + contract.gold,
+      claimedContracts: [...(state.claimedContracts ?? []), id],
+    },
+  };
 }
+

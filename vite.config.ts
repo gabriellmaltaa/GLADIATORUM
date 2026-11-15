@@ -8,7 +8,29 @@ export default defineConfig(() => {
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname, '.'),
+      },
+    },
+    build: {
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              {
+                name: 'vendor-firestore',
+                test: /node_modules[\\/]@?firebase[\\/]firestore/,
+              },
+              {
+                name: 'vendor-firebase',
+                test: /node_modules[\\/]@?firebase/,
+              },
+              {
+                name: 'vendor-react',
+                test: /node_modules[\\/](react|react-dom|scheduler)/,
+              },
+            ],
+          },
+        },
       },
     },
     server: {

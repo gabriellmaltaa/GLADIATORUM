@@ -95,6 +95,7 @@ export interface PendingRewardBatch {
   focusMode?: IdleFocusMode;
   createdAt: number;
   gold: number;
+  goldCredited?: boolean;
   xp: number;
   honor: number;
   items: GameItem[];
@@ -104,6 +105,16 @@ export interface PendingRewardBatch {
   elapsedSecondsAccounted: number;
   wasCappedAtMaxOffline: boolean;
   claimed: boolean;
+}
+
+export interface GameMailMessage {
+  id: string;
+  source: 'battle' | 'contract';
+  title: string;
+  body: string;
+  goldAmount: number;
+  createdAtMs: number;
+  claimedAtMs: number | null;
 }
 
 export interface IdleActivityState {
@@ -158,6 +169,8 @@ export interface GameState {
   currentHp: number;
   energy: number;
   maxEnergy: number;
+  temporaryEnergyBoostExpiresAtMs?: number;
+  inventoryCapacity?: number;
   lastEnergyTickMs: number;
   claimedContracts?: string[];
   discoveredTemplates?: string[];
@@ -170,6 +183,8 @@ export interface GameState {
   idle: IdleActivityState;
   dungeonProgress: Record<string, DungeonProgressState>;
   pendingRewards: PendingRewardBatch[];
+  /** Campo legado; migra para o saldo e é removido após a primeira leitura. */
+  mailbox?: GameMailMessage[];
   claimedRewardIds: string[];
   combatHistory: CombatReport[];
   tutorial: TutorialState;
@@ -274,6 +289,7 @@ export function calculateDerivedStats(
   let armor = 0;
   let gearDamageMin = 0;
   let gearDamageMax = 0;
+  let gearCritChancePercent = 0;
   let healthBonus = 0;
 
   for (const slotKey of Object.keys(equipped) as EquipmentSlotType[]) {
@@ -288,6 +304,7 @@ export function calculateDerivedStats(
     armor += item.stats.armor ?? 0;
     gearDamageMin += item.stats.damageMin ?? 0;
     gearDamageMax += item.stats.damageMax ?? 0;
+    gearCritChancePercent += item.stats.critChancePercent ?? 0;
     healthBonus += item.stats.healthBonus ?? 0;
   }
 
@@ -308,7 +325,7 @@ export function calculateDerivedStats(
 
   const armorReductionMin = Math.floor(armor / 22);
   const armorReductionMax = Math.floor(armor / 12);
-  const critChancePercent = Math.min(45, Math.round(6 + skill * 1.15));
+  const critChancePercent = Math.min(45, Math.round(6 + skill * 1.15 + gearCritChancePercent));
   const dodgeChancePercent = Math.min(40, Math.round(5 + agility * 1.1));
   const doubleHitChancePercent = Math.min(35, Math.round(4 + charisma * 1.05));
   const xpBonusPercent = Math.round(intelligence * 2);
@@ -558,6 +575,8 @@ export function createInitialGameState(nowMs: number = Date.now()): GameState {
     currentHp: derived.maxHp,
     energy: GAME_CONFIG.baseMaxEnergy,
     maxEnergy: GAME_CONFIG.baseMaxEnergy,
+    temporaryEnergyBoostExpiresAtMs: 0,
+    inventoryCapacity: GAME_CONFIG.maxInventorySlots,
     lastEnergyTickMs: nowMs,
     lastSaveTimestampMs: nowMs,
     baseStats: initialBase,
@@ -1099,7 +1118,7 @@ export function claimPendingReward(
   let extraGoldFromOverflow = 0;
 
   for (const item of targetBatch.items) {
-    if (newInventory.length < GAME_CONFIG.maxInventorySlots) {
+    if (newInventory.length < getInventoryCapacity(state)) {
       newInventory.push(item);
     } else {
       extraGoldFromOverflow += item.sellPrice;
@@ -1118,7 +1137,8 @@ export function claimPendingReward(
     ? derivedAfter.maxHp
     : Math.min(state.currentHp, derivedAfter.maxHp);
 
-  const updatedPending = state.pendingRewards.map((batch) =>
+  const credited = creditRewardGold(state, targetBatch);
+  const updatedPending = credited.state.pendingRewards.map((batch) =>
     batch.claimId === claimId ? { ...batch, claimed: true } : batch
   );
 
@@ -1130,13 +1150,13 @@ export function claimPendingReward(
       : targetBatch.victories * 4;
 
   const rawNextState: GameState = {
-    ...state,
+    ...credited.state,
     level: newLevel,
     xp: newXp,
-    gold: state.gold + targetBatch.gold + extraGoldFromOverflow,
+    gold: credited.state.gold + extraGoldFromOverflow,
     honor: state.honor + targetBatch.honor,
     fame: state.fame + fameGain + (leveledUp ? 15 : 0),
-    goldLooted: state.goldLooted + targetBatch.gold,
+    goldLooted: credited.state.goldLooted,
     currentHp: newCurrentHp,
     inventory: newInventory,
     discoveredTemplates: [...new Set([...(state.discoveredTemplates ?? []), ...targetBatch.items.map(item => item.templateId)])],
@@ -1150,6 +1170,88 @@ export function claimPendingReward(
     claimedNow: true,
     leveledUp,
   };
+}
+
+export function creditRewardGold(
+  state: GameState,
+  batch: PendingRewardBatch
+): { state: GameState; batch: PendingRewardBatch } {
+  if (batch.goldCredited) return { state, batch };
+  const gold = Math.max(0, Math.floor(Number.isFinite(batch.gold) ? batch.gold : 0));
+  const creditedState = syncPlayerWithGuildAndFeats({
+    ...state,
+    gold: state.gold + gold,
+    goldLooted: state.goldLooted + gold,
+  });
+  return { state: creditedState, batch: { ...batch, goldCredited: true } };
+}
+
+/** Migra anexos antigos e lotes pendentes para crédito automático, sem duplicar ao repetir. */
+export function migrateLegacyRewardGold(state: GameState): { state: GameState; changed: boolean } {
+  const pending = state.pendingRewards ?? [];
+  let goldToCredit = 0;
+  let lootToCredit = 0;
+  let changed = false;
+  const migratedPending = pending.map((batch) => {
+    if (batch.goldCredited) return batch;
+    changed = true;
+    if (!batch.claimed) {
+      const gold = Math.max(0, Math.floor(Number.isFinite(batch.gold) ? batch.gold : 0));
+      goldToCredit += gold;
+      lootToCredit += gold;
+    }
+    return { ...batch, goldCredited: true };
+  });
+  if (Array.isArray(state.mailbox)) {
+    changed = true;
+    for (const message of state.mailbox) {
+      if (message.claimedAtMs === null) {
+        goldToCredit += Math.max(0, Math.floor(Number.isFinite(message.goldAmount) ? message.goldAmount : 0));
+      }
+    }
+  }
+  if (!changed) return { state, changed: false };
+  const migrated = {
+    ...state,
+    gold: state.gold + goldToCredit,
+    goldLooted: state.goldLooted + lootToCredit,
+    pendingRewards: migratedPending,
+    mailbox: undefined,
+  };
+  return { state: syncPlayerWithGuildAndFeats(migrated), changed: true };
+}
+
+export function getInventoryCapacity(state: GameState): number {
+  return Math.min(60, Math.max(GAME_CONFIG.maxInventorySlots, state.inventoryCapacity ?? GAME_CONFIG.maxInventorySlots));
+}
+
+export function getInventoryExpansionCost(state: GameState): number | null {
+  const capacity = getInventoryCapacity(state);
+  if (capacity >= 60) return null;
+  return 500 * ((capacity - GAME_CONFIG.maxInventorySlots) / 5 + 1);
+}
+
+export function buyInventoryExpansion(state: GameState): { state: GameState; error?: string; costPaid?: number } {
+  const cost = getInventoryExpansionCost(state);
+  if (cost === null) return { state, error: 'Sua mochila já atingiu o limite de 60 espaços.' };
+  if (state.gold < cost) return { state, error: `Ouro insuficiente (${state.gold}/${cost}).` };
+  return { state: { ...state, gold: state.gold - cost, inventoryCapacity: getInventoryCapacity(state) + 5 }, costPaid: cost };
+}
+
+export const GUILD_TEMP_ENERGY_COST = 250;
+export const GUILD_TEMP_ENERGY_DURATION_MS = 2 * 60 * 60 * 1000;
+
+export function buyGuildTemporaryEnergy(state: GameState, nowMs: number): { state: GameState; error?: string } {
+  if (!state.guildState?.playerGuildId) return { state, error: 'Entre em uma guilda para comprar a expansão de energia.' };
+  if ((state.temporaryEnergyBoostExpiresAtMs ?? 0) > nowMs) return { state, error: 'Sua expansão temporária de energia já está ativa.' };
+  if (state.gold < GUILD_TEMP_ENERGY_COST) return { state, error: `Ouro insuficiente (${state.gold}/${GUILD_TEMP_ENERGY_COST}).` };
+  return { state: {
+    ...state,
+    gold: state.gold - GUILD_TEMP_ENERGY_COST,
+    maxEnergy: GAME_CONFIG.baseMaxEnergy + 20,
+    energy: Math.min(GAME_CONFIG.baseMaxEnergy + 20, state.energy + 20),
+    temporaryEnergyBoostExpiresAtMs: nowMs + GUILD_TEMP_ENERGY_DURATION_MS,
+  } };
 }
 
 /**
@@ -1317,7 +1419,7 @@ export function unequipSlotToInventory(
     return { state, error: 'Nenhum equipamento neste slot.' };
   }
 
-  if (state.inventory.length >= GAME_CONFIG.maxInventorySlots) {
+  if (state.inventory.length >= getInventoryCapacity(state)) {
     return { state, error: 'Inventário cheio! Venda ou descarte itens primeiro.' };
   }
 
@@ -1447,7 +1549,7 @@ export function buyItemFromMarket(
     };
   }
 
-  if (state.inventory.length >= GAME_CONFIG.maxInventorySlots) {
+  if (state.inventory.length >= getInventoryCapacity(state)) {
     return {
       state,
       error: 'Inventário cheio! Libere espaço antes de comprar.',
@@ -1619,7 +1721,7 @@ export function buyMedicineTemplate(
     };
   }
 
-  if (state.inventory.length >= GAME_CONFIG.maxInventorySlots) {
+  if (state.inventory.length >= getInventoryCapacity(state)) {
     return {
       state,
       error: 'Mochila cheia (20/20)! Consuma ou venda itens antes de comprar.',
@@ -1737,6 +1839,14 @@ export function calculateElapsedIdleProgress(
   state: GameState;
   offlineBatchCreated: PendingRewardBatch | null;
 } {
+  if ((state.temporaryEnergyBoostExpiresAtMs ?? 0) > 0 && state.temporaryEnergyBoostExpiresAtMs! <= nowMs) {
+    state = {
+      ...state,
+      maxEnergy: GAME_CONFIG.baseMaxEnergy,
+      energy: Math.min(state.energy, GAME_CONFIG.baseMaxEnergy),
+      temporaryEnergyBoostExpiresAtMs: 0,
+    };
+  }
   const rawElapsedSeconds = Math.max(0, (nowMs - state.lastSaveTimestampMs) / 1000);
   if (rawElapsedSeconds <= 0) {
     return { state, offlineBatchCreated: null };
@@ -1944,6 +2054,7 @@ export function calculateElapsedIdleProgress(
         focusMode,
         createdAt: nowMs,
         gold: totalGold,
+        goldCredited: true,
         xp: totalXp,
         honor: totalHonor,
         items: droppedItems,
@@ -1957,6 +2068,8 @@ export function calculateElapsedIdleProgress(
 
   const nextState: GameState = {
     ...state,
+    gold: state.gold + (batch ? totalGold : 0),
+    goldLooted: state.goldLooted + (batch ? totalGold : 0),
     energy: nextEnergy,
     currentHp: nextHp,
     wins: state.wins + totalVictories,
@@ -2105,13 +2218,20 @@ export function inspectAndLoadSaveState(
         ...(parsed.dungeonProgress || {}),
       },
       pendingRewards: Array.isArray(parsed.pendingRewards) ? parsed.pendingRewards : [],
+      inventoryCapacity: Number.isFinite(parsed.inventoryCapacity)
+        ? Math.min(60, Math.max(GAME_CONFIG.maxInventorySlots, parsed.inventoryCapacity))
+        : GAME_CONFIG.maxInventorySlots,
+      temporaryEnergyBoostExpiresAtMs: Number.isFinite(parsed.temporaryEnergyBoostExpiresAtMs)
+        ? parsed.temporaryEnergyBoostExpiresAtMs
+        : 0,
       claimedRewardIds: Array.isArray(parsed.claimedRewardIds) ? parsed.claimedRewardIds : [],
       combatHistory: Array.isArray(parsed.combatHistory) ? parsed.combatHistory : [],
       tutorial: migratedTutorial,
       guildState: migratedGuildState,
     };
 
-    const syncedState = syncPlayerWithGuildAndFeats(rawMigrated);
+    const { state: migratedGold } = migrateLegacyRewardGold(rawMigrated);
+    const syncedState = syncPlayerWithGuildAndFeats(migratedGold);
 
     return {
       status: 'loaded',
@@ -2141,3 +2261,4 @@ export function parseAndValidateSaveState(
 }
 
 export { ARENA_OPPONENTS, DUNGEONS, EXPEDITION_REGIONS };
+

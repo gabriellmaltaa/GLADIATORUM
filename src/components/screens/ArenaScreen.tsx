@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { RomanSceneArt } from '../../design/RomanIdentity';
 import { ARENA_OPPONENTS } from '../../game/config';
 import {
@@ -17,6 +17,8 @@ import {
   RewardPanel,
   RomanPanel,
 } from '../ui/RomanComponents';
+import { apiFetchOnlinePlayerRankings } from '../../services/firebaseClient';
+import type { OnlinePublicPlayerProfile } from '../../server/onlineAuthorityEngine';
 
 interface ArenaScreenProps {
   state: GameState;
@@ -25,6 +27,8 @@ interface ArenaScreenProps {
   onClaimReward: (claimId: string) => void;
   onInspectCombatReport: (report: CombatReport) => void;
   onOpenRankingScreen?: () => void;
+  isOnlineMode?: boolean;
+  onChallengePlayer?: (opponentUid: string) => void;
 }
 
 export const ArenaScreen: React.FC<ArenaScreenProps> = ({
@@ -33,12 +37,35 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
   onChallengeArenaOpponent,
   onClaimReward,
   onOpenRankingScreen,
+  isOnlineMode = false,
+  onChallengePlayer,
 }) => {
+  const [onlineOpponents, setOnlineOpponents] = useState<(OnlinePublicPlayerProfile & { rank: number; isPlayer: boolean })[]>([]);
+  const [opponentsLoading, setOpponentsLoading] = useState(false);
+  const [opponentsError, setOpponentsError] = useState<string | null>(null);
   const snap = getPlayerSnapshotForRankings(state);
   const playerRankEntry = computePlayerRankings(state.guildState, snap, 'honor').find(
     (p) => p.isPlayer
   );
   const guildBonuses = getActiveGuildBonuses(state.guildState);
+
+  useEffect(() => {
+    if (!isOnlineMode) {
+      setOnlineOpponents([]);
+      return;
+    }
+    let cancelled = false;
+    setOpponentsLoading(true);
+    setOpponentsError(null);
+    void apiFetchOnlinePlayerRankings({ category: 'honor', limit: 50 }).then((page) => {
+      if (!cancelled) setOnlineOpponents(page.items.filter((entry) => !entry.isPlayer));
+    }).catch((error: unknown) => {
+      if (!cancelled) setOpponentsError(error instanceof Error ? error.message : 'Não foi possível carregar os gladiadores.');
+    }).finally(() => {
+      if (!cancelled) setOpponentsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [isOnlineMode]);
 
   return (
     <div className="arena-screen space-y-4">
@@ -90,7 +117,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
 
       <RomanPanel
         title="Campeões da Escada da Arena"
-        subtitle="Treino contra campeões locais · Custo por duelo: 1 Energia · Compare seus atributos antes de lutar"
+        subtitle="Treino contra campeões locais · 1 Energia · não afetam a classificação de jogadores"
         variant="stone"
       >
         <div className="space-y-3">
@@ -114,6 +141,42 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
           })}
         </div>
       </RomanPanel>
+
+      <RomanPanel
+        title="Desafios PvP"
+        subtitle="Duelo assíncrono contra gladiadores reais · 1 Energia · até 5 desafios por dia"
+        variant="parchment"
+      >
+        {!isOnlineMode ? (
+          <p className="text-sm text-[#30251A]">Entre na sua conta online para encontrar jogadores reais. O treino continua disponível sem login.</p>
+        ) : opponentsLoading ? (
+          <p className="text-sm text-[#30251A]">Carregando gladiadores online…</p>
+        ) : opponentsError ? (
+          <p className="text-sm text-[#7A2723]">{opponentsError}</p>
+        ) : onlineOpponents.length === 0 ? (
+          <p className="text-sm text-[#30251A]">Ainda não há outros gladiadores elegíveis. Assim que jogadores entrarem, eles aparecerão aqui.</p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {onlineOpponents.slice(0, 12).map((opponent) => {
+              const levelGap = Math.abs(state.level - opponent.level);
+              const eligible = levelGap <= 10 && state.energy >= 1;
+              return (
+                <div key={opponent.uid} className="flex items-center justify-between gap-3 border border-[#947044] bg-[#E4D0A5] p-3 text-[#30251A]">
+                  <div className="min-w-0">
+                    <strong className="block truncate">{opponent.name}</strong>
+                    <span className="text-xs">{opponent.title} · Nv. {opponent.level} · Rank #{opponent.rank}</span>
+                    <span className="block text-xs">{opponent.guildTag ? `[${opponent.guildTag}] ` : ''}{opponent.honor} Honra</span>
+                  </div>
+                  <GameButton variant="parchment" size="sm" disabled={!eligible || !onChallengePlayer} onClick={() => onChallengePlayer?.(opponent.uid)}>
+                    {levelGap > 10 ? 'Nível distante' : state.energy < 1 ? 'Sem energia' : 'Desafiar'}
+                  </GameButton>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </RomanPanel>
     </div>
   );
 };
+

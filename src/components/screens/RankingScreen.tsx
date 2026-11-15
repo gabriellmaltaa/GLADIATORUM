@@ -317,11 +317,11 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
         <div>
           <strong className="text-[#D4B26A] font-roman uppercase">
             {isOnlineMode
-              ? 'Modo Online Competitivo — Servidor Autoritativo & Firebase:'
+              ? 'Classificação online:'
               : 'Modo visitante:'}
           </strong>{' '}
           {isOnlineMode
-            ? `Classificação com dados validados pelo servidor (Atualizado às ${formattedUpdatedTime}). Adversários fixos da Arena e campeões locais não entram nesta classificação.`
+            ? `Gladiadores reais da comunidade · Atualizada às ${formattedUpdatedTime}. Adversários fixos da Arena e campeões locais não entram nesta classificação.`
             : 'Você está no modo visitante. Estes dados são simulados; conecte sua conta para disputar a classificação online.'}
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -692,6 +692,8 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
         open={Boolean(inspectedPlayerId)}
         playerId={inspectedPlayerId}
         state={state}
+        isOnlineMode={isOnlineMode}
+        onlineSummary={onlinePlayersPage.find((player) => player.id === inspectedPlayerId)}
         onClose={() => setInspectedPlayerId(null)}
         onInspectGuild={(gId) => {
           setInspectedPlayerId(null);
@@ -714,3 +716,4 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
     </div>
   );
 };
+

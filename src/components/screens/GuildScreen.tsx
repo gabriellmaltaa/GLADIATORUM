@@ -21,6 +21,7 @@ import {
 import {
   DerivedStats,
   GameState,
+  getInventoryCapacity,
   getPlayerSnapshotForRankings,
 } from '../../game/rules';
 import {
@@ -65,12 +66,17 @@ export interface GuildScreenProps {
   }) => void;
   onPostAnnouncement: (content: string) => void;
   onDonateGold: (amount: number, txId: string) => void;
+  onWithdrawGold: (amount: number, opId: string) => void;
+  onChallengeGuildWar: (opponentGuildId: string) => void;
+  onAcceptGuildWar: (warId: string) => void;
+  onAttackGuildWar: (warId: string) => void;
   onUpgradeBuilding: (buildingId: GuildBuildingId, txId: string) => void;
   onUseVillaMedici: () => void;
   onActivateLibraryScroll: (scrollId: LibraryScrollId, txId: string) => void;
   onDepositWarehouseItem: (inventoryItemId: string) => void;
   onWithdrawWarehouseItem: (warehouseItemId: string) => void;
   onBuyInternalMarketItem: (templateId: string) => void;
+  onBuyTemporaryEnergy: () => void;
   onSetLocalTestRole: (role: GuildRole) => void;
   onOpenRankings: () => void;
 }
@@ -95,12 +101,17 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
   onUpdateProfile,
   onPostAnnouncement,
   onDonateGold,
+  onWithdrawGold,
+  onChallengeGuildWar,
+  onAcceptGuildWar,
+  onAttackGuildWar,
   onUpgradeBuilding,
   onUseVillaMedici,
   onActivateLibraryScroll,
   onDepositWarehouseItem,
   onWithdrawWarehouseItem,
   onBuyInternalMarketItem,
+  onBuyTemporaryEnergy,
   onSetLocalTestRole,
   onOpenRankings,
 }) => {
@@ -121,6 +132,9 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
   // Estados para Membro de Guilda
   const [memberTab, setMemberTab] = useState<MemberGuildTab>('headquarters');
   const [donationInput, setDonationInput] = useState('25');
+  const [withdrawalInput, setWithdrawalInput] = useState('100');
+  const [warOpponentGuildId, setWarOpponentGuildId] = useState('');
+  const [confirmWithdrawal, setConfirmWithdrawal] = useState<number | null>(null);
   const [announcementInput, setAnnouncementInput] = useState('');
   const [confirmDissolve, setConfirmDissolve] = useState(false);
   const [editDescInput, setEditDescInput] = useState('');
@@ -138,10 +152,12 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
   const snap = getPlayerSnapshotForRankings(state);
   const guildRankings = computeGuildRankings(state.guildState, snap);
   const activeBonuses = getActiveGuildBonuses(state.guildState, nowMs);
+  const inventoryCapacity = getInventoryCapacity(state);
 
   const playerGuild = state.guildState.playerGuildId
     ? state.guildState.guilds.find((g) => g.id === state.guildState.playerGuildId) ?? null
     : null;
+  const playerMember = playerGuild?.members.find((member) => member.isPlayer) ?? playerGuild?.members[0] ?? null;
 
   const formatDateShort = (ts: number) => {
     try {
@@ -183,11 +199,11 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
           <div>
             <strong className="text-[#D4B26A] font-roman uppercase">
               {isOnlineMode
-                ? 'Guildas Online Compartilhadas (Servidor Autoritativo):'
+                ? 'Guildas online:'
                 : 'Modo Visitante Local — Dados Simulados:'}
             </strong>{' '}
             {isOnlineMode
-              ? 'Alianças persistidas no servidor e compartilhadas entre contas reais. Vagas, cargos, banco e honra são validados em transações atômicas.'
+              ? 'Alianças compartilhadas entre jogadores. Vagas, cargos e recursos seguem as regras da guilda.'
               : 'As guildas e gladiadores abaixo são simulados localmente. Conecte sua conta no topo para ingressar em Guildas Online compartilhadas.'}
           </div>
           <GameButton variant="iron" size="sm" onClick={onOpenRankings}>
@@ -625,8 +641,6 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
   // ============================================================================
   // VISÃO 2: JOGADOR É MEMBRO DE UMA GUILDA — Seções 4, 5, 6 e 7
   // ============================================================================
-  const playerMember =
-    playerGuild.members.find((m) => m.isPlayer) ?? playerGuild.members[0];
   const playerRole: GuildRole = playerMember?.role ?? 'member';
   const perms = GUILD_PERMISSIONS[playerRole];
   const maxCap = getGuildMaxCapacity(playerGuild.buildings.forum_gladiatorius ?? 1);
@@ -820,6 +834,19 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
         <div className="space-y-4">
           {/* Serviços Diretos da Sede: Villa Medici, Biblioteca e Mercado Interno */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <RomanPanel
+              title="Reserva de Energia"
+              subtitle="Expansão individual · +20 de energia por 2 horas"
+              variant="wood"
+            >
+              <div className="space-y-2 text-xs">
+                <p className="text-[#D6C29A]">Custa 250 denários da sua bolsa. Pode ser comprada novamente quando o efeito terminar.</p>
+                <p className="text-[#EFE2C4]">Energia máxima: <strong>{state.maxEnergy}</strong>{(state.temporaryEnergyBoostExpiresAtMs ?? 0) > nowMs ? ` · termina em ${Math.ceil((state.temporaryEnergyBoostExpiresAtMs! - nowMs) / 60000)} min` : ''}</p>
+                <GameButton variant="bronze" size="sm" fullWidth onClick={onBuyTemporaryEnergy} disabled={state.gold < 250 || (state.temporaryEnergyBoostExpiresAtMs ?? 0) > nowMs}>
+                  {(state.temporaryEnergyBoostExpiresAtMs ?? 0) > nowMs ? 'Expansão ativa' : 'Comprar +20 energia · 250 ouro'}
+                </GameButton>
+              </div>
+            </RomanPanel>
             {/* Villa Medici */}
             <RomanPanel
               title={`Villa Medici (Nv.${playerGuild.buildings.villa_medici ?? 1})`}
@@ -941,7 +968,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                   );
                   const canAfford = state.gold >= memberPrice;
                   const bagFull =
-                    state.inventory.length >= GAME_CONFIG.maxInventorySlots;
+                    state.inventory.length >= inventoryCapacity;
 
                   return (
                     <div
@@ -1416,6 +1443,46 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
       {/* ABA 3: BANCO (AERARIUM) E ARMAZÉM (HORREUM) — Seções 5 e 6 */}
       {memberTab === 'bank_warehouse' && (
         <div className="space-y-4">
+          {isOnlineMode && (
+            <RomanPanel title="Guerra de Guildas" subtitle="Desafie outra aliança, lute por 24 horas e conquiste 500 denários para o tesouro vencedor." variant="stone">
+              <div className="space-y-3 text-sm text-[#EFE2C4]">
+                {(state.guildState.guildWars ?? []).length === 0 ? (
+                  <p>Nenhuma guerra ou convite ativo.</p>
+                ) : (state.guildState.guildWars ?? []).map((war) => (
+                  <div key={war.id} className="border border-[#947044] bg-[#1D1510] p-3 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <strong>{war.direction === 'incoming' ? 'Convite recebido de' : war.direction === 'outgoing' ? 'Desafio enviado para' : 'Em conflito com'} {war.opponentGuildName}</strong>
+                      <span className="text-xs uppercase">{war.status === 'pending' ? 'Convite' : war.status === 'active' ? 'Em andamento' : war.status === 'completed' ? 'Encerrada' : 'Expirada'}</span>
+                    </div>
+                    {war.status === 'active' && (
+                      <>
+                        <p>Placar: {war.ownScore} × {war.opponentScore} · Seus ataques: {war.myAttacksUsed}/3 · encerra {war.endsAtMs ? new Date(war.endsAtMs).toLocaleString('pt-BR') : 'em breve'}.</p>
+                        <GameButton variant="crimson" size="sm" disabled={war.myAttacksUsed >= 3 || state.energy < 1} onClick={() => onAttackGuildWar(war.id)}>
+                          {state.energy < 1 ? 'Sem energia' : war.myAttacksUsed >= 3 ? 'Ataques usados' : 'Atacar guilda rival · 1 energia'}
+                        </GameButton>
+                      </>
+                    )}
+                    {war.status === 'pending' && war.direction === 'incoming' && playerMember?.role === 'leader' && (
+                      <GameButton variant="bronze" size="sm" onClick={() => onAcceptGuildWar(war.id)}>Aceitar guerra de 24 horas</GameButton>
+                    )}
+                    {war.status === 'completed' && <p>{war.winnerGuildId ? (war.winnerGuildId === playerGuild.id ? 'Vitória! 500 denários foram para o tesouro da guilda.' : 'A guilda rival venceu.') : 'Empate.'}</p>}
+                  </div>
+                ))}
+                {playerMember?.role === 'leader' && !(state.guildState.guildWars ?? []).some((war) => war.status === 'pending' || war.status === 'active') && (
+                  <div className="flex flex-wrap items-end gap-2 border-t border-[#947044]/60 pt-3">
+                    <label className="text-xs font-bold">Desafiar guilda
+                      <select value={warOpponentGuildId} onChange={(event) => setWarOpponentGuildId(event.target.value)} className="mt-1 block min-w-48 min-h-[42px] px-2 bg-[#1D1510] border border-[#947044] text-[#EFE2C4]">
+                        <option value="">Escolha um oponente</option>
+                        {state.guildState.guilds.filter((guild) => guild.id !== playerGuild.id && !guild.isSimulatedSeed).map((guild) => <option key={guild.id} value={guild.id}>{guild.name} [{guild.tag}]</option>)}
+                      </select>
+                    </label>
+                    <GameButton variant="bronze" size="sm" disabled={!warOpponentGuildId} onClick={() => { onChallengeGuildWar(warOpponentGuildId); setWarOpponentGuildId(''); }}>Enviar desafio</GameButton>
+                  </div>
+                )}
+                <p className="text-xs text-[#D6C29A]">Cada integrante tem até 3 ataques. Uma vitória dá 5 Honra ao jogador e 20% de chance de item especial; ao fim, o tesouro da guilda vencedora recebe 500 denários.</p>
+              </div>
+            </RomanPanel>
+          )}
           <RomanPanel
             title={`Banco da Guilda (Aerarium Nv.${playerGuild.buildings.banco ?? 1})`}
             subtitle={`Tesouro Coletivo: ${playerGuild.treasuryGold} Ouro · Sua Bolsa Pessoal: ${state.gold} Ouro`}
@@ -1424,9 +1491,8 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
             <div className="space-y-3 text-xs text-[#30251A]">
               <p>
                 As doações de denários financiam ampliações dos edifícios e pergaminhos da
-                Biblioteca. <strong>Regra do Aerarium:</strong> Doações são registradas com
-                identificador único (idempotente), não aumentam pontos de Honra e o tesouro só
-                pode ser utilizado em melhorias e benefícios coletivos.
+                Biblioteca. O tesouro é compartilhado e cada movimentação fica registrada.
+                Somente o líder pode retirar ouro para sua carteira.
               </p>
 
               <div className="flex flex-wrap items-end gap-2">
@@ -1481,6 +1547,48 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                 </div>
               </div>
 
+              {playerMember?.role === 'leader' && (
+                <div className="border-t border-[#947044]/50 pt-3 space-y-2">
+                  <p className="text-[11px]">Limite: 5.000 por retirada e 10.000 por guilda a cada 24 horas.</p>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <label className="text-[11px] font-bold uppercase">
+                      Retirar do tesouro
+                      <input
+                        type="number"
+                        min={1}
+                        max={5000}
+                        step={1}
+                        value={withdrawalInput}
+                        onChange={(event) => setWithdrawalInput(event.target.value)}
+                        className="mt-1 block w-36 min-h-[44px] px-3 py-2 bg-[#EFE2C4] border-2 border-[#947044] font-bold tabular-nums text-sm"
+                        aria-label="Valor para retirar do tesouro"
+                      />
+                    </label>
+                    <GameButton
+                      variant="bronze"
+                      size="sm"
+                      disabled={!isOnlineMode || !Number.isSafeInteger(Number(withdrawalInput)) || Number(withdrawalInput) < 1 || Number(withdrawalInput) > 5000 || Number(withdrawalInput) > playerGuild.treasuryGold}
+                      onClick={() => setConfirmWithdrawal(Number(withdrawalInput))}
+                    >
+                      Revisar retirada
+                    </GameButton>
+                  </div>
+                  {confirmWithdrawal !== null && (
+                    <div className="border border-[#947044] bg-[#2B2119] p-3 text-[#EFE2C4] space-y-2">
+                      <p>Confirmar transferência de <strong>{confirmWithdrawal} denários</strong> do tesouro para sua carteira?</p>
+                      <div className="flex gap-2">
+                        <GameButton variant="crimson" size="sm" onClick={() => {
+                          onWithdrawGold(confirmWithdrawal, `guild_withdraw_${Date.now()}_${confirmWithdrawal}`);
+                          setConfirmWithdrawal(null);
+                        }}>Confirmar</GameButton>
+                        <GameButton variant="iron" size="sm" onClick={() => setConfirmWithdrawal(null)}>Cancelar</GameButton>
+                      </div>
+                    </div>
+                  )}
+                  {!isOnlineMode && <p className="text-[11px]">A retirada está disponível na conta online.</p>}
+                </div>
+              )}
+
               <div className="pt-2 border-t border-[#947044]/50">
                 <div className="font-roman font-bold uppercase text-xs mb-1.5">
                   Livro-Razão de Doações e Despesas ({playerGuild.bankHistory.length})
@@ -1516,7 +1624,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
           {/* Armazém (Horreum) */}
           <RomanPanel
             title={`Armazém Coletivo (Horreum Nv.${playerGuild.buildings.armazem ?? 1})`}
-            subtitle={`Ocupação do Armazém: ${playerGuild.warehouseItems.length}/${warehouseCap} espaços · Sua Mochila: ${state.inventory.length}/${GAME_CONFIG.maxInventorySlots}`}
+            subtitle={`Ocupação do Armazém: ${playerGuild.warehouseItems.length}/${warehouseCap} espaços · Sua Mochila: ${state.inventory.length}/${inventoryCapacity}`}
             variant="stone"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
@@ -1549,10 +1657,10 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                           size="sm"
                           onClick={() => onWithdrawWarehouseItem(item.id)}
                           disabled={
-                            state.inventory.length >= GAME_CONFIG.maxInventorySlots
+                            state.inventory.length >= inventoryCapacity
                           }
                           disabledReason={
-                            state.inventory.length >= GAME_CONFIG.maxInventorySlots
+                            state.inventory.length >= inventoryCapacity
                               ? 'Mochila cheia'
                               : undefined
                           }
@@ -1567,7 +1675,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
 
               <div>
                 <h3 className="font-roman font-bold text-[#D4B26A] uppercase mb-2">
-                  Depositar da Sua Mochila ({state.inventory.length}/{GAME_CONFIG.maxInventorySlots})
+                  Depositar da Sua Mochila ({state.inventory.length}/{inventoryCapacity})
                 </h3>
                 {state.inventory.length === 0 ? (
                   <p className="text-[#B8A686]">Sua mochila pessoal está vazia.</p>
@@ -1723,4 +1831,5 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
     </div>
   );
 };
+
 

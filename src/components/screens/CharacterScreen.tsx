@@ -16,6 +16,7 @@ import {
 import {
   DerivedStats,
   GameState,
+  getInventoryCapacity,
   getPlayerSnapshotForRankings,
   NextObjectiveInfo,
   StatChangeNotification,
@@ -34,6 +35,7 @@ import {
 interface CharacterScreenProps {
   state: GameState;
   derived: DerivedStats;
+  competitiveTitle?: string;
   nextObjective: NextObjectiveInfo;
   lastStatChange: StatChangeNotification | null;
   onEquipItem: (itemId: string) => void;
@@ -49,6 +51,7 @@ interface CharacterScreenProps {
 export const CharacterScreen: React.FC<CharacterScreenProps> = ({
   state,
   derived,
+  competitiveTitle,
   nextObjective,
   lastStatChange,
   onEquipItem,
@@ -68,7 +71,8 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
   const xpForNext = getXpForNextLevel(state.level);
   const needsHealing = state.currentHp < derived.maxHp;
   const healCost = Math.max(5, Math.ceil((derived.maxHp - state.currentHp) * 0.25));
-  const inventoryFull = state.inventory.length >= GAME_CONFIG.maxInventorySlots;
+  const inventoryCapacity = getInventoryCapacity(state);
+  const inventoryFull = state.inventory.length >= inventoryCapacity;
 
   const guildBonuses = getActiveGuildBonuses(state.guildState);
   const snap = getPlayerSnapshotForRankings(state);
@@ -95,7 +99,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
         <div className="lg:col-span-6 space-y-4">
           <RomanPanel
             title={`${displayNameWithTag} — Nível ${state.level}`}
-            subtitle={`${state.title} · Vitórias: ${state.wins} · Derrotas: ${state.losses}`}
+            subtitle={`${competitiveTitle ?? state.title} · Vitórias: ${state.wins} · Derrotas: ${state.losses}`}
             variant="stone"
             headerAction={
               <div className="flex items-center gap-1.5">
@@ -265,7 +269,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
 
           {/* Bolsa Rápida de Equipamentos na Tela de Personagem */}
           <RomanPanel
-            title={`Alforje Rápido (${state.inventory.length}/${GAME_CONFIG.maxInventorySlots} espaços)`}
+            title={`Alforje Rápido (${state.inventory.length}/${inventoryCapacity} espaços)`}
             subtitle="Toque em um equipamento para comparar com o espaço atual e equipar"
             variant="wood"
           >
@@ -390,3 +394,4 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
     </div>
   );
 };
+

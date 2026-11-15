@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   computeGuildRankings,
   computePlayerRankings,
@@ -14,7 +14,11 @@ import {
   PlayerRankingEntry,
 } from '../../game/guildsAndRankings';
 import { GameState, getPlayerSnapshotForRankings } from '../../game/rules';
-import { GameButton, GameModal } from '../ui/RomanComponents';
+import { EQUIPMENT_SLOT_LABELS, EquipmentSlotType } from '../../game/config';
+import { GladiatorAvatar } from '../../design/GladiatorAvatar';
+import { apiFetchOnlinePlayerProfile } from '../../services/firebaseClient';
+import type { OnlinePublicPlayerProfile, OnlinePublicPlayerProfileDetails } from '../../server/onlineAuthorityEngine';
+import { GameButton, GameModal, ItemSlot } from '../ui/RomanComponents';
 
 /**
  * Emblema Romano Vetorial para Guildas (Collegia)
@@ -335,24 +339,46 @@ export const PlayerPublicProfileModal: React.FC<{
   open: boolean;
   playerId: string | null;
   state: GameState;
+  isOnlineMode?: boolean;
+  onlineSummary?: PlayerRankingEntry & Partial<OnlinePublicPlayerProfile>;
   onClose: () => void;
   onInspectGuild?: (guildId: string) => void;
-}> = ({ open, playerId, state, onClose, onInspectGuild }) => {
-  if (!open || !playerId) return null;
+}> = ({ open, playerId, state, isOnlineMode = false, onlineSummary, onClose, onInspectGuild }) => {
+  const [onlineDetails, setOnlineDetails] = useState<OnlinePublicPlayerProfileDetails | null>(null);
+  const [profileError, setProfileError] = useState('');
 
-  const snap = getPlayerSnapshotForRankings(state);
-  const allRanked = computePlayerRankings(state.guildState, snap, 'honor');
-  const entry: PlayerRankingEntry | undefined = allRanked.find(
-    (p) => p.id === playerId
-  );
+  useEffect(() => {
+    let active = true;
+    setOnlineDetails(null);
+    setProfileError('');
+    if (open && isOnlineMode && playerId) {
+      void apiFetchOnlinePlayerProfile(playerId).then((details) => {
+        if (active) setOnlineDetails(details);
+      }).catch((error: unknown) => {
+        if (active) setProfileError(error instanceof Error ? error.message : 'Não foi possível carregar o gladiador.');
+      });
+    }
+    return () => { active = false; };
+  }, [open, isOnlineMode, playerId]);
 
-  if (!entry) return null;
+  const online = isOnlineMode && onlineSummary?.id === playerId ? onlineSummary : null;
+  const entry: PlayerRankingEntry | undefined = online
+    ? { ...online, rank: online.rank, isPlayer: online.isPlayer }
+    : (() => {
+        if (!playerId) return undefined;
+        const snap = getPlayerSnapshotForRankings(state);
+        return computePlayerRankings(state.guildState, snap, 'honor').find((p) => p.id === playerId);
+      })();
+
+  if (!open || !playerId || !entry) return null;
+  const equipped = onlineDetails?.equipped ?? {};
+  const equipmentSlots: EquipmentSlotType[] = ['helmet', 'weapon', 'armor', 'gloves', 'amulet', 'shield', 'boots', 'ring'];
 
   return (
     <GameModal
       open={open}
       title={`${entry.guildTag ? `[${entry.guildTag}] ` : ''}${entry.name}`}
-      subtitle={`Perfil Público de Gladiador · Posição #${entry.rank} em Honra`}
+      subtitle={`${isOnlineMode ? 'Gladiador Online' : 'Perfil Público de Gladiador'} · Posição #${entry.rank} em Honra`}
       onClose={onClose}
     >
       <div className="space-y-3 text-xs sm:text-sm">
@@ -393,6 +419,44 @@ export const PlayerPublicProfileModal: React.FC<{
             </div>
           )}
         </div>
+
+        <section className="p-3 bg-[#17120F] border border-[#5E4527]" aria-label="Personagem e equipamentos públicos">
+          <div className="grid grid-cols-1 sm:grid-cols-[minmax(150px,0.8fr)_1.2fr] gap-3 items-center">
+            <div className="mx-auto w-full max-w-[190px]">
+              <div className="gladiator-stage dynamic-gladiator-stage relative frame-bronze overflow-hidden shadow-xl">
+                <GladiatorAvatar equipped={equipped} level={entry.level} name={entry.name} />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent p-2 text-center">
+                  <span className="font-roman font-bold text-xs text-[#EFE2C4] block truncate">{entry.name}</span>
+                  <span className="text-[10px] text-[#D4B26A]">{entry.title} · Nível {entry.level}</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h3 className="font-roman font-bold text-sm text-[#D4B26A] mb-2">Equipamentos vestidos</h3>
+              {isOnlineMode && !onlineDetails && !profileError && (
+                <p className="text-xs text-[#B8A686] py-3" role="status">Carregando equipamentos públicos…</p>
+              )}
+              {profileError && <p className="text-xs text-[#E18A78] py-3" role="alert">{profileError}</p>}
+              {(!isOnlineMode || onlineDetails) && (
+                <div className="grid grid-cols-2 gap-2">
+                  {equipmentSlots.map((slot) => {
+                    const item = equipped[slot];
+                    return (
+                      <div key={slot} className="min-w-0 flex items-center gap-2 p-1.5 bg-[#211912] border border-[#47341F]">
+                        <ItemSlot item={item} slotType={slot} disabled />
+                        <div className="min-w-0">
+                          <span className="block text-[9px] uppercase tracking-wide text-[#B8A686]">{EQUIPMENT_SLOT_LABELS[slot]}</span>
+                          <span className="block text-[10px] text-[#EFE2C4] leading-tight break-words">{item?.name ?? 'Vazio'}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="mt-2 text-[10px] text-[#8C7A65]">Somente itens vestidos ficam visíveis. Mochila e saldo são privados.</p>
+            </div>
+          </div>
+        </section>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 tabular-nums">
           <div className="p-2.5 bg-[#2B2119] border border-[#5E4527]">
@@ -446,11 +510,12 @@ export const PlayerPublicProfileModal: React.FC<{
         </div>
 
         <div className="p-2.5 bg-[#17120F] border border-[#5E4527] text-[11px] text-[#B8A686]">
-          <strong>Privacidade e Integridade (Seção 11):</strong> O perfil público exibe apenas
-          honra, fama, vitórias, proezas e ouro saqueado acumulado em combates. O saldo atual na
-          bolsa pessoal e o conteúdo privado da mochila nunca são expostos.
+          <strong>Privacidade e Integridade (Seção 11):</strong> O perfil público exibe estatísticas
+          competitivas e apenas os equipamentos vestidos. O saldo atual na bolsa pessoal e o
+          conteúdo privado da mochila nunca são expostos.
         </div>
       </div>
     </GameModal>
   );
 };
+

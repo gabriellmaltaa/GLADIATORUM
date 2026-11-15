@@ -6,7 +6,13 @@ import {
   buyMedicineTemplate,
   calculateDerivedStats,
   calculateElapsedIdleProgress,
+  buyInventoryExpansion,
+  getInventoryCapacity,
+  getInventoryExpansionCost,
+  buyGuildTemporaryEnergy,
   claimPendingReward,
+  creditRewardGold,
+  migrateLegacyRewardGold,
   createInitialGameState,
   createItemFromTemplate,
   equipItemFromInventory,
@@ -233,7 +239,7 @@ test('Mercado valida saldo na compra, limite de inventário e credita valor corr
   assert.equal(sold.goldReceived, firstMarketItem.sellPrice);
 });
 
-test('Combate automático e Resgate Idempotente atualizam Honra, Fama, Ouro Saqueado e Honra da Guilda', () => {
+test('ouro da batalha entra no saldo ao gerar o lote e claim não duplica', () => {
   const initial = createInitialGameState(100000);
   const joined = applyOrJoinGuild(initial, 'guild_legio_ferrea', 'Entrar', 100100);
   assert.equal(joined.success, true);
@@ -253,14 +259,14 @@ test('Combate automático e Resgate Idempotente atualizam Honra, Fama, Ouro Saqu
     timestampMs: 100200,
   });
 
-  const stateWithPending = {
-    ...joined.state,
-    pendingRewards: [outcome.rewardBatch],
-  };
+  const credited = creditRewardGold(joined.state, outcome.rewardBatch);
+  const stateWithPending = { ...credited.state, pendingRewards: [credited.batch] };
 
   const firstClaim = claimPendingReward(stateWithPending, outcome.rewardBatch.claimId);
   assert.equal(firstClaim.claimedNow, true);
   assert.equal(firstClaim.state.goldLooted, outcome.rewardBatch.gold);
+  assert.equal(firstClaim.state.gold, joined.state.gold + outcome.rewardBatch.gold);
+  assert.equal(firstClaim.state.mailbox, undefined);
   assert.equal(firstClaim.state.honor, joined.state.honor + outcome.rewardBatch.honor);
 
   // Segundo resgate com mesmo claimId deve ser ignorado (idempotente)
@@ -275,6 +281,60 @@ test('Combate automático e Resgate Idempotente atualizam Honra, Fama, Ouro Saqu
   );
   const lfcAfter = rankingsAfter.find((g) => g.id === 'guild_legio_ferrea')!;
   assert.equal(lfcAfter.totalHonor, lfcBefore.totalHonor + outcome.rewardBatch.honor);
+});
+
+test('migração de ouro antigo credita correio e lotes pendentes uma única vez', () => {
+  const state = createInitialGameState(1000);
+  const legacy = {
+    ...state,
+    mailbox: [{ id: 'old_mail', source: 'battle' as const, title: 'Espólios', body: '', goldAmount: 25, createdAtMs: 900, claimedAtMs: null }],
+    pendingRewards: [{ claimId: 'old_batch', sourceTitle: 'Arena', sourceMode: 'arena' as const, createdAt: 950, gold: 15, xp: 1, honor: 0, items: [], cyclesCompleted: 1, victories: 1, defeats: 0, elapsedSecondsAccounted: 0, wasCappedAtMaxOffline: false, claimed: false }],
+  };
+  const migrated = migrateLegacyRewardGold(legacy);
+  assert.equal(migrated.state.gold, state.gold + 40);
+  assert.equal(migrated.state.goldLooted, state.goldLooted + 15);
+  assert.equal(migrated.state.pendingRewards[0].goldCredited, true);
+  assert.equal(migrated.state.mailbox, undefined);
+  const repeated = migrateLegacyRewardGold(migrated.state);
+  assert.equal(repeated.state.gold, migrated.state.gold);
+  assert.equal(repeated.changed, false);
+});
+
+test('patrulha ociosa credita ouro assim que cria a recompensa', () => {
+  const state = createInitialGameState(1_000_000);
+  state.idle.active = true;
+  const result = calculateElapsedIdleProgress(state, 1_060_000);
+  assert.ok(result.offlineBatchCreated);
+  assert.equal(result.offlineBatchCreated.goldCredited, true);
+  assert.equal(result.state.gold, state.gold + result.offlineBatchCreated.gold);
+  assert.equal(result.state.goldLooted, state.goldLooted + result.offlineBatchCreated.gold);
+});
+
+test('expansão de mochila cobra ouro, aumenta cinco espaços até 60 e rejeita saldo insuficiente', () => {
+  const state = { ...createInitialGameState(1_000_000), gold: 1_500 };
+  assert.equal(getInventoryCapacity(state), 20);
+  assert.equal(getInventoryExpansionCost(state), 500);
+  const bought = buyInventoryExpansion(state);
+  assert.equal(bought.costPaid, 500);
+  assert.equal(bought.state.inventoryCapacity, 25);
+  assert.equal(bought.state.gold, state.gold - 500);
+  const poor = buyInventoryExpansion({ ...state, gold: 0 });
+  assert.ok(poor.error);
+  assert.equal(poor.state.inventoryCapacity, 20);
+});
+
+test('expansão temporária da guilda concede 20 de energia por duas horas e vence no servidor', () => {
+  const state = { ...createInitialGameState(1_000_000), gold: 1_500 };
+  const notMember = buyGuildTemporaryEnergy(state, 1_000_000);
+  assert.ok(notMember.error);
+  const memberState = { ...state, guildState: { ...state.guildState, playerGuildId: 'guild_test' } };
+  const bought = buyGuildTemporaryEnergy(memberState, 1_000_000);
+  assert.equal(bought.error, undefined);
+  assert.equal(bought.state.maxEnergy, GAME_CONFIG.baseMaxEnergy + 20);
+  assert.equal(bought.state.temporaryEnergyBoostExpiresAtMs, 1_000_000 + 7_200_000);
+  const expired = calculateElapsedIdleProgress(bought.state, 1_000_000 + 7_200_001).state;
+  assert.equal(expired.maxEnergy, GAME_CONFIG.baseMaxEnergy);
+  assert.ok(expired.energy <= GAME_CONFIG.baseMaxEnergy);
 });
 
 test('Criar guilda, impedir participação simultânea em duas guildas e validar candidatura/cancelamento', () => {
@@ -614,13 +674,14 @@ test('Inspeção de save migra v2/v3 para v4 preservando progresso e getNextObje
   assert.ok(obj.title.length > 0);
 });
 
-test('Valida 32 Masmorras em 7 Dificuldades, 13 Raridades de Itens e Sistema de Medicina', () => {
-  // 1. Pelo menos 32 masmorras (1 original + 31 novas) distribuídas em 7 dificuldades
-  assert.ok(DUNGEONS.length >= 32, `Esperado >= 32 masmorras, encontrado ${DUNGEONS.length}`);
+test('Valida masmorras até nível 150, 13 graus, 13 raridades e Sistema de Medicina', () => {
+  // 1. Pelo menos 44 masmorras, do nível 1 ao 150, distribuídas em 13 graus
+  assert.ok(DUNGEONS.length >= 44, `Esperado >= 44 masmorras, encontrado ${DUNGEONS.length}`);
+  assert.equal(Math.max(...DUNGEONS.map(dungeon => dungeon.minLevel)), 150);
   const difficulties = new Set(DUNGEONS.map((d) => d.difficulty));
   assert.deepEqual(
     Array.from(difficulties).sort(),
-    ['Abissal', 'Divino', 'Elite', 'Iniciante', 'Mestre', 'Pesadelo', 'Veterano']
+    ['Abissal', 'Apocalíptico', 'Celestial', 'Divino', 'Elite', 'Imortal', 'Iniciante', 'Lendário', 'Mestre', 'Mítico', 'Pesadelo', 'Transcendente', 'Veterano']
   );
 
   // Todas as masmorras possuem encontros e espólios garantidos válidos
@@ -745,14 +806,14 @@ test('progressão até o nível 50 oferece quatro conjuntos completos e um conju
   }
 });
 
-test('regiões de endgame desbloqueiam nos níveis 20, 30, 40 e 50 e só oferecem itens da faixa', () => {
-  assert.deepEqual(ENDGAME_REGIONS.map(region => region.minLevel), [20, 30, 40, 50]);
+test('regiões de endgame desbloqueiam dos níveis 20 a 150 e oferecem itens da faixa', () => {
+  assert.deepEqual(ENDGAME_REGIONS.map(region => region.minLevel), [20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150]);
   for (let index = 0; index < ENDGAME_REGIONS.length; index++) {
     const region = ENDGAME_REGIONS[index];
-    const expectedRarity = ['celestial', 'astral', 'primordial', 'transcendent'][index];
+    const expectedRarity = ['celestial', 'astral', 'primordial', 'transcendent'][index] ?? 'transcendent';
     assert.equal(region.enemies.length, 3);
     for (const enemy of region.enemies) {
-      assert.ok(enemy.level >= region.minLevel);
+      assert.ok(index < 4 ? enemy.level >= region.minLevel : enemy.level >= region.minLevel - 2 && enemy.level <= region.minLevel);
       for (const templateId of enemy.dropPool) {
         const item = ENDGAME_ITEMS[templateId];
         assert.ok(item, `${templateId} deve pertencer à faixa da região`);
