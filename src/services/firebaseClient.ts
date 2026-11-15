@@ -1,12 +1,3 @@
-import { initializeApp } from 'firebase/app';
-import {
-  getAuth,
-  GoogleAuthProvider,
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut,
-  User,
-} from 'firebase/auth';
 import {
   doc,
   getDoc,
@@ -19,6 +10,17 @@ import {
   Unsubscribe,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
+import { app } from './firebaseApp';
+import {
+  auth,
+  getFirebaseIdToken,
+  logoutFirebaseSession,
+  signInWithGooglePopup,
+  subscribeToAuthState as subscribeToFirebaseAuthState,
+  type OnlineSessionUser,
+} from './firebaseAuth';
+export { auth, getFirebaseIdToken, signInWithGooglePopup } from './firebaseAuth';
+export type { OnlineSessionUser } from './firebaseAuth';
 import {
   AuthoritativeActionPayload,
   AuthoritativeActionResponse,
@@ -36,9 +38,20 @@ import {
   PendingRewardBatch,
 } from '../game/rules';
 
-const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-export const auth = getAuth(app);
+
+let activeSnapshotUnsubscribers: Unsubscribe[] = [];
+
+export function cleanupFirestoreListeners() {
+  for (const unsubscribe of activeSnapshotUnsubscribers) {
+    try {
+      unsubscribe();
+    } catch {
+      // Listener já encerrado.
+    }
+  }
+  activeSnapshotUnsubscribers = [];
+}
 
 export enum OperationType {
   CREATE = 'create',
@@ -139,163 +152,17 @@ export async function testFirestoreConnection(): Promise<{
 // Dispara validação de conexão ao inicializar o módulo
 void testFirestoreConnection();
 
-export interface OnlineSessionUser {
-  uid: string;
-  email: string;
-  displayName: string;
-  emailVerified: boolean;
-  isTestSession: boolean;
-}
-
-let activeTestToken: string | null = null;
-let activeTestUser: OnlineSessionUser | null = null;
-let activeSnapshotUnsubscribers: Unsubscribe[] = [];
-
-export function cleanupFirestoreListeners() {
-  for (const unsub of activeSnapshotUnsubscribers) {
-    try {
-      unsub();
-    } catch {
-      // Ignora falha ao cancelar listener
-    }
-  }
-  activeSnapshotUnsubscribers = [];
-}
-
-export function initDevTestSessionFromUrl(): OnlineSessionUser | null {
-  if (typeof window === 'undefined') return null;
-  const params = new URLSearchParams(window.location.search);
-  const testUid = params.get('testAuthUid');
-  if (!testUid || !/^[a-zA-Z0-9_-]{2,64}$/.test(testUid)) {
-    return null;
-  }
-  const testName = params.get('testAuthName') || `Gladiador_${testUid.slice(0, 6)}`;
-  const testEmail = `${testUid}@ludus.capua.test`;
-  activeTestToken = `test_token:${testUid}:${testEmail}:${encodeURIComponent(testName)}`;
-  activeTestUser = {
-    uid: testUid,
-    email: testEmail,
-    displayName: testName,
-    emailVerified: true,
-    isTestSession: true,
-  };
-  return activeTestUser;
-}
-
-export function subscribeToAuthState(
-  callback: (user: OnlineSessionUser | null) => void
-): Unsubscribe {
-  const devUser = initDevTestSessionFromUrl();
-  if (devUser) {
-    callback(devUser);
-    return () => {};
-  }
-
-  return onAuthStateChanged(auth, (firebaseUser: User | null) => {
-    if (!firebaseUser) {
-      cleanupFirestoreListeners();
-      callback(null);
-      return;
-    }
-    callback({
-      uid: firebaseUser.uid,
-      email: firebaseUser.email || `${firebaseUser.uid}@firebase.user`,
-      displayName:
-        firebaseUser.displayName ||
-        firebaseUser.email?.split('@')[0] ||
-        'Aurelius Valerius',
-      emailVerified: firebaseUser.emailVerified,
-      isTestSession: false,
-    });
+export function subscribeToAuthState(callback: (user: OnlineSessionUser | null) => void) {
+  return subscribeToFirebaseAuthState((user) => {
+    if (!user) cleanupFirestoreListeners();
+    callback(user);
   });
-}
-
-export async function signInWithGooglePopup(): Promise<{
-  ok: boolean;
-  user?: OnlineSessionUser;
-  errorCode?: string;
-  errorMessage?: string;
-}> {
-  try {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-    const cred = await signInWithPopup(auth, provider);
-    const fbUser = cred.user;
-    return {
-      ok: true,
-      user: {
-        uid: fbUser.uid,
-        email: fbUser.email || `${fbUser.uid}@firebase.user`,
-        displayName:
-          fbUser.displayName || fbUser.email?.split('@')[0] || 'Aurelius Valerius',
-        emailVerified: fbUser.emailVerified,
-        isTestSession: false,
-      },
-    };
-  } catch (err: unknown) {
-    const code =
-      typeof err === 'object' && err !== null && 'code' in err
-        ? String((err as { code?: unknown }).code)
-        : 'auth/unknown';
-
-    if (
-      code === 'auth/popup-closed-by-user' ||
-      code === 'auth/cancelled-popup-request'
-    ) {
-      return {
-        ok: false,
-        errorCode: code,
-        errorMessage:
-          'Login com Google cancelado. Seu progresso local permanece preservado.',
-      };
-    }
-    if (code === 'auth/network-request-failed') {
-      return {
-        ok: false,
-        errorCode: code,
-        errorMessage:
-          'Falha de conexão com a rede durante o login. Verifique sua internet e tente novamente.',
-      };
-    }
-    if (code === 'auth/unauthorized-domain' || code === 'auth/operation-not-allowed') {
-      return {
-        ok: false,
-        errorCode: code,
-        errorMessage:
-          'Domínio ou provedor Google não autorizado no projeto Firebase selecionado.',
-      };
-    }
-    return {
-      ok: false,
-      errorCode: code,
-      errorMessage:
-        err instanceof Error
-          ? err.message
-          : 'Não foi possível concluir o login com Google.',
-    };
-  }
 }
 
 export async function logoutOnlineSession(): Promise<void> {
   cleanupFirestoreListeners();
-  activeTestToken = null;
-  activeTestUser = null;
-  if (auth.currentUser) {
-    await signOut(auth);
-  }
+  await logoutFirebaseSession();
 }
-
-async function getBearerToken(): Promise<string> {
-  if (activeTestToken) {
-    return activeTestToken;
-  }
-  const currentUser = auth.currentUser;
-  if (!currentUser) {
-    throw new Error('Sessão expirada ou usuário desconectado. Faça login novamente.');
-  }
-  return currentUser.getIdToken();
-}
-
 /**
  * Sincroniza os documentos validados do jogador no Cloud Firestore (/players_public/{uid} e /players_private/{uid})
  * respeitando estritamente o schema de `firebase-blueprint.json` e `firestore.rules`.
@@ -482,7 +349,7 @@ export async function apiBootstrapOnlinePlayer(user: OnlineSessionUser): Promise
   guildRank: number | null;
   serverTimestampMs: number;
 }> {
-  const token = await getBearerToken();
+  const token = await getFirebaseIdToken();
   const res = await fetch('/api/online/bootstrap', {
     method: 'POST',
     headers: {
@@ -514,7 +381,7 @@ export async function apiMigrateLocalSave(
   playerRank?: number;
   guildRank?: number | null;
 }> {
-  const token = await getBearerToken();
+  const token = await getFirebaseIdToken();
   const res = await fetch('/api/online/migrate-local-save', {
     method: 'POST',
     headers: {
@@ -539,7 +406,7 @@ export async function apiExecuteAuthoritativeAction(
   user: OnlineSessionUser,
   payload: AuthoritativeActionPayload
 ): Promise<AuthoritativeActionResponse> {
-  const token = await getBearerToken();
+  const token = await getFirebaseIdToken();
   const res = await fetch('/api/online/action', {
     method: 'POST',
     headers: {
@@ -564,7 +431,7 @@ export async function apiFetchOnlinePlayerRankings(options: {
 }): Promise<CursorPaginatedPlayersResponse> {
   const headers: Record<string, string> = {};
   try {
-    const token = await getBearerToken();
+    const token = await getFirebaseIdToken();
     headers.Authorization = `Bearer ${token}`;
   } catch {
     // Permite consulta pública se estiver em modo visitante
@@ -604,7 +471,7 @@ export async function apiFetchOnlineGuildRankings(options: {
 }): Promise<CursorPaginatedGuildsResponse> {
   const headers: Record<string, string> = {};
   try {
-    const token = await getBearerToken();
+    const token = await getFirebaseIdToken();
     headers.Authorization = `Bearer ${token}`;
   } catch {
     // Permite consulta pública

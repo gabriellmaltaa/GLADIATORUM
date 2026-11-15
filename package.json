@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test": "esbuild src/game/*.test.ts --bundle --platform=node --format=esm --outdir=.test-build && node --test .test-build/*.test.js",
+    "test": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('.test-build', { recursive: true, force: true });\" && esbuild src/game/*.test.ts src/services/*.test.ts --bundle --platform=node --format=esm --outdir=.test-build && node --test .test-build",
     "dev": "node server.ts",
     "start": "node server.ts",
     "build": "vite build",
