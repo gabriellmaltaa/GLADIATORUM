@@ -5,13 +5,13 @@ import { ITEM_TEMPLATES } from './config.ts';
 import { calculateDerivedStats, createInitialGameState } from './rules.ts';
 
 test('atribui títulos por marcos de dez níveis e título dinâmico ao rank #1', () => {
-  assert.equal(getCompetitiveTitle(1, 5), 'Gladiador de Cápua');
-  assert.equal(getCompetitiveTitle(10, 2), 'Cavaleiro');
-  assert.equal(getCompetitiveTitle(19, 2), 'Cavaleiro');
-  assert.equal(getCompetitiveTitle(20, 2), 'Patrício');
-  assert.equal(getCompetitiveTitle(150, 2), 'Augusto');
-  assert.equal(getCompetitiveTitle(1, 1), 'Augusto Supremo do Coliseu');
-  assert.equal(getCompetitiveTitle(150, 1), 'Augusto Supremo do Coliseu');
+  assert.equal(getCompetitiveTitle(1, 5), 'Recruta da Vigília');
+  assert.equal(getCompetitiveTitle(10, 2), 'Vanguarda');
+  assert.equal(getCompetitiveTitle(19, 2), 'Vanguarda');
+  assert.equal(getCompetitiveTitle(20, 2), 'Guardião do Limiar');
+  assert.equal(getCompetitiveTitle(150, 2), 'Ícone Supremo');
+  assert.equal(getCompetitiveTitle(1, 1), 'Lenda do Limiar');
+  assert.equal(getCompetitiveTitle(150, 1), 'Lenda do Limiar');
 });
 
 test('sorteia afixos válidos sem modificar template ou reaplicar afixo', () => {
@@ -80,4 +80,5 @@ test('drops usam chance de afixo mais alta para raridades melhores sem garantir 
   const afflicted = maybeAffixItem(item, 0.08, () => samples.shift() ?? 0);
   assert.ok(afflicted.affix);
 });
+
 

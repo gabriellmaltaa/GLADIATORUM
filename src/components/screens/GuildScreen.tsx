@@ -129,7 +129,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
     'Aliança forjada nas arenas da Campânia em busca de honra e glória.'
   );
 
-  // Estados para Membro de Guilda
+  // Estados para Membro de Aliança
   const [memberTab, setMemberTab] = useState<MemberGuildTab>('headquarters');
   const [donationInput, setDonationInput] = useState('25');
   const [withdrawalInput, setWithdrawalInput] = useState('100');
@@ -199,19 +199,19 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
           <div>
             <strong className="text-[#D4B26A] font-roman uppercase">
               {isOnlineMode
-                ? 'Guildas online:'
+                ? 'Alianças online:'
                 : 'Modo Visitante Local — Dados Simulados:'}
             </strong>{' '}
             {isOnlineMode
-              ? 'Alianças compartilhadas entre jogadores. Vagas, cargos e recursos seguem as regras da guilda.'
-              : 'As guildas e gladiadores abaixo são simulados localmente. Conecte sua conta no topo para ingressar em Guildas Online compartilhadas.'}
+              ? 'Alianças compartilhadas entre jogadores. Vagas, cargos e recursos seguem as regras da equipe.'
+              : 'As alianças e os heróis abaixo são simulados localmente. Conecte sua conta para ingressar em alianças online compartilhadas.'}
           </div>
           <GameButton variant="iron" size="sm" onClick={onOpenRankings}>
             Ver Classificação
           </GameButton>
         </div>
 
-        {/* Alternador Diretório vs Criar Guilda */}
+        {/* Alternador Diretório vs Criar Aliança */}
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -222,7 +222,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                 : 'bg-[#2B2119] text-[#D6C29A] border-[#5E4527]'
             }`}
           >
-            Diretório de Guildas ({state.guildState.guilds.length})
+            Diretório de Alianças ({state.guildState.guilds.length})
           </button>
           <button
             type="button"
@@ -233,7 +233,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                 : 'bg-[#2B2119] text-[#D6C29A] border-[#5E4527]'
             }`}
           >
-            Fundar Guilda ({GUILD_CONFIG.creationCostGold} Ouro)
+            Fundar Aliança ({GUILD_CONFIG.creationCostGold} Créditos)
           </button>
         </div>
 
@@ -293,7 +293,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
 
         {visitorMode === 'directory' ? (
           <RomanPanel
-            title="Guildas (Collegia) de Cápua"
+            title="Alianças da Vigília"
             subtitle="Busque por nome ou tag, consulte o perfil público ou envie sua candidatura"
             variant="stone"
           >
@@ -367,13 +367,13 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                               </strong>
                             </span>
                             <span>
-                              Honra Total:{' '}
+                              Reputação Total:{' '}
                               <strong className="text-[#D4B26A]">
                                 {rankInfo?.totalHonor ?? 0}
                               </strong>
                             </span>
                             <span>
-                              Requisitos: Nv.{g.minLevelReq}+ · {g.minHonorReq}+ Honra
+                              Requisitos: Nv.{g.minLevelReq}+ · {g.minHonorReq}+ Reputação
                             </span>
                           </div>
                         </div>
@@ -418,12 +418,12 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                                   : isFull
                                   ? `Capacidade lotada (${g.members.length}/${maxCap})`
                                   : !meetsReqs
-                                  ? `Requer Nv.${g.minLevelReq} e ${g.minHonorReq} Honra`
+                                  ? `Requer Nv.${g.minLevelReq} e ${g.minHonorReq} Reputação`
                                   : undefined
                               }
                             >
                               {g.recruitmentStatus === 'open'
-                                ? 'Ingressar na Guilda'
+                                ? 'Ingressar na Aliança'
                                 : 'Enviar Candidatura'}
                             </GameButton>
                           )}
@@ -437,21 +437,21 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
           </RomanPanel>
         ) : (
           <RomanPanel
-            title="Fundar Nova Guilda (Collegium)"
-            subtitle={`Custo de fundação: ${GUILD_CONFIG.creationCostGold} Ouro · Nível mínimo: ${GUILD_CONFIG.creationMinLevel} · Seu saldo: ${state.gold} Ouro`}
+            title="Fundar Nova Aliança (Collegium)"
+            subtitle={`Custo de fundação: ${GUILD_CONFIG.creationCostGold} Créditos · Nível mínimo: ${GUILD_CONFIG.creationMinLevel} · Seu saldo: ${state.gold} Créditos`}
             variant="parchment"
           >
             <div className="space-y-3 text-xs sm:text-sm text-[#30251A]">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
                   <label className="block font-roman font-bold text-xs uppercase mb-1">
-                    Nome da Guilda (3–32 caracteres)
+                    Nome da Aliança (3–32 caracteres)
                   </label>
                   <input
                     type="text"
                     value={newGuildName}
                     onChange={(e) => setNewGuildName(e.target.value)}
-                    placeholder="Ex.: Gladiadores do Vesúvio"
+                    placeholder="Ex.: Heróis do Vesúvio"
                     maxLength={GUILD_CONFIG.maxNameLength}
                     className="w-full min-h-[44px] px-3 py-2 bg-[#EFE2C4] border-2 border-[#947044] text-[#30251A] font-semibold focus:outline-none focus:border-[#792B28]"
                   />
@@ -477,7 +477,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
 
               <div>
                 <span className="block font-roman font-bold text-xs uppercase mb-1.5">
-                  Escolha o Estandarte Romano
+                  Escolha o símbolo da aliança
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {(Object.keys(GUILD_EMBLEMS) as GuildEmblemId[]).map((embId) => {
@@ -539,7 +539,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                 </div>
                 <div>
                   <label className="block font-roman font-bold text-xs uppercase mb-1">
-                    Honra Mínima
+                    Reputação Mínima
                   </label>
                   <input
                     type="number"
@@ -556,7 +556,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
 
               <div>
                 <label className="block font-roman font-bold text-xs uppercase mb-1">
-                  Descrição e Lema da Guilda
+                  Descrição e Lema da Aliança
                 </label>
                 <textarea
                   rows={2}
@@ -591,7 +591,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                   }
                   disabledReason={
                     state.gold < GUILD_CONFIG.creationCostGold
-                      ? `Requer ${GUILD_CONFIG.creationCostGold} Ouro (Saldo: ${state.gold})`
+                      ? `Requer ${GUILD_CONFIG.creationCostGold} Créditos (Saldo: ${state.gold})`
                       : newGuildName.trim().length < GUILD_CONFIG.minNameLength
                       ? 'Informe um nome com 3+ caracteres'
                       : newGuildTag.trim().length < GUILD_CONFIG.minTagLength
@@ -599,7 +599,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                       : undefined
                   }
                 >
-                  Fundar Guilda ({GUILD_CONFIG.creationCostGold} Ouro)
+                  Fundar Aliança ({GUILD_CONFIG.creationCostGold} Créditos)
                 </GameButton>
               </div>
             </div>
@@ -657,10 +657,10 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Cabeçalho da Sede da Guilda */}
+      {/* Cabeçalho da Sede da Aliança */}
       <RomanPanel
         title={`[${playerGuild.tag}] ${playerGuild.name}`}
-        subtitle={`Posição na Classificação de Guildas: #${
+        subtitle={`Posição na Classificação de Alianças: #${
           guildRankEntry?.rank ?? '-'
         } · Seu Cargo: ${GUILD_ROLE_LABELS[playerRole]}`}
         variant="stone"
@@ -683,7 +683,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                 <span>
                   Tesouro no Banco:{' '}
                   <strong className="text-[#D4B26A]">
-                    {playerGuild.treasuryGold} Ouro
+                    {playerGuild.treasuryGold} Créditos
                   </strong>
                 </span>
                 <span>
@@ -693,7 +693,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                   </strong>
                 </span>
                 <span>
-                  Honra Total (Soma):{' '}
+                  Reputação Total (Soma):{' '}
                   <strong className="text-[#EFE2C4]">
                     {guildRankEntry?.totalHonor ?? 0}
                   </strong>
@@ -753,7 +753,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
           </span>
           {activeBonuses.permanentGoldBonusPercent > 0 && (
             <span className="px-2 py-1 bg-[#4B3114] border border-[#D4B26A] text-[#FFE3A6]">
-              Ouro permanente: <strong>+{activeBonuses.permanentGoldBonusPercent}%</strong>
+              Créditos permanente: <strong>+{activeBonuses.permanentGoldBonusPercent}%</strong>
             </span>
           )}
           {activeBonuses.permanentXpBonusPercent > 0 && (
@@ -778,7 +778,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
         </div>
       </RomanPanel>
 
-      {/* Sub-navegação Interna da Guilda */}
+      {/* Sub-navegação Interna da Aliança */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <button
           type="button"
@@ -840,7 +840,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
               variant="wood"
             >
               <div className="space-y-2 text-xs">
-                <p className="text-[#D6C29A]">Custa 250 denários da sua bolsa. Pode ser comprada novamente quando o efeito terminar.</p>
+                <p className="text-[#D6C29A]">Custa 250 créditos da sua carteira. Pode ser comprada novamente quando o efeito terminar.</p>
                 <p className="text-[#EFE2C4]">Energia máxima: <strong>{state.maxEnergy}</strong>{(state.temporaryEnergyBoostExpiresAtMs ?? 0) > nowMs ? ` · termina em ${Math.ceil((state.temporaryEnergyBoostExpiresAtMs! - nowMs) / 60000)} min` : ''}</p>
                 <GameButton variant="bronze" size="sm" fullWidth onClick={onBuyTemporaryEnergy} disabled={state.gold < 250 || (state.temporaryEnergyBoostExpiresAtMs ?? 0) > nowMs}>
                   {(state.temporaryEnergyBoostExpiresAtMs ?? 0) > nowMs ? 'Expansão ativa' : 'Comprar +20 energia · 250 ouro'}
@@ -878,11 +878,11 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                       : mediciOnCooldown
                       ? `Em espera (${Math.ceil(mediciCooldownRemainingMs / 60000)} min restantes)`
                       : state.gold < activeBonuses.villaMediciGoldCost
-                      ? `Requer ${activeBonuses.villaMediciGoldCost} Ouro`
+                      ? `Requer ${activeBonuses.villaMediciGoldCost} Créditos`
                       : undefined
                   }
                 >
-                  Curar na Villa Medici ({activeBonuses.villaMediciGoldCost} Ouro)
+                  Curar na Villa Medici ({activeBonuses.villaMediciGoldCost} Créditos)
                 </GameButton>
               </div>
             </RomanPanel>
@@ -1011,7 +1011,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
           {/* Lista Completa dos 8 Edifícios da Sede (Seção 5) */}
           <RomanPanel
             title="Planta Arquitetônica da Sede — 8 Edifícios do Collegium"
-            subtitle={`Tesouro no Banco da Guilda: ${playerGuild.treasuryGold} Ouro · Melhorias financiadas pelo Banco`}
+            subtitle={`Tesouro no Banco da Aliança: ${playerGuild.treasuryGold} Créditos · Melhorias financiadas pelo Banco`}
             variant="parchment"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1061,7 +1061,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
 
                       <div className="pt-2 border-t border-[#5E4527] flex items-center justify-between gap-2">
                         <span className="text-xs font-bold text-[#D4B26A] tabular-nums">
-                          {isMax ? 'Nível Máximo' : `Custo: ${cost} Ouro (Banco)`}
+                          {isMax ? 'Nível Máximo' : `Custo: ${cost} Créditos (Banco)`}
                         </span>
                         {!isMax && (
                           <GameButton
@@ -1138,7 +1138,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                     >
                       <div>
                         <div className="font-bold text-[#EFE2C4]">
-                          {app.applicantName} (Nível {app.level} · {app.honor} Honra)
+                          {app.applicantName} (Nível {app.level} · {app.honor} Reputação)
                         </div>
                         <p className="text-[11px] text-[#D6C29A]">&ldquo;{app.message}&rdquo;</p>
                       </div>
@@ -1216,8 +1216,8 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                       </div>
                       <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#D6C29A] tabular-nums">
                         <span>Nível: <strong>{m.level}</strong></span>
-                        <span>Honra: <strong className="text-[#D4B26A]">{m.honor}</strong></span>
-                        <span>Contribuição: <strong>{m.goldContributed} Ouro</strong></span>
+                        <span>Reputação: <strong className="text-[#D4B26A]">{m.honor}</strong></span>
+                        <span>Contribuição: <strong>{m.goldContributed} Créditos</strong></span>
                         <span>Entrada: <strong>{formatDateShort(m.joinedAtMs)}</strong></span>
                       </div>
                     </div>
@@ -1289,7 +1289,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                 <div>
                   <strong>Política Atual:</strong>{' '}
                   {GUILD_RECRUITMENT_LABELS[playerGuild.recruitmentStatus]} (Nível{' '}
-                  {playerGuild.minLevelReq}+ · Honra {playerGuild.minHonorReq}+)
+                  {playerGuild.minLevelReq}+ · Reputação {playerGuild.minHonorReq}+)
                 </div>
                 <GameButton
                   variant="parchment"
@@ -1344,7 +1344,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                       />
                     </div>
                     <div>
-                      <label className="block font-bold mb-1">Honra mínima</label>
+                      <label className="block font-bold mb-1">Reputação mínima</label>
                       <input
                         type="number"
                         min={0}
@@ -1398,7 +1398,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                         : undefined
                     }
                   >
-                    Sair da Guilda
+                    Sair da Aliança
                   </GameButton>
 
                   {perms.dissolveGuild && !confirmDissolve && (
@@ -1407,7 +1407,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                       size="sm"
                       onClick={() => setConfirmDissolve(true)}
                     >
-                      Dissolver Guilda
+                      Dissolver Aliança
                     </GameButton>
                   )}
                 </div>
@@ -1444,7 +1444,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
       {memberTab === 'bank_warehouse' && (
         <div className="space-y-4">
           {isOnlineMode && (
-            <RomanPanel title="Guerra de Guildas" subtitle="Desafie outra aliança, lute por 24 horas e conquiste 500 denários para o tesouro vencedor." variant="stone">
+            <RomanPanel title="Guerra de Alianças" subtitle="Desafie outra aliança, lute por 24 horas e conquiste 500 créditos para o tesouro vencedor." variant="stone">
               <div className="space-y-3 text-sm text-[#EFE2C4]">
                 {(state.guildState.guildWars ?? []).length === 0 ? (
                   <p>Nenhuma guerra ou convite ativo.</p>
@@ -1465,7 +1465,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                     {war.status === 'pending' && war.direction === 'incoming' && playerMember?.role === 'leader' && (
                       <GameButton variant="bronze" size="sm" onClick={() => onAcceptGuildWar(war.id)}>Aceitar guerra de 24 horas</GameButton>
                     )}
-                    {war.status === 'completed' && <p>{war.winnerGuildId ? (war.winnerGuildId === playerGuild.id ? 'Vitória! 500 denários foram para o tesouro da guilda.' : 'A guilda rival venceu.') : 'Empate.'}</p>}
+                    {war.status === 'completed' && <p>{war.winnerGuildId ? (war.winnerGuildId === playerGuild.id ? 'Vitória! 500 créditos foram para o tesouro da aliança.' : 'A aliança rival venceu.') : 'Empate.'}</p>}
                   </div>
                 ))}
                 {playerMember?.role === 'leader' && !(state.guildState.guildWars ?? []).some((war) => war.status === 'pending' || war.status === 'active') && (
@@ -1479,18 +1479,18 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                     <GameButton variant="bronze" size="sm" disabled={!warOpponentGuildId} onClick={() => { onChallengeGuildWar(warOpponentGuildId); setWarOpponentGuildId(''); }}>Enviar desafio</GameButton>
                   </div>
                 )}
-                <p className="text-xs text-[#D6C29A]">Cada integrante tem até 3 ataques. Uma vitória dá 5 Honra ao jogador e 20% de chance de item especial; ao fim, o tesouro da guilda vencedora recebe 500 denários.</p>
+                <p className="text-xs text-[#D6C29A]">Cada integrante tem até 3 ataques. Uma vitória dá 5 Reputação ao herói e 20% de chance de item especial; ao fim, o tesouro da aliança vencedora recebe 500 créditos.</p>
               </div>
             </RomanPanel>
           )}
           <RomanPanel
-            title={`Banco da Guilda (Aerarium Nv.${playerGuild.buildings.banco ?? 1})`}
-            subtitle={`Tesouro Coletivo: ${playerGuild.treasuryGold} Ouro · Sua Bolsa Pessoal: ${state.gold} Ouro`}
+            title={`Banco da Aliança (Aerarium Nv.${playerGuild.buildings.banco ?? 1})`}
+            subtitle={`Tesouro Coletivo: ${playerGuild.treasuryGold} Créditos · Sua Bolsa Pessoal: ${state.gold} Créditos`}
             variant="parchment"
           >
             <div className="space-y-3 text-xs text-[#30251A]">
               <p>
-                As doações de denários financiam ampliações dos edifícios e pergaminhos da
+                As doações de créditos financiam melhorias e pergaminhos da
                 Biblioteca. O tesouro é compartilhado e cada movimentação fica registrada.
                 Somente o líder pode retirar ouro para sua carteira.
               </p>
@@ -1538,11 +1538,11 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                       Number(donationInput) <= 0
                         ? 'Informe um inteiro positivo'
                         : state.gold < Number(donationInput)
-                        ? `Saldo insuficiente (${state.gold} Ouro)`
+                        ? `Saldo insuficiente (${state.gold} Créditos)`
                         : undefined
                     }
                   >
-                    Doar {Number(donationInput) > 0 ? `${donationInput} Ouro` : 'Ouro'}
+                    Doar {Number(donationInput) > 0 ? `${donationInput} Créditos` : 'Créditos'}
                   </GameButton>
                 </div>
               </div>
@@ -1575,7 +1575,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                   </div>
                   {confirmWithdrawal !== null && (
                     <div className="border border-[#947044] bg-[#2B2119] p-3 text-[#EFE2C4] space-y-2">
-                      <p>Confirmar transferência de <strong>{confirmWithdrawal} denários</strong> do tesouro para sua carteira?</p>
+                      <p>Confirmar transferência de <strong>{confirmWithdrawal} créditos</strong> do tesouro para sua carteira?</p>
                       <div className="flex gap-2">
                         <GameButton variant="crimson" size="sm" onClick={() => {
                           onWithdrawGold(confirmWithdrawal, `guild_withdraw_${Date.now()}_${confirmWithdrawal}`);
@@ -1633,7 +1633,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                   Itens Guardados no Armazém ({playerGuild.warehouseItems.length}/{warehouseCap})
                 </h3>
                 {playerGuild.warehouseItems.length === 0 ? (
-                  <p className="text-[#B8A686]">O Armazém da Guilda está vazio.</p>
+                  <p className="text-[#B8A686]">O Armazém da Aliança está vazio.</p>
                 ) : (
                   <div className="space-y-2">
                     {playerGuild.warehouseItems.map((item) => (
@@ -1724,7 +1724,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
       {memberTab === 'announcements_log' && (
         <div className="space-y-4">
           <RomanPanel
-            title="Mural de Avisos da Guilda"
+            title="Mural de Avisos da Aliança"
             subtitle="Comunicados e ordens táticas publicados pelo Líder e Administradores"
             variant="parchment"
           >
@@ -1783,7 +1783,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
           </RomanPanel>
 
           <RomanPanel
-            title="Registro de Ações da Guilda (Acta Collegii)"
+            title="Registro de Ações da Aliança (Acta Collegii)"
             subtitle="Histórico cronológico de entradas, saídas, cargos, doações e melhorias"
             variant="stone"
           >
@@ -1831,5 +1831,6 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
     </div>
   );
 };
+
 
 

@@ -1,5 +1,5 @@
 import React, { useId } from 'react';
-import atlas from '../assets/images/roman-world-atlas.png';
+import vigiliaTexture from '../assets/images/vigilia-tech-texture.jpg';
 
 export type RomanScene = 'arsenal' | 'city' | 'map' | 'arena';
 
@@ -7,7 +7,7 @@ export type RomanScene = 'arsenal' | 'city' | 'map' | 'arena';
 export function RomanSceneArt({ scene, className = '', children, label }: {
   scene: RomanScene; className?: string; children?: React.ReactNode; label?: string;
 }) {
-  return <div className={`roman-scene scene-${scene} ${className}`} style={{ '--roman-atlas': `url(${atlas})` } as React.CSSProperties}>
+  return <div className={`roman-scene scene-${scene} ${className}`} style={{ '--roman-atlas': `url(${vigiliaTexture})` } as React.CSSProperties}>
     <div className="roman-scene-art" role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true} />
     {children}
   </div>;
@@ -30,3 +30,4 @@ export function NavigationEmblem({ kind }: { kind: string }) {
     </g>
   </svg>;
 }
+

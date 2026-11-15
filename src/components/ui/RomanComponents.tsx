@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationEmblem } from '../../design/RomanIdentity';
 import { DESIGN_TOKENS } from '../../design/tokens';
+import { GAME_IDENTITY, getHeroicItemName, NAVIGATION_LABELS } from '../../game/heroIdentity';
 import {
   ArtworkImage,
   EnemyPortrait,
@@ -315,7 +316,7 @@ export const ItemSlot: React.FC<ItemSlotProps> = ({
     ? EQUIPMENT_SLOT_LABELS[slotType]
     : 'Espaço';
   const ariaLabel = item
-    ? `${item.name} (${rarityInfo.label}) — ${slotLabel}`
+    ? `${getHeroicItemName(item.name)} (${rarityInfo.label}) — ${slotLabel}`
     : `${slotLabel} vazio`;
 
   const effectiveBadge = badgeText ?? (item?.consumable ? 'CURA' : undefined);
@@ -331,7 +332,7 @@ export const ItemSlot: React.FC<ItemSlotProps> = ({
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
-      title={item ? `${item.name} · ${rarityInfo.label} (Nv.${item.levelReq})` : ariaLabel}
+      title={item ? `${getHeroicItemName(item.name)} · ${rarityInfo.label} (Nv.${item.levelReq})` : ariaLabel}
       style={{
         borderColor: item ? rarityInfo.border : '#5E4527',
       }}
@@ -509,7 +510,7 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
             </span>
           </div>
           <h3 className="font-roman font-bold text-base sm:text-lg text-[#30251A] leading-snug mt-0.5">
-            {item.name}
+            {getHeroicItemName(item.name)}
           </h3>
           <p className="text-xs text-[#5C4935] mt-1 leading-relaxed">{item.description}</p>
           <p className="text-[10px] text-[#5C4935]/90 mt-1">
@@ -539,7 +540,7 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
           {item.consumable
             ? 'Bônus Adicional (se equipado como talismã):'
             : isComparingDifferentItem
-            ? `Comparação com equipado (${comparedEquippedItem?.name}):`
+            ? `Comparação com equipado (${comparedEquippedItem ? getHeroicItemName(comparedEquippedItem.name) : ''}):`
             : !comparedEquippedItem && mode !== 'equipped'
             ? `Espaço de ${EQUIPMENT_SLOT_LABELS[item.slot]} está vazio (Ganho direto):`
             : 'Atributos do Equipamento:'}
@@ -577,10 +578,10 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
       {/* Preços */}
       <div className="mt-3 pt-2 border-t border-[#947044]/50 flex items-center justify-between text-xs tabular-nums">
         <span>
-          Compra: <strong>{item.buyPrice} Ouro</strong>
+          Compra: <strong>{item.buyPrice} Créditos</strong>
         </span>
         <span>
-          Valor de Venda: <strong>+{item.sellPrice} Ouro</strong>
+          Valor de Venda: <strong>+{item.sellPrice} Créditos</strong>
         </span>
       </div>
 
@@ -614,7 +615,7 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
         )}
         {mode === 'inventory' && onSell && (
           <GameButton variant="bronze" size="sm" onClick={onSell}>
-            Vender (+{item.sellPrice} Ouro)
+            Vender (+{item.sellPrice} Créditos)
           </GameButton>
         )}
         {mode === 'equipped' && onUnequip && (
@@ -638,11 +639,11 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
               inventoryFull
                 ? 'Mochila cheia (20/20)'
                 : !canAfford
-                ? `Saldo insuficiente (Faltam ${item.buyPrice - playerGold} Ouro)`
+                ? `Saldo insuficiente (Faltam ${item.buyPrice - playerGold} Créditos)`
                 : undefined
             }
           >
-            Comprar ({item.buyPrice} Ouro)
+            Comprar ({item.buyPrice} Créditos)
           </GameButton>
         )}
         {onClose && (
@@ -775,7 +776,7 @@ export const EnemyCard: React.FC<EnemyCardProps> = ({
             <div>
               <span className="text-[#B8A686] block text-[10px]">Ganhos Base</span>
               <span className="font-bold text-[#D4B26A]">
-                {enemy.goldMin}-{enemy.goldMax} Ouro · {enemy.xpReward} XP
+                {enemy.goldMin}-{enemy.goldMax} Créditos · {enemy.xpReward} XP
               </span>
             </div>
           </div>
@@ -873,10 +874,10 @@ export const RewardPanel: React.FC<RewardPanelProps> = ({ batch, onClaim }) => {
       <div className="mt-3 grid grid-cols-3 gap-2 text-center bg-[#C2AB7E]/50 p-2 border border-[#947044]">
         <div>
           <span className="block text-[10px] uppercase font-bold text-[#5C4935]">
-            Denários · {batch.goldCredited ? 'creditados' : 'ao resgatar'}
+            Créditos · {batch.goldCredited ? 'creditados' : 'ao resgatar'}
           </span>
           <span className="font-roman font-bold text-sm sm:text-base tabular-nums text-[#30251A]">
-            +{batch.gold} Ouro
+            +{batch.gold} Créditos
           </span>
         </div>
         <div>
@@ -886,7 +887,7 @@ export const RewardPanel: React.FC<RewardPanelProps> = ({ batch, onClaim }) => {
           </span>
         </div>
         <div>
-          <span className="block text-[10px] uppercase font-bold text-[#5C4935]">Honra</span>
+          <span className="block text-[10px] uppercase font-bold text-[#5C4935]">Reputação</span>
           <span className="font-roman font-bold text-sm sm:text-base tabular-nums text-[#30251A]">
             +{batch.honor}
           </span>
@@ -910,7 +911,7 @@ export const RewardPanel: React.FC<RewardPanelProps> = ({ batch, onClaim }) => {
                     ? <div className="grid h-8 w-8 place-items-center border border-[#5E4527] bg-[#08090D] text-[#B8A686] font-roman font-bold" aria-label="Item por revelar">?</div>
                     : <ItemArtwork iconId={it.iconId} rarity={it.rarity} size={32} />}
                   <div className="text-xs">
-                    <div className="font-semibold">{concealed ? 'Item por revelar' : it.name}</div>
+                    <div className="font-semibold">{concealed ? 'Item por revelar' : getHeroicItemName(it.name)}</div>
                     <div className="text-[10px] text-[#B8A686]">{concealed ? 'Resgate para revelar' : `Nível ${it.levelReq}`}</div>
                   </div>
                 </div>;
@@ -1181,7 +1182,7 @@ export const CombatPresentationView: React.FC<CombatPresentationViewProps> = ({
 };
 
 /**
- * 11. ResourceBar — Topo Mobile Compacto: Retrato, Nível, Ouro, Vida, Energia e Ajuda
+ * 11. ResourceBar — Topo Mobile Compacto: Retrato, Nível, Créditos, Vida, Energia e Ajuda
  */
 export interface ResourceBarProps {
   name: string;
@@ -1272,7 +1273,7 @@ export const ResourceBar: React.FC<ResourceBarProps> = ({
               )}
             </div>
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0 text-[11px] sm:text-xs tabular-nums text-[#D4B26A] font-semibold leading-tight mt-0.5">
-              <span className="whitespace-nowrap">{gold} Ouro</span>
+              <span className="whitespace-nowrap">{gold} Créditos</span>
               <span aria-hidden="true" className="text-[#5E4527]">·</span>
               {onOpenRankings ? (
                 <button
@@ -1281,11 +1282,11 @@ export const ResourceBar: React.FC<ResourceBarProps> = ({
                   className="text-[#D6C29A] hover:text-[#EFE2C4] hover:underline cursor-pointer whitespace-nowrap"
                   title="Abrir Classificação Geral"
                 >
-                  {honor} Honra{playerRank ? ` (#${playerRank})` : ''}
+                  {honor} Reputação{playerRank ? ` (#${playerRank})` : ''}
                 </button>
               ) : (
                 <span className="text-[#D6C29A] whitespace-nowrap">
-                  {honor} Honra{playerRank ? ` (#${playerRank})` : ''}
+                  {honor} Reputação{playerRank ? ` (#${playerRank})` : ''}
                 </span>
               )}
               {pendingCount > 0 && (
@@ -1369,7 +1370,7 @@ export const ResourceBar: React.FC<ResourceBarProps> = ({
           <button
             type="button"
             onClick={onOpenHelp}
-            aria-label="Como Jogar e Regras do Ludus"
+            aria-label="Como jogar e regras da Vigília"
             title="Como Jogar"
             className="min-w-[44px] min-h-[44px] px-1.5 bg-[#2B2119] border border-[#947044] text-[#D6C29A] hover:text-[#EFE2C4] text-[10px] font-roman font-bold flex flex-col items-center justify-center leading-tight cursor-pointer"
           >
@@ -1401,17 +1402,17 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   idleActive,
 }) => {
   const navItems: { id: MainTabId; label: string; badge?: string }[] = [
-    { id: 'character', label: 'Personagem' },
-    { id: 'expeditions', label: 'Expedições', badge: idleActive ? 'Auto' : undefined },
-    { id: 'arena', label: 'Arena' },
-    { id: 'inventory', label: 'Inventário', badge: `${inventoryCount}/${maxInventory}` },
-    { id: 'city', label: 'Cidade' },
+    { id: 'character', label: NAVIGATION_LABELS.character },
+    { id: 'expeditions', label: NAVIGATION_LABELS.expeditions, badge: idleActive ? 'Auto' : undefined },
+    { id: 'arena', label: NAVIGATION_LABELS.arena },
+    { id: 'inventory', label: NAVIGATION_LABELS.inventory, badge: `${inventoryCount}/${maxInventory}` },
+    { id: 'city', label: NAVIGATION_LABELS.city },
   ];
 
 
   return (
     <nav
-      aria-label="Navegação Principal do Ludus"
+      aria-label="Navegação Principal da Vigília"
       className="ludus-navigation fixed bottom-0 left-0 right-0 z-30 bg-[#1B140F] border-t-2 border-[#947044] shadow-lg"
     >
       <div className="max-w-5xl mx-auto grid grid-cols-5">
@@ -1515,7 +1516,7 @@ export interface GameShellProps {
 
 export const GameShell: React.FC<GameShellProps> = ({
   activeTab = 'character',
-  sectionTitle = 'Seu gladiador',
+  sectionTitle = 'Seu herói',
   resourceBar,
   bottomNav,
   guidedOnboardingBar,
@@ -1556,8 +1557,8 @@ export const GameShell: React.FC<GameShellProps> = ({
 
       <main className="imperium-main flex-1 w-full max-w-5xl mx-auto px-2.5 sm:px-4 pt-3 pb-20">
         <div className="imperium-hero" style={{ backgroundImage: `linear-gradient(90deg, #0c1016 5%, #0c1016a8 60%, #0c101633), url(${IMAGE_ASSETS.titleBackdrop})` }}>
-          <div><span className="eyebrow">GLADIATORUM / ARENA AETERNA</span><h1>{sectionTitle}</h1><p>Forje seu nome. Conquiste seu legado.</p></div>
-          <span className="hero-seal" aria-hidden="true">SPQR</span>
+          <div><span className="eyebrow">{GAME_IDENTITY.name.toUpperCase()} / {GAME_IDENTITY.subtitle.toUpperCase()}</span><h1>{sectionTitle}</h1><p>{GAME_IDENTITY.tagline}</p></div>
+          <span className="hero-seal" aria-hidden="true">V</span>
         </div>
         {children}
       </main>
@@ -1566,6 +1567,7 @@ export const GameShell: React.FC<GameShellProps> = ({
     </div>
   );
 };
+
 
 
 

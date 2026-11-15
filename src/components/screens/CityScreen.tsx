@@ -4,6 +4,7 @@ import { ChronicleScreen } from './ChronicleScreen';
 import { EquipmentFilters, EMPTY_EQUIPMENT_FILTER, matchesEquipmentFilter } from '../ui/EquipmentFilters';
 import { DESIGN_TOKENS } from '../../design/tokens';
 import { ItemArtwork } from '../../design/assets';
+import { getHeroicItemName } from '../../game/heroIdentity';
 import {
   DUNGEONS,
   DungeonDifficulty,
@@ -112,7 +113,7 @@ interface CityScreenProps {
   onResetDungeonRun: (dungeonId: string) => void;
   onClaimReward: (claimId: string) => void;
   onInspectCombatReport: (report: CombatReport) => void;
-  // Handlers de Guilda
+  // Handlers de Aliança
   onCreateGuild: (input: {
     name: string;
     tag: string;
@@ -314,16 +315,16 @@ export const CityScreen: React.FC<CityScreenProps> = ({
 
   return (
     <div className="city-screen space-y-4">
-      <RomanSceneArt scene="city" label="Panorama de Cápua com mercado, forja e templo" className="city-panorama">
-        <div className="city-intro"><span>BEM-VINDO A CÁPUA</span><h2>Todos os caminhos levam à glória.</h2></div>
-        <div className="city-locations" aria-label="Serviços da cidade">
+      <RomanSceneArt scene="city" label="Centro de comando da Vigília com setores de treinamento, laboratório e alianças" className="city-panorama">
+        <div className="city-intro"><span>BASE CENTRAL DA VIGÍLIA</span><h2>O próximo chamado começa aqui.</h2></div>
+        <div className="city-locations" aria-label="Setores da agência">
           {([
-            ['training', 'Campo de Treino', 'character', 'Aprimore seus atributos'],
-            ['forge', 'Forja de Cápua', 'city', 'Aprimore seu equipamento'],
-            ['market', 'Mercado', 'inventory', 'Armas e equipamentos'],
-            ['medicina', 'Casa de Medicina', 'city', 'Cuidados e remédios'],
-            ['dungeons', 'Catacumbas', 'arena', 'Explore as masmorras'],
-            ['guild', 'Sede das Guildas', 'city', 'Encontre sua guilda'],
+            ['training', 'Centro de Treino', 'character', 'Aprimore seus atributos'],
+            ['forge', 'Laboratório de Equipamento', 'city', 'Aprimore seu equipamento'],
+            ['market', 'Mercado Tático', 'inventory', 'Armas e equipamentos'],
+            ['medicina', 'Unidade Médica', 'city', 'Cuidados e remédios'],
+            ['dungeons', 'Zonas de Incursão', 'arena', 'Enfrente ameaças maiores'],
+            ['guild', 'Alianças', 'city', 'Encontre sua equipe'],
             ['chronicle', 'Contratos & Coleção', 'expeditions', 'Contratos e acervo'],
           ] as const).map(([tab, label, emblem, description]) => <button type="button" key={tab} aria-pressed={subTab === tab} onClick={() => { selectSubTab(tab); servicesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className={`city-location location-${tab}`}>
             <NavigationEmblem kind={emblem}/><strong>{label}</strong><small>{description}</small>
@@ -402,7 +403,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
               : 'bg-[#2B2119] text-[#D6C29A] border-[#5E4527] hover:text-[#EFE2C4]'
           }`}
         >
-          Guilda {guildBonuses.guildTag ? `[${guildBonuses.guildTag}]` : ''}
+          Aliança {guildBonuses.guildTag ? `[${guildBonuses.guildTag}]` : ''}
         </button>
         <button
           type="button"
@@ -430,8 +431,8 @@ export const CityScreen: React.FC<CityScreenProps> = ({
           title="Campo de Treinamento do Doctore"
           subtitle={`Saldo disponível: ${state.gold} denários · ${
             guildBonuses.belongsToGuild
-              ? `Desconto da Guilda [${guildBonuses.guildTag}]: -${guildBonuses.trainingDiscountPercent}% ativo`
-              : 'Sem desconto de guilda (Junte-se a uma Guilda para descontos)'
+              ? `Desconto da Aliança [${guildBonuses.guildTag}]: -${guildBonuses.trainingDiscountPercent}% ativo`
+              : 'Sem desconto de guilda (Junte-se a uma Aliança para descontos)'
           }`}
           variant="parchment"
         >
@@ -471,8 +472,8 @@ export const CityScreen: React.FC<CityScreenProps> = ({
 
               const descWithDiscount =
                 pricing.discountPercent > 0
-                  ? `${meta.description} · Preço Base: ${pricing.baseCost}g | Desconto Guilda (-${pricing.discountPercent}%): -${pricing.discountAmount}g | Final: ${pricing.finalCost}g`
-                  : `${meta.description} · Preço Base: ${pricing.baseCost} Ouro`;
+                  ? `${meta.description} · Preço Base: ${pricing.baseCost}g | Desconto Aliança (-${pricing.discountPercent}%): -${pricing.discountAmount}g | Final: ${pricing.finalCost}g`
+                  : `${meta.description} · Preço Base: ${pricing.baseCost} Créditos`;
 
               return (
                 <StatRow
@@ -490,11 +491,11 @@ export const CityScreen: React.FC<CityScreenProps> = ({
                       disabled={!canAfford}
                       disabledReason={
                         !canAfford
-                          ? `Faltam ${pricing.finalCost - state.gold} Ouro`
+                          ? `Faltam ${pricing.finalCost - state.gold} Créditos`
                           : undefined
                       }
                     >
-                      Treinar +1 ({pricing.finalCost} Ouro)
+                      Treinar +1 ({pricing.finalCost} Créditos)
                     </GameButton>
                   }
                 />
@@ -506,8 +507,8 @@ export const CityScreen: React.FC<CityScreenProps> = ({
 
       {subTab === 'forge' && (
         <RomanPanel
-          title="Forja de Cápua"
-          subtitle={`Ouro: ${state.gold} denários · Até ${GAME_CONFIG.forge.maxItemLevel} melhorias por equipamento`}
+          title="Laboratório de Equipamentos"
+          subtitle={`Créditos: ${state.gold} · Até ${GAME_CONFIG.forge.maxItemLevel} melhorias por equipamento`}
           variant="stone"
         >
           <p className="mb-4 text-xs leading-relaxed text-[#C9B894] sm:text-sm">
@@ -550,7 +551,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
                           </span>
                         </span>
                         <span className="line-clamp-2 text-[10px] font-semibold leading-tight text-[#EFE2C4] sm:text-xs">
-                          {item.name}
+                          {getHeroicItemName(item.name)}
                         </span>
                         <span className="text-[9px] uppercase tracking-wide text-[#B8A686]">
                           {equipped ? 'Equipado' : 'Mochila'} · {item.forgeLevel ?? 0}/
@@ -572,9 +573,9 @@ export const CityScreen: React.FC<CityScreenProps> = ({
                       <ItemArtwork iconId={selectedForgeItem.iconId} rarity={selectedForgeItem.rarity} size={54} />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-roman text-base font-bold text-[#F0D49B]">{selectedForgeItem.name}</h3>
+                      <h3 className="font-roman text-base font-bold text-[#F0D49B]">{getHeroicItemName(selectedForgeItem.name)}</h3>
                       <p className="text-xs text-[#B8A686]">
-                        {selectedItemIsEquipped ? 'Equipado no gladiador' : 'Guardado na mochila'}
+                        {selectedItemIsEquipped ? 'Equipado no herói' : 'Guardado no inventário'}
                         {' · '}Forja {selectedForgeItem.forgeLevel ?? 0}/{GAME_CONFIG.forge.maxItemLevel}
                       </p>
                     </div>
@@ -785,7 +786,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
         <div className="space-y-4">
           <RomanPanel
             title="Valetudinarium · cuidados médicos"
-            subtitle={`Vitalidade: ${state.currentHp}/${derived.maxHp} PV · Energia: ${state.energy}/${state.maxEnergy} · Saldo: ${state.gold} Ouro`}
+            subtitle={`Vitalidade: ${state.currentHp}/${derived.maxHp} PV · Energia: ${state.energy}/${state.maxEnergy} · Saldo: ${state.gold} Créditos`}
             variant="stone"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 bg-[#17120F] p-3 border border-[#947044]">
@@ -875,7 +876,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
                             Requisito: Nível {trt.minLevel}
                           </span>
                           <span className="text-xs font-bold tabular-nums text-[#D4B26A]">
-                            Custo: {cost} Ouro
+                            Custo: {cost} Créditos
                           </span>
                         </div>
                         <h4 className="font-roman font-bold text-sm sm:text-base text-[#EFE2C4] mt-0.5">
@@ -907,11 +908,11 @@ export const CityScreen: React.FC<CityScreenProps> = ({
                             : alreadyFull
                             ? 'Vitalidade/Energia já estão no máximo'
                             : !canAfford
-                            ? `Faltam ${cost - state.gold} Ouro`
+                            ? `Faltam ${cost - state.gold} Créditos`
                             : undefined
                         }
                       >
-                        Receber Tratamento ({cost} Ouro)
+                        Receber Tratamento ({cost} Créditos)
                       </GameButton>
                     </div>
                   </div>
@@ -985,11 +986,11 @@ export const CityScreen: React.FC<CityScreenProps> = ({
                           inventoryFull
                             ? 'Mochila cheia (20/20)'
                             : !canAfford
-                            ? `Faltam ${tpl.buyPrice - state.gold} Ouro`
+                            ? `Faltam ${tpl.buyPrice - state.gold} Créditos`
                             : undefined
                         }
                       >
-                        Comprar ({tpl.buyPrice} Ouro)
+                        Comprar ({tpl.buyPrice} Créditos)
                       </GameButton>
                     </div>
                   </div>
@@ -1259,6 +1260,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
     </div>
   );
 };
+
 
 
 

@@ -342,7 +342,7 @@ async function startServer() {
   const engine = new OnlineAuthorityEngine({
     persistencePath,
     seedInitialOnlineGuilds: false,
-    launchId: 'gladiatorum-public-launch-2026-11-12',
+    launchId: 'vigilia-public-launch-2026-11-15',
   });
   const app = createAuthoritativeExpressApp(engine);
 
@@ -378,4 +378,5 @@ if (
     process.exit(1);
   });
 }
+
 

@@ -65,9 +65,9 @@ export const ExpeditionsScreen: React.FC<ExpeditionsScreenProps> = ({
 
   return (
     <div className="expeditions-screen space-y-4">
-      <section className="campaign-map" aria-label="Mapa das expedições">
-        <RomanSceneArt scene="map" label="Mapa ilustrado com florestas, montanhas e ruínas romanas">
-          <div className="map-cartouche"><span>PROVÍNCIAS DO IMPÉRIO</span><h2>Mapa de Expedição</h2><p>Escolha seu próximo destino</p></div>
+      <section className="campaign-map" aria-label="Mapa de operações">
+        <RomanSceneArt scene="map" label="Mapa tático holográfico com zonas de risco e pontos de incursão">
+          <div className="map-cartouche"><span>REDE DE OPERAÇÕES DA VIGÍLIA</span><h2>Mapa Tático</h2><p>Escolha o próximo chamado</p></div>
           <div className="map-destinations">
             {EXPEDITION_REGIONS.map((region, index) => <button key={region.id} type="button"
               aria-pressed={region.id === selectedRegionId}
@@ -91,17 +91,17 @@ export const ExpeditionsScreen: React.FC<ExpeditionsScreenProps> = ({
 
       {/* Painel de Estratégia e Comando de Progressão Idle (Item 10) */}
       <RomanPanel
-        title="Comando de Patrulha automática e Foco Tático"
+        title="Operação Automática e Foco Tático"
         subtitle={`Repetição automática em segundo plano · Limite quando estiver fora do jogo: ${
           GAME_CONFIG.maxOfflineSeconds / 3600
         } horas`}
         variant="wood"
       >
         <div className="space-y-3">
-          {/* Escolha de Foco de Atividade: Ouro, Experiência ou Equipamentos */}
+          {/* Escolha de Foco de Atividade: Créditos, Experiência ou Equipamentos */}
           <div>
             <span className="block text-xs font-roman font-bold text-[#D4B26A] mb-1.5">
-              1. Escolha o foco da atividade. Ele afeta as incursões manuais e a patrulha automática.
+              1. Escolha o foco da atividade. Ele afeta as incursões manuais e as operações automáticas.
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {(Object.keys(IDLE_FOCUS_DEFINITIONS) as IdleFocusMode[]).map((modeKey) => {
@@ -186,7 +186,7 @@ export const ExpeditionsScreen: React.FC<ExpeditionsScreenProps> = ({
         </div>
       </RomanPanel>
 
-      {/* Seletor de Regiões de Expedição */}
+      {/* Seletor de Regiões de Operação */}
       <RomanPanel
         title="Territórios Hostis da Itália"
         subtitle="Selecione a região para ver inimigos, requisitos de desbloqueio e ganhos ajustados pelo Foco"
@@ -357,3 +357,4 @@ export const ExpeditionsScreen: React.FC<ExpeditionsScreenProps> = ({
     </div>
   );
 };
+

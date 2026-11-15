@@ -33,10 +33,10 @@ const CATEGORY_META: Record<
   { label: string; unit: string; description: string }
 > = {
   honor: {
-    label: 'Honra Geral',
-    unit: 'Honra',
+    label: 'Reputação Geral',
+    unit: 'Reputação',
     description:
-      'Pontuação competitiva principal conquistada em vitórias validadas na Arena, Expedições e Patrulhas.',
+      'Pontuação competitiva principal conquistada em vitórias validadas na Arena, Operações e Patrulhas.',
   },
   fame: {
     label: 'Fama Provincial',
@@ -47,18 +47,18 @@ const CATEGORY_META: Record<
   wins: {
     label: 'Vitórias',
     unit: 'Vitórias',
-    description: 'Total acumulado de combates vencidos pelo gladiador.',
+    description: 'Total acumulado de combates vencidos pelo herói.',
   },
   feats: {
     label: 'Proezas',
     unit: 'Proezas',
-    description: 'Marcos históricos e façanhas marciais concluídas em Cápua.',
+    description: 'Marcos e façanhas conquistados nas zonas da Vigília.',
   },
   gold_looted: {
-    label: 'Ouro Saqueado',
-    unit: 'Ouro',
+    label: 'Créditos Saqueado',
+    unit: 'Créditos',
     description:
-      'Soma histórica de denários saqueados em combates (não equivale ao saldo atual na carteira).',
+      'Total histórico de créditos obtidos em combate (não equivale ao saldo atual da carteira).',
   },
 };
 
@@ -321,7 +321,7 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
               : 'Modo visitante:'}
           </strong>{' '}
           {isOnlineMode
-            ? `Gladiadores reais da comunidade · Atualizada às ${formattedUpdatedTime}. Adversários fixos da Arena e campeões locais não entram nesta classificação.`
+            ? `Heróis reais da comunidade · Atualizada às ${formattedUpdatedTime}. Adversários fixos da Arena e campeões locais não entram nesta classificação.`
             : 'Você está no modo visitante. Estes dados são simulados; conecte sua conta para disputar a classificação online.'}
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -331,7 +331,7 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
         </div>
       </div>
 
-      {/* Alternador Principal: Jogadores vs Guildas */}
+      {/* Alternador Principal: Jogadores vs Alianças */}
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
@@ -346,7 +346,7 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
               : 'bg-[#2B2119] text-[#D6C29A] border-[#5E4527]'
           }`}
         >
-          Gladiadores ({totalPlayersCount}) · Sua Posição: #{playerOwnEntry?.rank ?? '-'}
+          Heróis ({totalPlayersCount}) · Sua Posição: #{playerOwnEntry?.rank ?? '-'}
         </button>
         <button
           type="button"
@@ -361,8 +361,8 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
               : 'bg-[#2B2119] text-[#D6C29A] border-[#5E4527]'
           }`}
         >
-          Guildas ({totalGuildsCount})
-          {playerGuildEntry ? ` · Sua Guilda: #${playerGuildEntry.rank}` : ''}
+          Alianças ({totalGuildsCount})
+          {playerGuildEntry ? ` · Sua Aliança: #${playerGuildEntry.rank}` : ''}
         </button>
       </div>
 
@@ -395,7 +395,7 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
           </div>
           <p className="text-[11px] text-[#B8A686] px-1">
             <strong>Critério ({CATEGORY_META[category].label}):</strong>{' '}
-            {CATEGORY_META[category].description} Desempate determinístico por Honra, Nível,
+            {CATEGORY_META[category].description} Desempate determinístico por Reputação, Nível,
             Vitórias e UID.
           </p>
         </div>
@@ -403,8 +403,8 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
 
       {rankingMode === 'guilds' && (
         <p className="text-[11px] text-[#B8A686] px-1">
-          <strong>Critério de Guildas:</strong> Soma exata da Honra dos membros atuais validados
-          no servidor. Doações de ouro nunca somam Honra e membros removidos deixam de pontuar
+          <strong>Critério de Alianças:</strong> Soma exata da Reputação dos membros atuais validados
+          no servidor. Doações de ouro nunca somam Reputação e membros removidos deixam de pontuar
           imediatamente.
         </p>
       )}
@@ -414,7 +414,7 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
         title={
           rankingMode === 'players'
             ? `Tábua de Classificação — ${CATEGORY_META[category].label}`
-            : 'Tábua de Classificação — Guildas de Cápua'
+            : 'Classificação — Alianças da Vigília'
         }
         subtitle={
           isOnlineMode
@@ -439,7 +439,7 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
               ? `#${playerOwnEntry?.rank ?? '-'}`
               : playerGuildEntry
               ? `#${playerGuildEntry.rank}`
-              : 'Sem Guilda'}
+              : 'Sem Aliança'}
             )
           </GameButton>
         }
@@ -565,7 +565,7 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
                       </div>
                       <div className="text-[11px] text-[#B8A686] tabular-nums">
                         Nível {entry.level} · {entry.title}
-                        {category !== 'honor' ? ` · ${entry.honor} Honra` : ''}
+                        {category !== 'honor' ? ` · ${entry.honor} Reputação` : ''}
                       </div>
                     </div>
                   </div>
@@ -624,13 +624,13 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
                       </span>
                       {g.isPlayerGuild && (
                         <span className="px-1.5 py-0.5 text-[10px] font-bold bg-[#792B28] text-[#EFE2C4] border border-[#D4B26A]">
-                          Sua Guilda
+                          Sua Aliança
                         </span>
                       )}
                     </div>
                     <div className="text-[11px] text-[#B8A686] tabular-nums">
                       Membros: <strong>{g.memberCount}/{g.maxCapacity}</strong> · Média:{' '}
-                      <strong>{g.averageHonor} Honra</strong> · Líder: {g.leaderName}
+                      <strong>{g.averageHonor} Reputação</strong> · Líder: {g.leaderName}
                     </div>
                   </div>
                 </div>
@@ -640,7 +640,7 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
                     {g.totalHonor}
                   </span>
                   <span className="text-[10px] uppercase text-[#B8A686]">
-                    Honra Total
+                    Reputação Total
                   </span>
                 </div>
               </div>
@@ -676,15 +676,15 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
         </div>
       </RomanPanel>
 
-      {/* Atalho para a aba Guilda */}
+      {/* Atalho para a aba Aliança */}
       <div className="p-3 bg-[#1D1510] border border-[#5E4527] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
         <span className="text-[#D6C29A]">
           {playerGuildEntry
-            ? `Sua guilda [${playerGuildEntry.tag}] ${playerGuildEntry.name} ocupa a posição #${playerGuildEntry.rank} com ${playerGuildEntry.totalHonor} pontos de Honra.`
-            : 'Você ainda é um gladiador independente. Junte-se a uma guilda ou funde a sua para disputar a classificação de guildas!'}
+            ? `Sua guilda [${playerGuildEntry.tag}] ${playerGuildEntry.name} ocupa a posição #${playerGuildEntry.rank} com ${playerGuildEntry.totalHonor} pontos de Reputação.`
+            : 'Você ainda atua por conta própria. Junte-se a uma aliança ou forme a sua para disputar a classificação!'}
         </span>
         <GameButton variant="bronze" size="sm" onClick={onOpenGuildTab}>
-          {playerGuildEntry ? 'Abrir Sede da Guilda' : 'Explorar Guildas'}
+          {playerGuildEntry ? 'Abrir Sede da Aliança' : 'Explorar Alianças'}
         </GameButton>
       </div>
 
@@ -716,4 +716,5 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
     </div>
   );
 };
+
 
