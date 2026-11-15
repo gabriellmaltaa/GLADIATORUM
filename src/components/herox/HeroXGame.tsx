@@ -13,8 +13,9 @@ import {
 } from '../../services/heroxClient';
 import { keepPreviousOnRefreshFailure } from '../../services/heroxApi';
 import { logoutFirebaseSession, signInWithGooglePopup, subscribeToAuthState, type OnlineSessionUser } from '../../services/firebaseAuth';
+import { ArenaGame } from './ArenaGame';
 
-type Section = 'overview' | 'campaign' | 'arena' | 'powers';
+type Section = 'overview' | 'campaign' | 'arena' | 'powers' | 'extraction';
 
 const attributeLabels: Record<HeroAttribute, string> = {
   power: 'Poder',
@@ -200,6 +201,7 @@ export function HeroXGame() {
                 ['campaign', 'Campanha', <Shield size={16} />],
                 ['arena', 'Arena PvP', <Swords size={16} />],
                 ['powers', 'Poderes', <Zap size={16} />],
+                ['extraction', 'Incursão 2D', <Swords size={16} />],
               ] as [Section, string, ReactNode][]).map(([id, label, icon]) => (
                 <button key={id} aria-current={section === id ? 'page' : undefined} onClick={() => setSection(id)}>{icon}{label}</button>
               ))}
@@ -253,6 +255,10 @@ export function HeroXGame() {
                 })}</div>
               </section>
             )}
+
+            {player && user && section === 'extraction' && (
+              <ArenaGame player={player} onPlayerUpdate={setPlayer} onExit={() => setSection('overview')} />
+            )}
           </>
         )}
 
@@ -261,3 +267,4 @@ export function HeroXGame() {
     </main>
   );
 }
+

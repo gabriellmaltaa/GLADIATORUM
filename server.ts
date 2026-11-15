@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import { createServer } from 'node:http';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import express, { type Request, type Response, type NextFunction } from 'express';
@@ -10,6 +11,7 @@ import {
 } from './src/server/onlineAuthorityEngine.ts';
 import type { PlayerRankingCategory } from './src/game/guildsAndRankings.ts';
 import { createHeroRepository, HEROX_CATALOG, HeroXAuthority } from './src/server/heroxAuthority.ts';
+import { attachHeroXArenaSocket } from './src/server/heroxArenaSocket.ts';
 
 const firebaseConfig = JSON.parse(
   fs.readFileSync(path.resolve(process.cwd(), 'firebase-applet-config.json'), 'utf-8')
@@ -179,7 +181,7 @@ export function createAuthoritativeExpressApp(engine: OnlineAuthorityEngine, her
   });
 
   app.get('/api/herox/health', (_req, res) => {
-    res.json({ ok: true, service: 'herox', status: 'online', version: 1, persistence: herox?.persistenceMode ?? 'unavailable' });
+    res.json({ ok: true, service: 'herox', status: 'online', version: 1, arena: 'websocket', persistence: herox?.persistenceMode ?? 'unavailable' });
   });
 
   app.get('/api/herox/v1/catalog', (_req, res) => {
@@ -410,6 +412,8 @@ async function startServer() {
   });
   const herox = new HeroXAuthority(heroxRepository);
   const app = createAuthoritativeExpressApp(engine, herox);
+  const httpServer = createServer(app);
+  attachHeroXArenaSocket(httpServer, herox, async (token) => verifyFirebaseBearerToken(`Bearer ${token}`));
 
   if (!IS_PROD) {
     const { createServer: createViteServer } = await import('vite');
@@ -426,7 +430,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(
       `[HEROX API] Rodando em http://0.0.0.0:${PORT} (Firebase Project: ${firebaseConfig.projectId}; persistence: ${herox.persistenceMode})`
     );
@@ -443,5 +447,6 @@ if (
     process.exit(1);
   });
 }
+
 
 
