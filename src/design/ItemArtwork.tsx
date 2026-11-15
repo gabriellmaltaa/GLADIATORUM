@@ -26,7 +26,7 @@ export function ItemArtwork({ iconId, rarity = 'common', size = 48, className = 
       backgroundImage: `url(${atlas})`, backgroundPosition: `${((index % 5) + .04) / 4.08 * 100}% ${(Math.floor(index / 5) + .04) / 4.08 * 100}%`,
     }} /> : <EquipmentArt iconId={iconId} size={size} />}
     {effect.strength > 0 && <span className="item-portrait-aura" />}
-    {effect.strength >= .38 && <span className="item-portrait-stars">✦</span>}
+    {effect.strength >= .38 && <span className="item-portrait-ornament">◆</span>}
   </span>;
 }
 

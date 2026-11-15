@@ -16,3 +16,23 @@ test('A navegação da Cidade mantém os sete locais dentro da altura mobile do 
   assert.ok(mobileCityLayout, 'as regras mobile da Cidade devem permanecer agrupadas');
   assert.match(mobileCityLayout, /gap: 10px 4px;/);
 });
+
+test('Revisão estética e textual mantém CTA Google unificado, raridade textual no slot e ornamento discreto sem estrela animada', () => {
+  const appSource = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf8');
+  const romanComponentsSource = fs.readFileSync(path.resolve(process.cwd(), 'src/components/ui/RomanComponents.tsx'), 'utf8');
+  const artworkSource = fs.readFileSync(path.resolve(process.cwd(), 'src/design/ItemArtwork.tsx'), 'utf8');
+  const assetsSource = fs.readFileSync(path.resolve(process.cwd(), 'src/design/assets.tsx'), 'utf8');
+  const cssSource = fs.readFileSync(path.resolve(process.cwd(), 'src/design/roman-identity.css'), 'utf8');
+
+  assert.match(appSource, /Conectar conta com Google/);
+  assert.doesNotMatch(appSource, /Entrar com Google/);
+  assert.match(appSource, /Modo visitante · progresso salvo neste navegador/);
+  assert.match(appSource, /const CityScreen = lazy\(/);
+  assert.match(romanComponentsSource, /rarityInfo\.label/);
+  assert.match(romanComponentsSource, /Moldura e brilho indicam apenas a raridade visual/);
+  assert.match(artworkSource, /item-portrait-ornament/);
+  assert.doesNotMatch(artworkSource, /item-portrait-stars/);
+  assert.doesNotMatch(cssSource, /\.item-portrait-stars/);
+  assert.match(assetsSource, /loading = 'lazy'/);
+  assert.match(assetsSource, /decoding="async"/);
+});

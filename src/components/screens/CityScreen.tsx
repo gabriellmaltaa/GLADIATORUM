@@ -323,8 +323,8 @@ export const CityScreen: React.FC<CityScreenProps> = ({
             ['market', 'Mercado', 'inventory', 'Armas e equipamentos'],
             ['medicina', 'Casa de Medicina', 'city', 'Cuidados e remédios'],
             ['dungeons', 'Catacumbas', 'arena', 'Explore as masmorras'],
-            ['guild', 'Sede das Guildas', 'city', 'Encontre sua aliança'],
-            ['chronicle', 'Arquivo Imperial', 'expeditions', 'Contratos e coleção'],
+            ['guild', 'Sede das Guildas', 'city', 'Encontre sua guilda'],
+            ['chronicle', 'Contratos & Coleção', 'expeditions', 'Contratos e acervo'],
           ] as const).map(([tab, label, emblem, description]) => <button type="button" key={tab} aria-pressed={subTab === tab} onClick={() => { selectSubTab(tab); servicesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} className={`city-location location-${tab}`}>
             <NavigationEmblem kind={emblem}/><strong>{label}</strong><small>{description}</small>
           </button>)}
@@ -655,8 +655,8 @@ export const CityScreen: React.FC<CityScreenProps> = ({
       {subTab === 'market' && (
         <div className="space-y-4">
           <RomanPanel
-            title="Mercado de Armamentos e Raridades do Fórum"
-            subtitle={`Saldo: ${state.gold} denários · Mochila: ${state.inventory.length}/${inventoryCapacity} · 12 raridades conquistáveis`}
+            title="Mercado do Fórum"
+            subtitle={`Saldo: ${state.gold} denários · Mochila: ${state.inventory.length}/${inventoryCapacity} espaços · 12 raridades conquistáveis`}
             variant="stone"
           >
             <EquipmentFilters value={equipmentFilter} onChange={setEquipmentFilter} discoveredTemplates={state.discoveredTemplates} />
@@ -684,7 +684,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
                     [
                       { id: 'all', label: 'Todos' },
                       { id: 'equipment', label: 'Armas & Armaduras' },
-                      { id: 'medicine', label: 'Medicina' },
+                      { id: 'medicine', label: 'Medicamentos' },
                       { id: 'high_rarity', label: 'Raridades superiores' },
                     ] as const
                   ).map((f) => (
@@ -784,7 +784,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
       {subTab === 'medicina' && (
         <div className="space-y-4">
           <RomanPanel
-            title="Valetudinarium — Medicina Romana e Cirurgia Militar"
+            title="Valetudinarium · cuidados médicos"
             subtitle={`Vitalidade: ${state.currentHp}/${derived.maxHp} PV · Energia: ${state.energy}/${state.maxEnergy} · Saldo: ${state.gold} Ouro`}
             variant="stone"
           >
@@ -1005,7 +1005,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
           {/* Painel de Filtro de Dificuldades e Seleção das Masmorras */}
           <RomanPanel
             title={`Atlas de Masmorras e Catacumbas (${DUNGEONS.length} Masmorras)`}
-            subtitle={`${DUNGEON_DIFFICULTIES.length - 1} Graus de Dificuldade (Iniciante a Apocalíptico) · Total de incursões concluídas: ${totalDungeonsCompleted}`}
+            subtitle={`${DUNGEON_DIFFICULTIES.length - 1} níveis de dificuldade (Iniciante a Apocalíptico) · Total de incursões concluídas: ${totalDungeonsCompleted}`}
             variant="stone"
           >
             <div className="flex flex-wrap gap-1.5 mb-3 pb-2.5 border-b border-[#5E4527]">
@@ -1095,7 +1095,7 @@ export const CityScreen: React.FC<CityScreenProps> = ({
           {/* Detalhes e Combate da Masmorra Selecionada */}
           <RomanPanel
             title={`${activeDungeon.name} [${activeDungeon.difficulty ?? 'Iniciante'}]`}
-            subtitle={`${activeDungeon.subtitle} · Nível Mínimo: ${activeDungeon.minLevel} · Concluída ${dungeonProg.completedCount} vez(es)`}
+            subtitle={`${activeDungeon.subtitle} · Nível mínimo: ${activeDungeon.minLevel} · Concluída ${dungeonProg.completedCount} ${dungeonProg.completedCount === 1 ? 'vez' : 'vezes'}`}
             variant="wood"
           >
             <p className="text-xs sm:text-sm text-[#D6C29A] mb-3 leading-relaxed">

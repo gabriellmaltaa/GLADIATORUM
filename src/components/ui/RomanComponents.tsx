@@ -310,10 +310,10 @@ export const ItemSlot: React.FC<ItemSlotProps> = ({
     : DESIGN_TOKENS.colors.rarity.common;
 
   const slotLabel = item?.consumable
-    ? 'Medicina'
+    ? 'Medicamentos'
     : slotType
     ? EQUIPMENT_SLOT_LABELS[slotType]
-    : 'Slot';
+    : 'Espaço';
   const ariaLabel = item
     ? `${item.name} (${rarityInfo.label}) — ${slotLabel}`
     : `${slotLabel} vazio`;
@@ -331,6 +331,7 @@ export const ItemSlot: React.FC<ItemSlotProps> = ({
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
+      title={item ? `${item.name} · ${rarityInfo.label} (Nv.${item.levelReq})` : ariaLabel}
       style={{
         borderColor: item ? rarityInfo.border : '#5E4527',
       }}
@@ -340,13 +341,23 @@ export const ItemSlot: React.FC<ItemSlotProps> = ({
     >
       {item ? (
         <>
-          <ItemArtwork iconId={item.iconId} rarity={item.rarity} size={size === 'lg' ? 56 : 46} />
-          <span className="absolute bottom-0.5 right-0.5 text-[9.5px] font-bold tabular-nums px-1 bg-[#17120F]/90 text-[#EFE2C4] border border-[#5E4527]">
+          <ItemArtwork iconId={item.iconId} rarity={item.rarity} size={size === 'lg' ? 50 : 42} />
+          <span
+            style={{
+              backgroundColor: rarityInfo.badgeBg,
+              color: rarityInfo.textOnDark,
+              borderColor: rarityInfo.border,
+            }}
+            className="absolute bottom-0.5 left-0.5 max-w-[34px] truncate text-[7.5px] leading-tight font-bold px-0.5 border"
+          >
+            {rarityInfo.label}
+          </span>
+          <span className="absolute bottom-0.5 right-0.5 text-[8.5px] leading-tight font-bold tabular-nums px-0.5 bg-[#17120F]/90 text-[#EFE2C4] border border-[#5E4527]">
             Nv.{item.levelReq}
           </span>
           {effectiveBadge && (
             <span
-              className={`absolute top-0.5 left-0.5 text-[8.5px] font-bold px-1 text-[#EFE2C4] ${
+              className={`absolute top-0.5 left-0.5 text-[8px] leading-tight font-bold px-1 text-[#EFE2C4] ${
                 item.consumable ? 'bg-[#3E6B3A]' : 'bg-[#792B28]'
               }`}
             >
@@ -501,6 +512,9 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
             {item.name}
           </h3>
           <p className="text-xs text-[#5C4935] mt-1 leading-relaxed">{item.description}</p>
+          <p className="text-[10px] text-[#5C4935]/90 mt-1">
+            Moldura e brilho indicam apenas a raridade visual ({rarity.label}), sem bônus oculto.
+          </p>
         </div>
       </div>
 
@@ -527,7 +541,7 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
             : isComparingDifferentItem
             ? `Comparação com equipado (${comparedEquippedItem?.name}):`
             : !comparedEquippedItem && mode !== 'equipped'
-            ? `Slot de ${EQUIPMENT_SLOT_LABELS[item.slot]} está vazio (Ganho direto):`
+            ? `Espaço de ${EQUIPMENT_SLOT_LABELS[item.slot]} está vazio (Ganho direto):`
             : 'Atributos do Equipamento:'}
         </div>
         {comparisonRows.map((row) => (
@@ -1320,11 +1334,11 @@ export const ResourceBar: React.FC<ResourceBarProps> = ({
             <button
               type="button"
               onClick={onOpenAccountModal}
-              aria-label={isOnlineMode ? 'Conta Online Conectada' : 'Conectar Conta Online'}
+              aria-label={isOnlineMode ? 'Conta Online Conectada' : 'Conectar conta com Google'}
               title={
                 isOnlineMode
                   ? `Conta Online: ${onlineAccountLabel ?? 'Conectada'}`
-                  : 'Entrar com Google / Migrar Progresso Local'
+                  : 'Conectar conta com Google / Migrar progresso local'
               }
               className={`min-w-[44px] min-h-[44px] px-1.5 border text-[10px] font-roman font-bold flex flex-col items-center justify-center leading-tight cursor-pointer ${
                 isOnlineMode
@@ -1332,7 +1346,7 @@ export const ResourceBar: React.FC<ResourceBarProps> = ({
                   : 'bg-[#541B19] border-[#B79552] text-[#EFE2C4]'
               }`}
             >
-              <span>{isOnlineMode ? 'Conta' : 'Entrar'}</span>
+              <span>{isOnlineMode ? 'Conta' : 'Conectar'}</span>
               <span className="text-[8px] text-[#D4B26A]">
                 {isOnlineMode ? 'Online' : 'Google'}
               </span>
