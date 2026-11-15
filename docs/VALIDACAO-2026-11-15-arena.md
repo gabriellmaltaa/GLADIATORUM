@@ -2,33 +2,34 @@
 
 ## Implementado localmente
 
-- Tela de incursão com menu integrado, status do herói, mochila de saque, poderes, vida/energia, timer e extração.
-- Arena lateral canvas com plataformas, caixas, pickups e personagens de roedores heróis originais.
+- Tela de incursão inspirada no mockup: menu integrado, timer/extração, mochila com seis espaços, habilidades, vida/energia e ação de extração rápida.
+- Arena lateral em canvas com cenário urbano em ruínas, plataformas/rampas de madeira, caixas, moedas/estrelas e roedores heróis com contorno cartunesco.
+- Callouts flutuantes para ouro, XP, armas, cura, energia e acertos; atalhos 1/Q disparam o poder disponível, enquanto os outros slots ficam desabilitados até existir comportamento autoritativo.
 - Matchmaking 1v1 humano por WebSocket, com autenticação Firebase no primeiro pacote, comandos validados, snapshots e desconexão sem vitória falsa.
+- Se a fila permanecer sem outro humano por 12 segundos, o servidor inicia uma luta com rival de treino claramente identificado. Ele não é salvo, ranqueado nem recebe recompensa.
 - Movimento e dano autoritativos; força, agilidade, vitalidade e intelecto afetam atributos da partida.
 - XP/ouro/armas só são persistidos após extração; derrotas não bancam mochila; ID de partida impede duplicar recompensa.
 
 ## Verificações executadas
 
-- `npm test`: 102 testes cliente/jogo aprovados e 2 testes server-side aprovados.
+- `npm test`: 106 testes cliente/jogo aprovados e 2 testes server-side aprovados.
 - `npm run lint`: aprovado.
 - `npm run build`: aprovado.
-- E2E local por WebSocket: dois perfis humanos de teste autenticaram, entraram na fila, receberam a mesma partida e snapshots; token inválido foi rejeitado; spam de controles foi limitado; desconexão cancelou sem prêmio e permitiu que o jogador restante voltasse à fila.
+- E2E local por WebSocket: perfis humanos de teste autenticaram e foram pareados; token inválido foi rejeitado; spam de controles foi limitado; desconexão não concedeu vitória falsa e o sobrevivente recebeu rival de treino após o tempo de espera configurado, sem criar perfil de bot no ranking.
 - Simulação: agilidade aumentou velocidade, força aumentou dano, vitalidade/nível determinaram PV máximo sem curar perfil ferido, salto respeitou limites, cada pickup carregou 15 XP e 5 ouro, arma coletada equipou durante a partida, saque só foi bancado na extração, KO encerrou a partida, e uma recompensa repetida não alterou o perfil.
 - Smoke HTTP local: `/api/herox/health` e `/api/herox/v1/catalog` responderam 200; health reportou `arena: websocket` e persistência `railway-volume`.
-- Produção após publicação: `/` respondeu 200 e serviu o bundle HEROX; health e catálogo responderam 200; `/api/herox/v1/me` sem token respondeu 401; WebSocket WSS abriu e rejeitou token inválido.
-- Railway: deploy `1da2e641-1338-481b-84a5-9d564fe483e3` do commit `619959d740291314a65a2a04969a9111c16ecf03` ficou `SUCCESS`; serviço online, 1 réplica, volume `gladiatorum-volume` mantido em `/app/.data`.
+- Publicação desta versão: pendente de merge e conclusão do deploy Railway.
 
 ## Figma
 
-- Protótipo criado: [HEROX — Arena 2D](https://www.figma.com/design/JwIKf4G7T9bcPTorWCDGmm).
-- O frame `HEROX · Incursão 2D · Menu e extração` contém a base editável 1920×1080, menu, barras, plataformas, loot HUD e extração. O limite de chamadas MCP do plano Starter bloqueou a adição dos personagens vetoriais finais ao frame; os heróis originais já estão renderizados no cliente canvas.
+- Protótipo existente: [HEROX — Arena 2D](https://www.figma.com/design/JwIKf4G7T9bcPTorWCDGmm).
+- A edição do frame para refletir a referência atual foi tentada, mas o Figma MCP recusou a chamada por limite do plano Starter. O código local continua como fonte editável da tela; o frame do Figma não foi atualizado nesta rodada.
 
 ## Limites e próximos passos
 
-- A sala de partida é mantida em memória: publicar com uma réplica Railway; escalar exige serviço compartilhado de salas/matchmaking.
+- A sala de partida é mantida em memória: usar uma réplica Railway; escalar exige serviço compartilhado de salas/matchmaking.
 - Este ambiente não tem autenticação de duas contas Google reais para validar tráfego de jogadores reais; os testes usaram identidades efêmeras de servidor e tokens inválidos.
-- O Figma está incompleto quanto às ilustrações vetoriais finais por limite do plano.
+- Atualizar o Figma ainda depende do limite de chamadas do plano Starter; não foi contornado.
 - Não houve sessão de duas contas Google reais para disputar a partida; o E2E local usa identidades temporárias e o gateway real de WebSocket.
-- Não foi possível inspecionar visualmente a página pelo Opera nesta sessão, embora os assets publicados e o build tenham sido verificados.
+- A inspeção visual desta rodada foi feita na prévia local em 1280×720; a interface publicada precisa de smoke test após o novo deploy.
 

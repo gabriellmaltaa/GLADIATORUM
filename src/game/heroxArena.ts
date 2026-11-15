@@ -11,6 +11,7 @@ export interface ArenaProfile {
   level?: number;
   attributes: { agility: number; power: number; vitality: number; intellect: number };
   health: number;
+  isBot?: boolean;
   weapons?: string[];
 }
 export interface ArenaInput {
@@ -25,6 +26,7 @@ export interface ArenaWeapon { id: string; name: string; damage: number; range: 
 export interface ArenaPlayerState {
   uid: string;
   heroName: string;
+  isBot: boolean;
   x: number;
   y: number;
   vx: number;
@@ -95,6 +97,7 @@ const createPlayer = (profile: ArenaProfile, x: number): ArenaPlayerState => {
   return {
     uid: profile.uid,
     heroName: profile.heroName.slice(0, 24),
+    isBot: profile.isBot === true,
     x,
     y: ARENA_FLOOR,
     vx: 0,
@@ -253,7 +256,7 @@ export function arenaSnapshot(match: ArenaMatch, now = Date.now()) {
     winnerUid: match.winnerUid,
     completionReason: match.completionReason,
     players: Object.fromEntries(Object.entries(match.players).map(([uid, player]) => [uid, {
-      uid, heroName: player.heroName, x: player.x, y: player.y, health: player.health, maxHealth: player.maxHealth,
+      uid, heroName: player.heroName, isBot: player.isBot, x: player.x, y: player.y, health: player.health, maxHealth: player.maxHealth,
       energy: player.energy, maxEnergy: player.maxEnergy, facing: player.facing, eliminated: player.eliminated,
       extracted: player.extracted, carriedGold: player.carriedGold, carriedXp: player.carriedXp,
       carriedWeapons: [...player.carriedWeapons], weaponId: player.weaponId,

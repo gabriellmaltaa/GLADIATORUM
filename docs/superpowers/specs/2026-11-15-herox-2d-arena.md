@@ -10,11 +10,11 @@ Add a playable, original, side-view HEROX extraction arena where authenticated h
 
 ## Player experience
 
-- Players sign in with the existing Firebase session, enter matchmaking, and join another human player. No bot is matched into the competitive queue.
+- Players sign in with the existing Firebase session. Matchmaking pairs two human players first; when a queue remains empty for 12 seconds, that player gets an explicitly labelled training bot inside this arena only.
 - A colorful 2D side-view arena uses platforms, gravity, movement, jump, basic attack, a special power, scattered loot, and active extraction points. A / D or arrow keys move, Space jumps, mouse click or J attacks, Q triggers the equipped power, and E interacts/extracts.
 - Agility raises movement speed, power (shown as Força in the arena) increases damage, vitality increases maximum health, and intellect strengthens the power effect.
 - Original sentinel and outcast hero silhouettes use authored canvas/vector shapes; the game does not copy Transformice art, characters, or assets.
-- A player banks carried loot only by extracting at an active point. Death or disconnect forfeits unextracted loot and never creates an automatic win or reward for the rival.
+- A player banks carried loot only by extracting at an active point. Death or disconnect forfeits unextracted loot. Training bots are temporary simulation opponents: they are never persisted as profiles, shown in rankings, or rewarded.
 - The match ends at defeat, extraction, or the time limit. The server settles the result, XP, gold, and deterministic weapon unlock once. Client state cannot grant awards.
 - Disconnects forfeit the disconnected player's carried loot and return the remaining player to the lobby after server resolution.
 
@@ -29,7 +29,7 @@ Add a playable, original, side-view HEROX extraction arena where authenticated h
 
 ## Out of scope
 
-- 2v2/large teams, ranked seasons, chat, trading, paid upgrades, bots in ranked play, mobile touch controls, and a distributed matchmaking cluster.
+- 2v2/large teams, ranked seasons, chat, trading, paid upgrades, bots in player leaderboards, additional controller layouts, and a distributed matchmaking cluster. Basic touch controls are included for mobile.
 - Deleting/migrating existing profiles or resetting the current database.
 
 ## Quality and security

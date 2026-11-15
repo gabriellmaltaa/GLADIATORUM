@@ -46,7 +46,7 @@ test('authenticated human sockets pair into a live match and unauthenticated cli
     const identity = identities[token];
     if (!identity) throw new Error('invalid token');
     return identity;
-  });
+  }, { botFallbackMs: 40 });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();
   assert.ok(address && typeof address !== 'string');
@@ -80,6 +80,12 @@ test('authenticated human sockets pair into a live match and unauthenticated cli
     const queuedAgain = messageOfType(b, 'queued');
     b.send(JSON.stringify({ type: 'queue' }));
     assert.equal((await queuedAgain).position, 1);
+    const botMatch = messageOfType(b, 'match_found');
+    assert.equal((await botMatch).opponent, 'Sentinela de Treino');
+    const botSnapshot = await messageOfType(b, 'snapshot');
+    const botPlayers = Object.values((botSnapshot.state as { players: Record<string, { isBot?: boolean }> }).players);
+    assert.equal(botPlayers.filter((entry) => entry.isBot).length, 1);
+    assert.equal((await authority.rankings()).some((entry) => entry.heroName === 'Sentinela de Treino'), false);
 
     const invalid = new WebSocket(`ws://127.0.0.1:${address.port}/api/herox/arena`);
     await new Promise<void>((resolve) => invalid.once('open', () => resolve()));

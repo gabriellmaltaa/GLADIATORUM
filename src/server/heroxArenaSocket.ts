@@ -3,6 +3,7 @@ import type { IncomingMessage, Server } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 import {
   ARENA_TICK_MS,
+  ARENA_WEAPONS,
   arenaSnapshot,
   createArenaMatch,
   tickArena,
@@ -32,6 +33,7 @@ interface LiveMatch {
   lastBroadcastAt: number;
   settling: boolean;
 }
+interface ArenaSocketOptions { botFallbackMs?: number }
 const neutralInput = (): ArenaInput => ({ left: false, right: false, jump: false, attack: false, power: false, interact: false });
 const allowedInputKeys = ['left', 'right', 'jump', 'attack', 'power', 'interact'] as const;
 
@@ -59,11 +61,13 @@ function sameOrigin(request: IncomingMessage): boolean {
   catch { return false; }
 }
 
-export function attachHeroXArenaSocket(server: Server, authority: HeroXAuthority, verifyToken: TokenVerifier) {
+export function attachHeroXArenaSocket(server: Server, authority: HeroXAuthority, verifyToken: TokenVerifier, options: ArenaSocketOptions = {}) {
   const websocketServer = new WebSocketServer({ noServer: true, maxPayload: 2_048, perMessageDeflate: false });
   const clients = new Map<string, ArenaConnection>();
   const queue: string[] = [];
   const matches = new Map<string, LiveMatch>();
+  const queueTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const botFallbackMs = Math.max(0, options.botFallbackMs ?? 12_000);
   let closed = false;
 
   const handleUpgrade = (request: IncomingMessage, socket: import('node:stream').Duplex, head: Buffer) => {
@@ -79,6 +83,12 @@ export function attachHeroXArenaSocket(server: Server, authority: HeroXAuthority
     if (index >= 0) queue.splice(index, 1);
   }
 
+  function clearQueueTimer(uid: string) {
+    const timer = queueTimers.get(uid);
+    if (timer) clearTimeout(timer);
+    queueTimers.delete(uid);
+  }
+
   function snapshotToPlayers(match: LiveMatch) {
     const snapshot = arenaSnapshot(match.state);
     for (const uid of Object.keys(match.state.players)) {
@@ -92,9 +102,9 @@ export function attachHeroXArenaSocket(server: Server, authority: HeroXAuthority
     if (match.settling) return;
     match.settling = true;
     const { state } = match;
-    const winners = Object.values(state.players).filter((player) => player.uid === state.winnerUid);
+    const winners = Object.values(state.players).filter((player) => !player.isBot && player.uid === state.winnerUid);
     const winner = winners[0];
-    await Promise.all(Object.values(state.players).map(async (player) => {
+    await Promise.all(Object.values(state.players).filter((player) => !player.isBot).map(async (player) => {
       const outcome = player.extracted ? 'extracted'
         : state.completionReason === 'elimination' && player.uid === state.winnerUid ? 'victory'
           : player.eliminated ? 'eliminated' : 'timeout';
@@ -142,8 +152,34 @@ export function attachHeroXArenaSocket(server: Server, authority: HeroXAuthority
     b.matchId = id;
     a.queued = false;
     b.queued = false;
+    clearQueueTimer(a.identity.uid);
+    clearQueueTimer(b.identity.uid);
     send(a.socket, { type: 'match_found', matchId: id, opponent: b.player.heroName, weapon: state.players[a.identity.uid]?.weaponId });
     send(b.socket, { type: 'match_found', matchId: id, opponent: a.player.heroName, weapon: state.players[b.identity.uid]?.weaponId });
+    snapshotToPlayers(match);
+  }
+
+  async function startBotMatch(client: ArenaConnection) {
+    if (!client.identity || !client.player || !client.queued || client.socket.readyState !== WebSocket.OPEN) return;
+    const id = crypto.randomUUID();
+    const botUid = `bot_${id.replaceAll('-', '').slice(0, 20)}`;
+    const botProfile = {
+      uid: botUid,
+      heroName: 'Sentinela de Treino',
+      level: 1,
+      health: 132,
+      attributes: { agility: 3, power: 3, vitality: 3, intellect: 3 },
+      weapons: ['pulse-ion'],
+      isBot: true,
+    };
+    const state = createArenaMatch(id, client.player, botProfile);
+    const match: LiveMatch = { state, lastBroadcastAt: 0, settling: false };
+    matches.set(id, match);
+    client.matchId = id;
+    client.queued = false;
+    removeFromQueue(client.identity.uid);
+    clearQueueTimer(client.identity.uid);
+    send(client.socket, { type: 'match_found', matchId: id, opponent: botProfile.heroName, opponentKind: 'training_bot' });
     snapshotToPlayers(match);
   }
 
@@ -156,9 +192,14 @@ export function attachHeroXArenaSocket(server: Server, authority: HeroXAuthority
     if (!opponentUid) {
       queue.push(client.identity.uid);
       send(client.socket, { type: 'queued', position: queue.length });
+      clearQueueTimer(client.identity.uid);
+      const timer = setTimeout(() => { void startBotMatch(client); }, botFallbackMs);
+      timer.unref?.();
+      queueTimers.set(client.identity.uid, timer);
       return;
     }
     removeFromQueue(opponentUid);
+    clearQueueTimer(opponentUid);
     const opponent = clients.get(opponentUid)!;
     void startMatch(opponent, client);
   }
@@ -207,6 +248,7 @@ export function attachHeroXArenaSocket(server: Server, authority: HeroXAuthority
       if (message.type === 'queue') { enqueue(client); return; }
       if (message.type === 'cancel') {
         if (client.identity) removeFromQueue(client.identity.uid);
+        if (client.identity) clearQueueTimer(client.identity.uid);
         client.queued = false;
         send(socket, { type: 'queue_cancelled' });
         return;
@@ -230,6 +272,7 @@ export function attachHeroXArenaSocket(server: Server, authority: HeroXAuthority
       const uid = client.identity.uid;
       clients.delete(uid);
       removeFromQueue(uid);
+      clearQueueTimer(uid);
       const live = client.matchId ? matches.get(client.matchId) : null;
       if (live && live.state.status === 'active') {
         live.state.status = 'completed';
@@ -264,6 +307,23 @@ export function attachHeroXArenaSocket(server: Server, authority: HeroXAuthority
       }
       const inputs: Record<string, ArenaInput> = {};
       for (const uid of Object.keys(match.state.players)) {
+        const player = match.state.players[uid]!;
+        if (player.isBot) {
+          const target = Object.values(match.state.players).find((candidate) => !candidate.isBot && !candidate.eliminated && !candidate.extracted);
+          if (!target) { inputs[uid] = neutralInput(); continue; }
+          const distance = target.x - player.x;
+          const weapon = ARENA_WEAPONS.find((candidate) => candidate.id === player.weaponId) ?? ARENA_WEAPONS[0]!;
+          const inRange = Math.abs(distance) <= weapon.range && Math.abs(target.y - player.y) <= 92;
+          inputs[uid] = {
+            left: distance < -28,
+            right: distance > 28,
+            jump: player.onGround && target.y < player.y - 45 && Math.floor(now / 1_100) % 2 === 0,
+            attack: inRange,
+            power: inRange && player.energy >= 35 && Math.floor(now / 4_000) % 2 === 0,
+            interact: false,
+          };
+          continue;
+        }
         const client = clients.get(uid);
         inputs[uid] = client && now - client.lastInputAt < 250 ? client.input : neutralInput();
       }
@@ -287,6 +347,8 @@ export function attachHeroXArenaSocket(server: Server, authority: HeroXAuthority
       if (closed) return;
       closed = true;
       clearInterval(timer);
+      for (const queueTimer of queueTimers.values()) clearTimeout(queueTimer);
+      queueTimers.clear();
       server.off('upgrade', handleUpgrade);
       for (const client of clients.values()) client.socket.close(1001, 'Servidor encerrando');
       await new Promise<void>((resolve) => websocketServer.close(() => resolve()));
