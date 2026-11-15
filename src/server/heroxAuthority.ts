@@ -15,6 +15,9 @@ export interface HeroPlayer {
   faction: HeroFaction;
   level: number;
   xp: number;
+  gold: number;
+  weapons: string[];
+  arenaExtractions: number;
   honor: number;
   wins: number;
   losses: number;
@@ -178,12 +181,19 @@ const xpForNextLevel = (level: number) => Math.floor(80 + level * 42 + level * l
 const maxHealth = (player: HeroPlayer) => 100 + player.level * 12 + player.attributes.vitality * 8;
 const attributeNames: HeroAttribute[] = ['power', 'agility', 'intellect', 'vitality'];
 const powerIds = new Set<string>(HEROX_CATALOG.powers.map((power) => power.id));
+const arenaWeaponIds = new Set(['pulse-ion', 'storm-carbine', 'phase-blade', 'solar-repeater']);
+const arenaUnlockOrder = ['storm-carbine', 'phase-blade', 'solar-repeater'];
 
 type PublicHeroPlayer = Omit<HeroPlayer, 'email' | 'recentOperationIds'>;
 
 function publicPlayer(player: HeroPlayer): PublicHeroPlayer {
   const { email: _email, recentOperationIds: _operations, ...publicData } = player;
-  return publicData;
+  return {
+    ...publicData,
+    gold: Number.isSafeInteger(player.gold) ? player.gold : 0,
+    weapons: Array.isArray(player.weapons) ? player.weapons.filter((id) => arenaWeaponIds.has(id)) : ['pulse-ion'],
+    arenaExtractions: Number.isSafeInteger(player.arenaExtractions) ? player.arenaExtractions : 0,
+  };
 }
 
 function makePlayer(identity: HeroIdentity, faction: HeroFaction, now: number): HeroPlayer {
@@ -195,6 +205,9 @@ function makePlayer(identity: HeroIdentity, faction: HeroFaction, now: number): 
     faction,
     level: 1,
     xp: 0,
+    gold: 0,
+    weapons: ['pulse-ion'],
+    arenaExtractions: 0,
     honor: 0,
     wins: 0,
     losses: 0,
@@ -294,6 +307,54 @@ export class HeroXAuthority {
     return (await this.repository.top(Math.max(1, Math.min(100, Math.floor(limit))))).map((player, index) => ({ ...publicPlayer(player), rank: index + 1 }));
   }
 
+  async completeArenaMatch(
+    identity: HeroIdentity,
+    input: { matchId: string; outcome: 'extracted' | 'eliminated' | 'victory' | 'timeout'; carriedXp: number; carriedGold: number; weaponIds: string[] },
+    now = Date.now(),
+  ) {
+    if (!/^[A-Za-z0-9_-]{8,64}$/.test(input.matchId)) throw new Error('Identificador de partida inválido.');
+    if (!['extracted', 'eliminated', 'victory', 'timeout'].includes(input.outcome)) throw new Error('Resultado de partida inválido.');
+    const carriedXp = Number.isSafeInteger(input.carriedXp) ? Math.max(0, Math.min(1_000, input.carriedXp)) : 0;
+    const carriedGold = Number.isSafeInteger(input.carriedGold) ? Math.max(0, Math.min(1_000, input.carriedGold)) : 0;
+    const weaponIds = Array.isArray(input.weaponIds)
+      ? [...new Set(input.weaponIds.filter((id) => typeof id === 'string' && arenaWeaponIds.has(id)))].slice(0, 8)
+      : [];
+    const operationId = `arena_${input.matchId}`;
+    return this.repository.transact([identity.uid], (view) => {
+      const player = view.players.get(identity.uid);
+      if (!player) throw new Error('Crie seu herói antes de entrar na arena.');
+      if (player.recentOperationIds.includes(operationId)) return { value: { replayed: true, result: { outcome: input.outcome, xp: 0, gold: 0, weaponUnlocked: null }, player: publicPlayer(player) }, writes: [] };
+      player.gold = Number.isSafeInteger(player.gold) ? player.gold : 0;
+      player.weapons = Array.isArray(player.weapons) ? player.weapons.filter((id) => arenaWeaponIds.has(id)) : ['pulse-ion'];
+      player.arenaExtractions = Number.isSafeInteger(player.arenaExtractions) ? player.arenaExtractions : 0;
+      let xp = input.outcome === 'extracted' ? 25 + carriedXp : input.outcome === 'victory' ? 25 : 0;
+      let gold = input.outcome === 'extracted' ? carriedGold : 0;
+      let weaponUnlocked: string | null = null;
+      if (input.outcome === 'extracted') {
+        player.arenaExtractions += 1;
+        player.gold += gold;
+        for (const weaponId of weaponIds) if (!player.weapons.includes(weaponId)) player.weapons.push(weaponId);
+        if (player.arenaExtractions % 3 === 0) {
+          const offset = Math.floor(player.arenaExtractions / 3) - 1;
+          for (let step = 0; step < arenaUnlockOrder.length; step += 1) {
+            const candidate = arenaUnlockOrder[(offset + step) % arenaUnlockOrder.length]!;
+            if (!player.weapons.includes(candidate)) { weaponUnlocked = candidate; player.weapons.push(candidate); break; }
+          }
+        }
+        player.wins += 1;
+      } else if (input.outcome === 'victory') player.wins += 1;
+      else if (input.outcome === 'eliminated') player.losses += 1;
+      if (input.outcome === 'extracted' || input.outcome === 'victory') grantXp(player, xp);
+      player.recentOperationIds = [...player.recentOperationIds.slice(-99), operationId];
+      player.updatedAtMs = now;
+      player.health = Math.min(player.health, maxHealth(player));
+      return {
+        value: { replayed: false, result: { outcome: input.outcome, xp, gold, weaponUnlocked }, player: publicPlayer(player) },
+        writes: [player],
+      };
+    });
+  }
+
   async act(identity: HeroIdentity, input: unknown, now = Date.now()): Promise<{ replayed: boolean; result?: Record<string, unknown>; player: PublicHeroPlayer }> {
     if (!input || typeof input !== 'object') throw new Error('Ação inválida.');
     const body = input as Record<string, unknown>;
@@ -386,3 +447,4 @@ export class HeroXAuthority {
     });
   }
 }
+

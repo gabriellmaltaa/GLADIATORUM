@@ -11,6 +11,9 @@ export interface HeroPlayer {
   faction: HeroFaction;
   level: number;
   xp: number;
+  gold: number;
+  weapons: string[];
+  arenaExtractions: number;
   honor: number;
   wins: number;
   losses: number;
@@ -60,4 +63,5 @@ export async function actInHeroX(action: Record<string, unknown>): Promise<{
 }> {
   return authenticated('/action', { method: 'POST', body: JSON.stringify(action) });
 }
+
 

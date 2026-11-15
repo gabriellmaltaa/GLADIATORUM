@@ -10,6 +10,7 @@ The HEROX backend is added alongside the existing `/api/online` service so the c
 - `GET /api/herox/v1/me` — authenticated private profile.
 - `POST /api/herox/v1/action` — authenticated, server-validated progression, power unlock, campaign mission, or real-player arena duel.
 - `GET /api/herox/v1/rankings?limit=50` — top real player profiles only; no synthetic players or bots are seeded.
+- `WS /api/herox/arena` — authenticated, server-authoritative 2D extraction match. The client opens same-origin WSS, sends `{ "type":"auth", "token":"<Firebase ID token>" }` as its first message, then `{ "type":"queue" }`. No bots enter the queue.
 
 All authenticated requests use `Authorization: Bearer <Firebase ID token>`. Mutations require a unique `opId` (8–80 letters, digits, `_` or `-`) so retries cannot award the same progress twice.
 
@@ -34,3 +35,12 @@ HEROX data is kept in a new collection/file namespace and starts empty without f
 `arena_challenge`: `{ "action":"arena_challenge", "opId":"...", "targetUid":"..." }`
 
 The server derives rewards and combat outcomes. Arena duels require a registered human HEROX profile and enforce a level range and short request cooldown. NPCs appear only in campaign content.
+
+## 2D extraction arena
+
+The live side-view game is a separate mode and does not replace the turn-based PvP screen. The arena uses original canvas-drawn rodent heroes, wooden platforms, loot crates, gold/XP pickups, and an active extraction portal. A/D or arrow keys move, Space jumps, J/click attacks, Q uses the power, and E extracts. Agility affects movement and jump, power/strength affects damage, vitality affects maximum health, and intellect scales the power hit.
+
+The WebSocket server limits incoming messages to 2 KB and 35 input updates per second. It accepts only known boolean controls. Server tick and combat state determine collisions, damage, health, loot, and match results. The first replica supports 1v1 human matchmaking; queue and match rooms are in memory, so keep Railway at one replica until matchmaking is moved to a shared room service.
+
+Each match lasts at most 8:42. Extraction points open after 45 seconds. Carried loot is temporary: only a successful extraction banks carried gold/XP/weapons; defeat, timeout, or disconnect clears unbanked loot. Extracting awards 25 XP plus collected XP and gold; a KO victory awards 25 XP, while the eliminated player gets no loot reward. Every third successful extraction attempts to unlock a unique curated weapon. Match IDs are idempotent in the profile repository, so a repeated settlement cannot double-award progress. Old profiles receive defaults for the new `gold`, `weapons`, and `arenaExtractions` fields when read.
+
