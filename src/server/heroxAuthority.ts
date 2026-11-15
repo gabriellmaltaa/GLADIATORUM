@@ -269,7 +269,11 @@ function battle(a: HeroPlayer, b: HeroPlayer) {
 }
 
 export class HeroXAuthority {
-  constructor(private readonly repository: HeroRepository) {}
+  private readonly repository: HeroRepository;
+
+  constructor(repository: HeroRepository) {
+    this.repository = repository;
+  }
 
   get persistenceMode(): Persistence { return this.repository.persistence; }
 
