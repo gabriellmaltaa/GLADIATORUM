@@ -140,6 +140,10 @@ interface CityScreenProps {
   }) => void;
   onPostAnnouncement: (content: string) => void;
   onDonateGold: (amount: number, txId: string) => void;
+  onWithdrawGold: (amount: number, opId: string) => void;
+  onChallengeGuildWar: (opponentGuildId: string) => void;
+  onAcceptGuildWar: (warId: string) => void;
+  onAttackGuildWar: (warId: string) => void;
   onUpgradeBuilding: (buildingId: GuildBuildingId, txId: string) => void;
   onUseVillaMedici: () => void;
   onActivateLibraryScroll: (scrollId: LibraryScrollId, txId: string) => void;
@@ -182,6 +186,10 @@ export const CityScreen: React.FC<CityScreenProps> = ({
   onUpdateProfile,
   onPostAnnouncement,
   onDonateGold,
+  onWithdrawGold,
+  onChallengeGuildWar,
+  onAcceptGuildWar,
+  onAttackGuildWar,
   onUpgradeBuilding,
   onUseVillaMedici,
   onActivateLibraryScroll,
@@ -1223,6 +1231,10 @@ export const CityScreen: React.FC<CityScreenProps> = ({
           onUpdateProfile={onUpdateProfile}
           onPostAnnouncement={onPostAnnouncement}
           onDonateGold={onDonateGold}
+          onWithdrawGold={onWithdrawGold}
+          onChallengeGuildWar={onChallengeGuildWar}
+          onAcceptGuildWar={onAcceptGuildWar}
+          onAttackGuildWar={onAttackGuildWar}
           onUpgradeBuilding={onUpgradeBuilding}
           onUseVillaMedici={onUseVillaMedici}
           onActivateLibraryScroll={onActivateLibraryScroll}
@@ -1247,5 +1259,6 @@ export const CityScreen: React.FC<CityScreenProps> = ({
     </div>
   );
 };
+
 
 

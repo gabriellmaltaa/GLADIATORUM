@@ -435,6 +435,16 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
     });
   }
 
+  const itemCrit = item.stats.critChancePercent ?? 0;
+  const eqCrit = comparedEquippedItem?.stats.critChancePercent ?? 0;
+  if (itemCrit > 0 || (isComparingDifferentItem && eqCrit > 0)) {
+    comparisonRows.push({
+      label: 'Chance crítica',
+      itemDisplay: `+${itemCrit} p.p.`,
+      diff: isComparingDifferentItem ? itemCrit - eqCrit : undefined,
+    });
+  }
+
   const itemHp = item.stats.healthBonus ?? 0;
   const eqHp = comparedEquippedItem?.stats.healthBonus ?? 0;
   if (itemHp > 0 || (isComparingDifferentItem && eqHp > 0)) {

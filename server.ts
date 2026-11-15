@@ -172,11 +172,8 @@ export function createAuthoritativeExpressApp(engine: OnlineAuthorityEngine) {
   app.get('/api/online/health', (_req, res) => {
     res.json({
       ok: true,
-      projectId: firebaseConfig.projectId,
-      firestoreDatabaseId: firebaseConfig.firestoreDatabaseId,
-      environment: IS_PROD ? 'production' : 'development',
-      serverTimestampMs: Date.now(),
-      metrics: engine.getMetricsSnapshot(),
+      service: 'gladiatorum',
+      status: 'online',
     });
   });
 

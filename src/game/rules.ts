@@ -289,6 +289,7 @@ export function calculateDerivedStats(
   let armor = 0;
   let gearDamageMin = 0;
   let gearDamageMax = 0;
+  let gearCritChancePercent = 0;
   let healthBonus = 0;
 
   for (const slotKey of Object.keys(equipped) as EquipmentSlotType[]) {
@@ -303,6 +304,7 @@ export function calculateDerivedStats(
     armor += item.stats.armor ?? 0;
     gearDamageMin += item.stats.damageMin ?? 0;
     gearDamageMax += item.stats.damageMax ?? 0;
+    gearCritChancePercent += item.stats.critChancePercent ?? 0;
     healthBonus += item.stats.healthBonus ?? 0;
   }
 
@@ -323,7 +325,7 @@ export function calculateDerivedStats(
 
   const armorReductionMin = Math.floor(armor / 22);
   const armorReductionMax = Math.floor(armor / 12);
-  const critChancePercent = Math.min(45, Math.round(6 + skill * 1.15));
+  const critChancePercent = Math.min(45, Math.round(6 + skill * 1.15 + gearCritChancePercent));
   const dodgeChancePercent = Math.min(40, Math.round(5 + agility * 1.1));
   const doubleHitChancePercent = Math.min(35, Math.round(4 + charisma * 1.05));
   const xpBonusPercent = Math.round(intelligence * 2);

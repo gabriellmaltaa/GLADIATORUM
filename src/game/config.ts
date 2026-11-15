@@ -93,6 +93,8 @@ export interface StatBonuses {
   damageMin?: number;
   damageMax?: number;
   healthBonus?: number;
+  /** Pontos percentuais extras; sempre limitados ao teto de crítico do combate. */
+  critChancePercent?: number;
 }
 
 export interface ConsumableEffect {
@@ -113,6 +115,7 @@ export interface GameItem {
   iconId: ItemIconId;
   description: string;
   stats: StatBonuses;
+  affix?: 'precise' | 'cruel' | 'swift';
   forgeLevel?: number;
   consumable?: ConsumableEffect;
 }
@@ -916,3 +919,4 @@ export const INITIAL_MARKET_TEMPLATE_IDS: string[] = [
   'blade_mars_ultor_divine',
   'aegis_minerva_divine',
 ];
+

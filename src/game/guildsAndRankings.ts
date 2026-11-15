@@ -405,10 +405,24 @@ export interface GuildApplicationRecord {
 
 export interface GuildBankTransaction {
   txId: string;
-  type: 'donation' | 'upgrade' | 'library_buff';
+  type: 'donation' | 'upgrade' | 'library_buff' | 'withdrawal';
   authorName: string;
   amount: number;
   description: string;
+  timestampMs: number;
+  actorUid?: string;
+  balanceBefore?: number;
+  balanceAfter?: number;
+}
+
+export interface GuildTreasuryLedgerEntry {
+  opId: string;
+  actorUid: string;
+  actorName: string;
+  type: 'deposit' | 'withdrawal' | 'expense';
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
   timestampMs: number;
 }
 
@@ -447,6 +461,8 @@ export interface GuildRecord {
   permanentGoldBonusPercent?: number;
   permanentXpBonusPercent?: number;
   bankHistory: GuildBankTransaction[];
+  /** Registro persistente completo; bankHistory é apenas a projeção recente da interface. */
+  treasuryLedger?: GuildTreasuryLedgerEntry[];
   auditLog: GuildAuditEntry[];
   announcements: GuildAnnouncement[];
   createdAtMs: number;
@@ -476,6 +492,38 @@ export interface GuildStateContainer {
   processedTransactionIds: string[];
   lastVillaMediciUseMs: number;
   lastUpdatedAtMs: number;
+  guildWars?: GuildWarSummary[];
+}
+
+export type GuildWarStatus = 'pending' | 'active' | 'completed' | 'expired';
+
+export interface GuildWarRecord {
+  id: string;
+  guildAId: string;
+  guildAName: string;
+  guildBId: string;
+  guildBName: string;
+  status: GuildWarStatus;
+  createdAtMs: number;
+  acceptedAtMs: number | null;
+  endsAtMs: number | null;
+  scoreA: number;
+  scoreB: number;
+  attacksByMember: Record<string, number>;
+  winnerGuildId: string | null;
+}
+
+export interface GuildWarSummary {
+  id: string;
+  status: GuildWarStatus;
+  direction: 'incoming' | 'outgoing' | 'participant';
+  opponentGuildId: string;
+  opponentGuildName: string;
+  ownScore: number;
+  opponentScore: number;
+  endsAtMs: number | null;
+  myAttacksUsed: number;
+  winnerGuildId: string | null;
 }
 
 export interface ActiveGuildBonuses {
@@ -1438,4 +1486,5 @@ export function computeGuildRankings(
     rank: idx + 1,
   }));
 }
+
 
