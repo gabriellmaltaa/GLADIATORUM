@@ -424,7 +424,7 @@ export const PlayerPublicProfileModal: React.FC<{
           <div className="grid grid-cols-1 sm:grid-cols-[minmax(150px,0.8fr)_1.2fr] gap-3 items-center">
             <div className="mx-auto w-full max-w-[190px]">
               <div className="gladiator-stage dynamic-gladiator-stage relative frame-bronze overflow-hidden shadow-xl">
-                <GladiatorAvatar equipped={equipped} level={entry.level} name={entry.name} />
+                <GladiatorAvatar equipped={equipped} level={entry.level} name={entry.name} appearance={onlineDetails?.appearance} />
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent p-2 text-center">
                   <span className="font-roman font-bold text-xs text-[#EFE2C4] block truncate">{entry.name}</span>
                   <span className="text-[10px] text-[#D4B26A]">{entry.title} · Nível {entry.level}</span>
@@ -518,5 +518,4 @@ export const PlayerPublicProfileModal: React.FC<{
     </GameModal>
   );
 };
-
 

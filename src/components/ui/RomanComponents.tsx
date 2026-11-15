@@ -5,6 +5,7 @@ import { GAME_IDENTITY, getHeroicItemName, NAVIGATION_LABELS } from '../../game/
 import {
   ArtworkImage,
   EnemyPortrait,
+  HeroPortrait,
   IMAGE_ASSETS,
   ItemArtwork,
 } from '../../design/assets';
@@ -23,6 +24,7 @@ import {
   NextObjectiveInfo,
   PendingRewardBatch,
 } from '../../game/rules';
+import type { HeroAppearance } from '../../game/heroCustomization';
 import { shouldConcealRewardItem } from '../../game/rewardPresentation';
 
 export type MainTabId = 'character' | 'expeditions' | 'arena' | 'inventory' | 'city';
@@ -1011,11 +1013,7 @@ export const CombatPresentationView: React.FC<CombatPresentationViewProps> = ({
       <div className="grid grid-cols-2 gap-2.5 bg-[#17120F] p-3 border border-[#947044]">
         <div className="flex items-center gap-2">
           <div className="w-12 h-12 shrink-0 frame-bronze overflow-hidden">
-            <ArtworkImage
-              src={IMAGE_ASSETS.playerPortrait}
-              alt={playerName}
-              className="w-full h-full object-cover"
-            />
+            <HeroPortrait name={playerName} className="w-full h-full" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="font-roman font-bold text-xs text-[#EFE2C4] truncate">
@@ -1186,6 +1184,7 @@ export const CombatPresentationView: React.FC<CombatPresentationViewProps> = ({
  */
 export interface ResourceBarProps {
   name: string;
+  appearance?: HeroAppearance;
   guildTag?: string | null;
   playerRank?: number;
   level: number;
@@ -1207,6 +1206,7 @@ export interface ResourceBarProps {
 
 export const ResourceBar: React.FC<ResourceBarProps> = ({
   name,
+  appearance,
   guildTag,
   playerRank,
   level,
@@ -1238,11 +1238,7 @@ export const ResourceBar: React.FC<ResourceBarProps> = ({
       <div className="max-w-5xl mx-auto px-2.5 py-1.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="relative w-10 h-10 shrink-0 frame-bronze overflow-hidden bg-[#17120F]">
-            <ArtworkImage
-              src={IMAGE_ASSETS.playerPortrait}
-              alt={name}
-              className="w-full h-full object-cover"
-            />
+            <HeroPortrait name={name} archetype={appearance?.archetype} className="w-full h-full" />
             <span className="absolute bottom-0 right-0 bg-[#792B28] text-[#EFE2C4] text-[10px] font-bold tabular-nums px-1 border-t border-l border-[#B79552]">
               {level}
             </span>
@@ -1567,7 +1563,6 @@ export const GameShell: React.FC<GameShellProps> = ({
     </div>
   );
 };
-
 
 
 

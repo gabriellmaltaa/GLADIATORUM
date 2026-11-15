@@ -46,3 +46,14 @@ test('retrato pintado segue a couraça e volta ao corpo neutro ao removê-la', (
   assert.equal(getCharacterAppearance({ armor: { ...armor, iconId: 'lorica_segmentata' } }, 1).bodyColumn, 2);
   assert.equal(getCharacterAppearance({ armor: { ...armor, iconId: 'lorica_hamata' } }, 1).bodyColumn, 3);
 });
+
+test('identidades Vigília escolhem quatro heróis alinhados e a energia segue a paleta escolhida', () => {
+  const state = createInitialGameState(1000);
+  const identities = ['sentinel', 'weaver', 'vanguard', 'oracle'] as const;
+  const columns = identities.map(archetype => getCharacterAppearance(state.equipped, 10, {
+    archetype, palette: 'violet', mask: 'visor', energy: 'jade',
+  }));
+  assert.deepEqual(columns.map(value => value.bodyColumn), [0, 1, 2, 3]);
+  assert.ok(columns.every(value => value.mask === 'visor' && value.paletteColor === '#bd8cff' && value.aura.color === '#69e7ba'));
+  assert.equal(columns[0].layers.armor?.id, state.equipped.armor?.id);
+});

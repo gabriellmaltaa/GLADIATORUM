@@ -206,8 +206,25 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .map-cartouche,.arena-proclamation { background:linear-gradient(110deg,#0b1728ee,#102b3dcc); border:1px solid #52d4ed66; color:#edf6ff; }
 .arena-proclamation h2 { color:#dffaff; text-shadow:0 0 20px #32bfd144; }
 .arena-laurel { border-color:#7eeaff; color:#b4f5ff; background:#081525dd; }
+.hero-studio-panel { border:1px solid #53d9f24a; border-radius:14px; padding:16px; background:linear-gradient(140deg,#14263a,#0c1727); box-shadow:0 14px 32px #0208127a; }
+.hero-portrait { position:relative; overflow:hidden; background-repeat:no-repeat; background-size:400% 200%; background-color:#0c1727; }
+.hero-studio-panel h2 { color:#e8f8ff; }
+.hero-studio-field { display:flex; flex-direction:column; gap:6px; color:#afd2e6; font-size:12px; font-weight:650; }
+.hero-studio-field select { min-height:40px; padding:8px 10px; border:1px solid #47c7df66; border-radius:8px; color:#eaf8ff; background:#091627; }
+.layout-preset,.layout-reset-button,.layout-card-control button { border:1px solid #54cde366; border-radius:8px; padding:7px 10px; color:#cdebf7; background:#0c1c2d; font-size:12px; }
+.layout-preset.active { color:#f1fdff; background:linear-gradient(120deg,#315c8a,#126d83); border-color:#8cecff; }
+.layout-card-control { display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid #43bdd53b; border-radius:9px; padding:7px; color:#d7e8f2; background:#0a1727; font-size:12px; }
+.layout-card-control button { padding:5px 8px; }
+.layout-card-control button:disabled { opacity:.35; cursor:not-allowed; }
+.character-layout-grid.is-compact .layout-card-avatar > div:first-child { margin-bottom:0; }
+.character-layout-grid.is-compact .gladiator-stage { max-height:540px; }
+.character-layout-grid.is-immersive .dynamic-gladiator-stage { min-height:560px; }
+.vigilia-hero .hero-equipment-armor,.vigilia-hero .hero-equipment-helmet { transform-box:fill-box; transform-origin:center; }
+.vigilia-hero .hero-equipment-armor path { vector-effect:non-scaling-stroke; }
+.vigilia-hero .hero-cosmetic-mask { filter:drop-shadow(0 0 7px var(--hero-accent)); }
+.vigilia-hero .gladiator-aura { background:radial-gradient(ellipse at 50% 55%,color-mix(in srgb,var(--aura-color),transparent 58%),transparent 70%); }
+.hero-studio-panel button:focus-visible,.hero-studio-panel select:focus-visible { outline:2px solid #9af0ff; outline-offset:2px; }
 @media (min-width:1200px) {
   .ludus-navigation { border-color:#41c2df50; }
   .ludus-navigation::before { color:#8cecff; }
 }
-

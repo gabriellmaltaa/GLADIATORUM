@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GladiatorAvatar } from '../../design/GladiatorAvatar';
 import { ArtworkImage, IMAGE_ASSETS } from '../../design/assets';
 import {
@@ -21,6 +21,8 @@ import {
   NextObjectiveInfo,
   StatChangeNotification,
 } from '../../game/rules';
+import { HERO_ARCHETYPES, HERO_ENERGIES, HERO_MASKS, HERO_PALETTES, type HeroAppearance } from '../../game/heroCustomization';
+import { createLayoutPreset, DEFAULT_LAYOUT_PREFERENCES, normalizeLayoutPreferences, type LayoutCardId, type LayoutPreferences, type LayoutPreset } from '../../game/layoutPreferences';
 import {
   GameButton,
   ItemSlot,
@@ -46,6 +48,7 @@ interface CharacterScreenProps {
   onNavigateTab: (tab: MainTabId) => void;
   onOpenGuildScreen?: () => void;
   onOpenRankingScreen?: () => void;
+  onSaveHeroAppearance?: (appearance: HeroAppearance) => void;
 }
 
 export const CharacterScreen: React.FC<CharacterScreenProps> = ({
@@ -62,11 +65,21 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
   onNavigateTab,
   onOpenGuildScreen,
   onOpenRankingScreen,
+  onSaveHeroAppearance,
 }) => {
   const [selectedItem, setSelectedItem] = useState<{
     item: GameItem;
     source: 'equipped' | 'inventory';
   } | null>(null);
+  const [studioOpen, setStudioOpen] = useState(false);
+  const [draftAppearance, setDraftAppearance] = useState<HeroAppearance>(state.heroAppearance);
+  const [layoutOpen, setLayoutOpen] = useState(false);
+  const [layout, setLayout] = useState<LayoutPreferences>(() => {
+    try { return normalizeLayoutPreferences(JSON.parse(localStorage.getItem('vigilia_layout_v1') ?? 'null')); }
+    catch { return createLayoutPreset('classic'); }
+  });
+  useEffect(() => { try { localStorage.setItem('vigilia_layout_v1', JSON.stringify(layout)); } catch { /* preferências são opcionais */ } }, [layout]);
+  useEffect(() => { setDraftAppearance(state.heroAppearance); }, [state.heroAppearance]);
 
   const xpForNext = getXpForNextLevel(state.level);
   const needsHealing = state.currentHp < derived.maxHp;
@@ -82,21 +95,71 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
   const displayNameWithTag = guildBonuses.guildTag
     ? `[${guildBonuses.guildTag}] ${state.name}`
     : state.name;
+  const setLayoutPreset = (preset: LayoutPreset) => setLayout(createLayoutPreset(preset));
+  const moveLayoutCard = (card: LayoutCardId, delta: -1 | 1) => setLayout(current => {
+    const order = [...current.order];
+    const index = order.indexOf(card);
+    const next = Math.max(0, Math.min(order.length - 1, index + delta));
+    [order[index], order[next]] = [order[next], order[index]];
+    return { ...current, order };
+  });
+  const updateAppearance = (key: keyof HeroAppearance, value: string) => {
+    setDraftAppearance(current => ({ ...current, [key]: value } as HeroAppearance));
+  };
+  const layoutOrder = (card: LayoutCardId) => layout.order.indexOf(card);
 
   const leftSlots: EquipmentSlotType[] = ['helmet', 'weapon', 'armor', 'gloves'];
   const rightSlots: EquipmentSlotType[] = ['amulet', 'shield', 'boots', 'ring'];
 
   return (
-    <div className="character-screen space-y-4">
+    <div className={`character-screen character-layout-grid grid grid-cols-1 lg:grid-cols-12 gap-4 ${layout.preset === 'compact' ? 'is-compact' : ''} ${layout.preset === 'immersive' ? 'is-immersive' : ''}`}>
+      <div className="lg:col-span-12 flex flex-wrap justify-between items-center gap-2">
+        <div className="flex flex-wrap gap-2">
+          <GameButton variant={studioOpen ? 'bronze' : 'iron'} size="sm" onClick={() => setStudioOpen(value => !value)} aria-expanded={studioOpen}>
+            {studioOpen ? 'Fechar Estúdio do Herói' : 'Personalizar Herói'}
+          </GameButton>
+          <GameButton variant={layoutOpen ? 'bronze' : 'iron'} size="sm" onClick={() => setLayoutOpen(value => !value)} aria-expanded={layoutOpen}>
+            {layoutOpen ? 'Fechar Layout' : 'Personalizar Layout'}
+          </GameButton>
+        </div>
+        {studioOpen && <span className="text-xs text-slate-300">Aparência cosmética · seus atributos e equipamentos continuam intactos</span>}
+      </div>
+
+      {studioOpen && <section className="hero-studio-panel lg:col-span-12" aria-label="Estúdio do herói">
+        <div><h2 className="font-semibold text-slate-100">Estúdio do Herói</h2><p className="text-xs text-slate-400">Escolha identidade, máscara, cores e energia. A armadura exibida continua ligada aos itens equipados.</p></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+          <label className="hero-studio-field">Identidade
+            <select value={draftAppearance.archetype} onChange={event => updateAppearance('archetype', event.target.value)}>{HERO_ARCHETYPES.map((value, index) => <option key={value} value={value}>{['Sentinela', 'Tecelã', 'Vanguarda', 'Oráculo'][index]}</option>)}</select>
+          </label>
+          <label className="hero-studio-field">Paleta do traje
+            <select value={draftAppearance.palette} onChange={event => updateAppearance('palette', event.target.value)}>{HERO_PALETTES.map((value, index) => <option key={value} value={value}>{['Ciano', 'Violeta', 'Âmbar', 'Carmesim', 'Jade'][index]}</option>)}</select>
+          </label>
+          <label className="hero-studio-field">Máscara
+            <select value={draftAppearance.mask} onChange={event => updateAppearance('mask', event.target.value)}>{HERO_MASKS.map((value, index) => <option key={value} value={value}>{['Sem máscara', 'Meia máscara', 'Visor'][index]}</option>)}</select>
+          </label>
+          <label className="hero-studio-field">Energia
+            <select value={draftAppearance.energy} onChange={event => updateAppearance('energy', event.target.value)}>{HERO_ENERGIES.map((value, index) => <option key={value} value={value}>{['Ciano', 'Violeta', 'Âmbar', 'Carmesim', 'Jade'][index]}</option>)}</select>
+          </label>
+        </div>
+        <div className="flex justify-end mt-3"><GameButton variant="bronze" size="sm" onClick={() => onSaveHeroAppearance?.(draftAppearance)} disabled={JSON.stringify(draftAppearance) === JSON.stringify(state.heroAppearance)} disabledReason="A aparência já está salva">Salvar aparência</GameButton></div>
+      </section>}
+
+      {layoutOpen && <section className="hero-studio-panel layout-customizer lg:col-span-12" aria-label="Personalizador de layout">
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold text-slate-100">Organize sua central</h2><p className="text-xs text-slate-400">Mova os cartões e oculte os painéis informativos que não usa. As abas principais continuam fixas.</p></div>
+          <button type="button" className="layout-reset-button" onClick={() => setLayout({ ...DEFAULT_LAYOUT_PREFERENCES, order: [...DEFAULT_LAYOUT_PREFERENCES.order], hiddenCards: [] })}>Restaurar padrão</button></div>
+        <div className="flex flex-wrap gap-2 mt-3">{(['classic', 'compact', 'immersive'] as LayoutPreset[]).map((preset, index) => <button key={preset} type="button" className={`layout-preset ${layout.preset === preset ? 'active' : ''}`} aria-pressed={layout.preset === preset} onClick={() => setLayoutPreset(preset)}>{['Clássico', 'Compacto', 'Imersivo'][index]}</button>)}</div>
+        <div className="grid sm:grid-cols-3 gap-2 mt-3">{layout.order.map((card, index) => <div className="layout-card-control" key={card}><span>{({ objective: 'Objetivo', avatar: 'Herói e mochila', stats: 'Atributos' } as const)[card]}</span><div className="flex gap-1"><button type="button" aria-label={`Mover ${card} para cima`} disabled={index === 0} onClick={() => moveLayoutCard(card, -1)}>↑</button><button type="button" aria-label={`Mover ${card} para baixo`} disabled={index === layout.order.length - 1} onClick={() => moveLayoutCard(card, 1)}>↓</button><button type="button" aria-pressed={layout.hiddenCards.includes(card)} onClick={() => setLayout(current => ({ ...current, hiddenCards: current.hiddenCards.includes(card) ? current.hiddenCards.filter(id => id !== card) : [...current.hiddenCards, card] }))}>{layout.hiddenCards.includes(card) ? 'Mostrar' : 'Ocultar'}</button></div></div>)}</div>
+      </section>}
+
       {/* Próximo Objetivo de Progressão */}
-      <NextObjectiveBanner
+      {!layout.hiddenCards.includes('objective') && <div className="lg:col-span-12 layout-card-objective" style={{ order: layoutOrder('objective') + 2 }}><NextObjectiveBanner
         objective={nextObjective}
         onNavigate={() => onNavigateTab(nextObjective.targetTab)}
-      />
+      /></div>}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      <div className={`contents layout-card-avatar ${layout.hiddenCards.includes('avatar') ? 'hidden' : ''}`} style={{ order: layoutOrder('avatar') + 2 }}>
         {/* Coluna Esquerda: Retrato Clássico + Paper Doll de Equipamentos */}
-        <div className="lg:col-span-6 space-y-4">
+        <div className="lg:col-span-6 space-y-4" style={{ order: layoutOrder('avatar') + 2 }}>
           <RomanPanel
             title={`${displayNameWithTag} — Nível ${state.level}`}
             subtitle={`${competitiveTitle ?? state.title} · Vitórias: ${state.wins} · Derrotas: ${state.losses}`}
@@ -153,7 +216,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
               {/* Retrato Central do Herói */}
               <div className="flex flex-col items-center">
                 <div className="gladiator-stage dynamic-gladiator-stage relative w-full frame-bronze overflow-hidden shadow-xl">
-                  <GladiatorAvatar equipped={state.equipped} level={state.level} name={displayNameWithTag} />
+                  <GladiatorAvatar equipped={state.equipped} level={state.level} name={displayNameWithTag} appearance={draftAppearance} />
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent p-2 text-center">
                     <span className="font-roman font-bold text-xs sm:text-sm text-[#EFE2C4] block truncate">
                       {displayNameWithTag}
@@ -294,7 +357,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
         </div>
 
         {/* Coluna Direita: Tábua de Atributos em Pergaminho Envelhecido */}
-        <div className="lg:col-span-6 space-y-4">
+        <div className={`lg:col-span-6 space-y-4 layout-card-stats ${layout.hiddenCards.includes('stats') ? 'hidden' : ''}`} style={{ order: layoutOrder('stats') + 2 }}>
           {lastStatChange && lastStatChange.changes.length > 0 && (
             <div
               role="status"
@@ -394,5 +457,4 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
     </div>
   );
 };
-
 

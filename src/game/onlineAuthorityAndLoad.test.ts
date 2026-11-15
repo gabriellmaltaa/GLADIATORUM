@@ -10,6 +10,7 @@ import {
 import { calculateDerivedStats, createInitialGameState, createItemFromTemplate } from './rules';
 import { ENDGAME_REGIONS, OBSIDIAN_ITEMS } from './expansion';
 import { GAME_CONFIG } from './config';
+import { DEFAULT_HERO_APPEARANCE } from './heroCustomization';
 
 test('detalhes do perfil público online incluem apenas equipamento vestido e dados públicos', () => {
   const engine = new OnlineAuthorityEngine({ seedInitialOnlineGuilds: false });
@@ -21,9 +22,40 @@ test('detalhes do perfil público online incluem apenas equipamento vestido e da
   assert.equal(payload.profile.name, 'Gladiador Público');
   assert.ok(Object.keys(payload.equipped).length > 0);
   assert.ok(Object.values(payload.equipped).every(item => item?.buyPrice === 0 && item.sellPrice === 0));
+  assert.deepEqual(payload.appearance, DEFAULT_HERO_APPEARANCE);
   assert.equal(JSON.stringify(payload).includes('private@example.test'), false);
   assert.equal(JSON.stringify(payload).includes('inventory'), false);
   assert.equal(engine.getPublicPlayerProfileDetails('unknown_player'), null);
+});
+
+test('servidor persiste aparência allowlisted sem alterar atributos e rejeita valores arbitrários', () => {
+  const engine = new OnlineAuthorityEngine({ seedInitialOnlineGuilds: false });
+  const now = 1_800_100_000_000;
+  const uid = 'hero_customization_player';
+  const initial = engine.bootstrapPlayer({ uid, email: 'private@example.test', displayName: 'Vigia' }, now).state;
+  const updated = engine.executeAction(uid, {
+    opId: 'hero-appearance-valid', action: 'update_hero_appearance',
+    params: { appearance: { archetype: 'oracle', palette: 'violet', mask: 'visor', energy: 'jade' } },
+  }, now + 1);
+  assert.equal(updated.ok, true);
+  assert.deepEqual(updated.state.heroAppearance, { archetype: 'oracle', palette: 'violet', mask: 'visor', energy: 'jade' });
+  assert.deepEqual(updated.state.baseStats, initial.baseStats);
+  assert.deepEqual(updated.state.equipped, initial.equipped);
+  const replay = engine.executeAction(uid, {
+    opId: 'hero-appearance-valid', action: 'update_hero_appearance',
+    params: { appearance: { archetype: 'sentinel', palette: 'amber', mask: 'none', energy: 'amber' } },
+  }, now + 2);
+  assert.equal(replay.idempotentReplay, true);
+  assert.deepEqual(replay.state.heroAppearance, updated.state.heroAppearance);
+  const rejected = engine.executeAction(uid, {
+    opId: 'hero-appearance-invalid', action: 'update_hero_appearance',
+    params: { appearance: { archetype: 'admin', palette: '#fff', mask: 'none', energy: 'cyan' } },
+  }, now + 3);
+  assert.equal(rejected.ok, false);
+  assert.deepEqual(rejected.state.heroAppearance, updated.state.heroAppearance);
+  const publicDetails = engine.getPublicPlayerProfileDetails(uid, now + 4)!;
+  assert.deepEqual(publicDetails.appearance, updated.state.heroAppearance);
+  assert.equal(JSON.stringify(publicDetails).includes('private@example.test'), false);
 });
 
 test('PvP online usa contas reais, impede autoataque/repetição e limita cada alvo por dia', () => {
