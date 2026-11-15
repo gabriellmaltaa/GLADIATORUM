@@ -35,6 +35,7 @@ import {
 interface CharacterScreenProps {
   state: GameState;
   derived: DerivedStats;
+  competitiveTitle?: string;
   nextObjective: NextObjectiveInfo;
   lastStatChange: StatChangeNotification | null;
   onEquipItem: (itemId: string) => void;
@@ -50,6 +51,7 @@ interface CharacterScreenProps {
 export const CharacterScreen: React.FC<CharacterScreenProps> = ({
   state,
   derived,
+  competitiveTitle,
   nextObjective,
   lastStatChange,
   onEquipItem,
@@ -97,7 +99,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
         <div className="lg:col-span-6 space-y-4">
           <RomanPanel
             title={`${displayNameWithTag} — Nível ${state.level}`}
-            subtitle={`${state.title} · Vitórias: ${state.wins} · Derrotas: ${state.losses}`}
+            subtitle={`${competitiveTitle ?? state.title} · Vitórias: ${state.wins} · Derrotas: ${state.losses}`}
             variant="stone"
             headerAction={
               <div className="flex items-center gap-1.5">
