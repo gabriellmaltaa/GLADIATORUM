@@ -536,8 +536,8 @@ export { MEDICAL_TREATMENTS, MEDICINE_ITEM_TEMPLATES };
 export const EXPEDITION_REGIONS: ExpeditionRegion[] = [
   {
     id: 'woods_capua',
-    name: 'Bosques Sombrios de Cápua',
-    subtitle: 'Território de Feras e Desertores',
+    name: 'Distrito Verde — Zona 01',
+    subtitle: 'Ameaças territoriais e renegados',
     minLevel: 1,
     energyCost: 1,
     durationSeconds: 15,
@@ -590,8 +590,8 @@ export const EXPEDITION_REGIONS: ExpeditionRegion[] = [
   },
   {
     id: 'ruins_via_appia',
-    name: 'Ruínas da Via Ápia',
-    subtitle: 'Aquedutos Quebrados e Saqueadores',
+    name: 'Corredor Central Abandonado',
+    subtitle: 'Infraestrutura colapsada e saqueadores',
     minLevel: 2,
     energyCost: 1,
     durationSeconds: 20,
@@ -600,7 +600,7 @@ export const EXPEDITION_REGIONS: ExpeditionRegion[] = [
     enemies: [
       {
         id: 'brigand_appia',
-        name: 'Salteador da Via Ápia',
+        name: 'Saqueador do Corredor',
         title: 'Saqueador de Caravanas',
         level: 3,
         avatarId: 'brigand',
@@ -622,7 +622,7 @@ export const EXPEDITION_REGIONS: ExpeditionRegion[] = [
       {
         id: 'secutor_renegade',
         name: 'Vorenus, o Secutor Renegado',
-        title: 'Ex-Gladiador de Pompeia',
+        title: 'Ex-agente da Vigília',
         level: 4,
         avatarId: 'secutor',
         maxHp: 165,
@@ -690,8 +690,8 @@ export const ARENA_OPPONENTS: SimulatedArenaOpponent[] = [
   {
     id: 'arena_bot_1',
     name: 'Titus Flamma',
-    title: 'Tiro da Arena de Cápua',
-    ludusOrigin: 'Ludus Lentulus (Simulado)',
+    title: 'Recruta da Vigília',
+    ludusOrigin: 'Agência Central (Simulado)',
     simulationTag: 'Oponente Simulado (Local)',
     arenaRank: 5,
     level: 1,
@@ -715,7 +715,7 @@ export const ARENA_OPPONENTS: SimulatedArenaOpponent[] = [
   {
     id: 'arena_bot_2',
     name: 'Draco de Siracusa',
-    title: 'Retiarius Veterano',
+    title: 'Operador Veterano',
     ludusOrigin: 'Ludus Magnus (Simulado)',
     simulationTag: 'Oponente Simulado (Local)',
     arenaRank: 4,
@@ -740,7 +740,7 @@ export const ARENA_OPPONENTS: SimulatedArenaOpponent[] = [
   {
     id: 'arena_bot_3',
     name: 'Marcus Attilius',
-    title: 'Murmillo Invicto',
+    title: 'Sentinela Invicto',
     ludusOrigin: 'Ludus Gallicus (Simulado)',
     simulationTag: 'Oponente Simulado (Local)',
     arenaRank: 3,
@@ -765,7 +765,7 @@ export const ARENA_OPPONENTS: SimulatedArenaOpponent[] = [
   {
     id: 'arena_bot_4',
     name: 'Spiculus, o Trovão',
-    title: 'Primus Palus da Província',
+    title: 'Comandante da Zona',
     ludusOrigin: 'Guarda Imperial (Simulado)',
     simulationTag: 'Oponente Simulado (Local)',
     arenaRank: 2,
@@ -919,4 +919,5 @@ export const INITIAL_MARKET_TEMPLATE_IDS: string[] = [
   'blade_mars_ultor_divine',
   'aegis_minerva_divine',
 ];
+
 

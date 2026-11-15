@@ -21,7 +21,7 @@ import type { OnlinePublicPlayerProfile, OnlinePublicPlayerProfileDetails } from
 import { GameButton, GameModal, ItemSlot } from '../ui/RomanComponents';
 
 /**
- * Emblema Romano Vetorial para Guildas (Collegia)
+ * Emblema Romano Vetorial para Alianças (Collegia)
  */
 export const GuildEmblemBadge: React.FC<{
   emblemId: GuildEmblemId;
@@ -38,7 +38,7 @@ export const GuildEmblemBadge: React.FC<{
   return (
     <div
       className={`${dimClass} shrink-0 relative bg-gradient-to-b from-[#6A1D1B] to-[#3B1210] border-2 border-[#B79552] rounded-[2px] flex flex-col items-center justify-center shadow-md select-none`}
-      title={GUILD_EMBLEMS[emblemId]?.name ?? 'Estandarte da Guilda'}
+      title={GUILD_EMBLEMS[emblemId]?.name ?? 'Estandarte da Aliança'}
     >
       <svg
         viewBox="0 0 32 32"
@@ -98,8 +98,8 @@ export const GuildEmblemBadge: React.FC<{
 };
 
 /**
- * Modal de Perfil Público da Guilda (Seções 3, 9 e 10)
- * Acessível tanto na listagem de Guildas quanto na Classificação.
+ * Modal de Perfil Público da Aliança (Seções 3, 9 e 10)
+ * Acessível tanto na listagem de Alianças quanto na Classificação.
  */
 export const GuildPublicProfileModal: React.FC<{
   open: boolean;
@@ -141,7 +141,7 @@ export const GuildPublicProfileModal: React.FC<{
     <GameModal
       open={open}
       title={`[${guild.tag}] ${guild.name}`}
-      subtitle={`Perfil Público da Guilda · Posição #${rankEntry?.rank ?? '-'} na Classificação`}
+      subtitle={`Perfil Público da Aliança · Posição #${rankEntry?.rank ?? '-'} na Classificação`}
       onClose={onClose}
     >
       <div className="space-y-3 text-xs sm:text-sm">
@@ -158,7 +158,7 @@ export const GuildPublicProfileModal: React.FC<{
               </span>
               {guild.isSimulatedSeed && (
                 <span className="px-1.5 py-0.5 text-[10px] bg-[#2B2119] border border-[#5E4527] text-[#B8A686]">
-                  Guilda Simulada (Modo Local)
+                  Aliança Simulada (Modo Local)
                 </span>
               )}
             </div>
@@ -186,7 +186,7 @@ export const GuildPublicProfileModal: React.FC<{
             </span>
           </div>
           <div className="p-2 bg-[#2B2119] border border-[#5E4527] text-center">
-            <span className="block text-[10px] uppercase text-[#B8A686]">Honra Total</span>
+            <span className="block text-[10px] uppercase text-[#B8A686]">Reputação Total</span>
             <span className="font-roman font-bold text-sm text-[#EFE2C4]">
               {rankEntry?.totalHonor ?? 0}
             </span>
@@ -212,7 +212,7 @@ export const GuildPublicProfileModal: React.FC<{
               Recrutamento: {GUILD_RECRUITMENT_LABELS[guild.recruitmentStatus]}
             </span>
             <span className="text-xs font-semibold tabular-nums">
-              Requisitos: Nível {guild.minLevelReq}+ · Honra {guild.minHonorReq}+
+              Requisitos: Nível {guild.minLevelReq}+ · Reputação {guild.minHonorReq}+
             </span>
           </div>
 
@@ -247,12 +247,12 @@ export const GuildPublicProfileModal: React.FC<{
                       : isFull
                       ? `Sem vagas (${guild.members.length}/${maxCap})`
                       : !meetsReqs
-                      ? `Requer Nv.${guild.minLevelReq} e ${guild.minHonorReq} Honra`
+                      ? `Requer Nv.${guild.minLevelReq} e ${guild.minHonorReq} Reputação`
                       : undefined
                   }
                 >
                   {guild.recruitmentStatus === 'open'
-                    ? 'Ingressar na Guilda'
+                    ? 'Ingressar na Aliança'
                     : 'Enviar Candidatura'}
                 </GameButton>
               )}
@@ -287,7 +287,7 @@ export const GuildPublicProfileModal: React.FC<{
         {/* Quadro de Membros Atuais com Link para Perfil Público */}
         <div className="p-2.5 bg-[#1D1510] border border-[#5E4527]">
           <div className="font-roman font-bold text-xs text-[#D4B26A] uppercase mb-2">
-            Membros Atuais ({guild.members.length}/{maxCap}) — Soma de Honra:{' '}
+            Membros Atuais ({guild.members.length}/{maxCap}) — Soma de Reputação:{' '}
             {rankEntry?.totalHonor ?? 0}
           </div>
           <div className="divide-y divide-[#5E4527]/50">
@@ -311,7 +311,7 @@ export const GuildPublicProfileModal: React.FC<{
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 tabular-nums">
-                  <span className="font-bold text-[#D4B26A]">{m.honor} Honra</span>
+                  <span className="font-bold text-[#D4B26A]">{m.honor} Reputação</span>
                   {onInspectPlayer && (
                     <GameButton
                       variant="iron"
@@ -332,7 +332,7 @@ export const GuildPublicProfileModal: React.FC<{
 };
 
 /**
- * Modal de Perfil Público de Jogador / Gladiador (Seções 8, 10 e 11)
+ * Modal de Perfil Público de Jogador / Herói (Seções 8, 10 e 11)
  * Nunca expõe dados privados (saldo de ouro pessoal na carteira, itens da mochila ou tempos internos).
  */
 export const PlayerPublicProfileModal: React.FC<{
@@ -355,7 +355,7 @@ export const PlayerPublicProfileModal: React.FC<{
       void apiFetchOnlinePlayerProfile(playerId).then((details) => {
         if (active) setOnlineDetails(details);
       }).catch((error: unknown) => {
-        if (active) setProfileError(error instanceof Error ? error.message : 'Não foi possível carregar o gladiador.');
+        if (active) setProfileError(error instanceof Error ? error.message : 'Não foi possível carregar o perfil do herói.');
       });
     }
     return () => { active = false; };
@@ -378,7 +378,7 @@ export const PlayerPublicProfileModal: React.FC<{
     <GameModal
       open={open}
       title={`${entry.guildTag ? `[${entry.guildTag}] ` : ''}${entry.name}`}
-      subtitle={`${isOnlineMode ? 'Gladiador Online' : 'Perfil Público de Gladiador'} · Posição #${entry.rank} em Honra`}
+      subtitle={`${isOnlineMode ? 'Herói Online' : 'Perfil Público de Herói'} · Posição #${entry.rank} em Reputação`}
       onClose={onClose}
     >
       <div className="space-y-3 text-xs sm:text-sm">
@@ -390,11 +390,11 @@ export const PlayerPublicProfileModal: React.FC<{
               </span>
               {entry.isPlayer ? (
                 <span className="px-1.5 py-0.5 text-[10px] font-bold bg-[#792B28] text-[#EFE2C4] border border-[#D4B26A]">
-                  Seu Gladiador
+                  Seu Herói
                 </span>
               ) : (
                 <span className="px-1.5 py-0.5 text-[10px] bg-[#2B2119] border border-[#5E4527] text-[#B8A686]">
-                  Gladiador Simulado (Modo Local)
+                  Herói Simulado (Modo Local)
                 </span>
               )}
             </div>
@@ -414,7 +414,7 @@ export const PlayerPublicProfileModal: React.FC<{
                   }
                 }}
               >
-                Guilda [{entry.guildTag}] {entry.guildName}
+                Aliança [{entry.guildTag}] {entry.guildName}
               </GameButton>
             </div>
           )}
@@ -432,7 +432,7 @@ export const PlayerPublicProfileModal: React.FC<{
               </div>
             </div>
             <div>
-              <h3 className="font-roman font-bold text-sm text-[#D4B26A] mb-2">Equipamentos vestidos</h3>
+              <h3 className="font-roman font-bold text-sm text-[#D4B26A] mb-2">Equipamentos ativos</h3>
               {isOnlineMode && !onlineDetails && !profileError && (
                 <p className="text-xs text-[#B8A686] py-3" role="status">Carregando equipamentos públicos…</p>
               )}
@@ -461,7 +461,7 @@ export const PlayerPublicProfileModal: React.FC<{
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 tabular-nums">
           <div className="p-2.5 bg-[#2B2119] border border-[#5E4527]">
             <span className="block text-[10px] uppercase text-[#B8A686]">
-              Honra Geral (#{entry.rank})
+              Reputação Geral (#{entry.rank})
             </span>
             <span className="font-roman font-bold text-base text-[#D4B26A]">
               {entry.honor} pts
@@ -493,15 +493,15 @@ export const PlayerPublicProfileModal: React.FC<{
           </div>
           <div className="p-2.5 bg-[#2B2119] border border-[#5E4527]">
             <span className="block text-[10px] uppercase text-[#B8A686]">
-              Ouro Saqueado (Acumulado)
+              Créditos Saqueado (Acumulado)
             </span>
             <span className="font-roman font-bold text-base text-[#D6C29A]">
-              {entry.goldLooted} denários
+              {entry.goldLooted} créditos
             </span>
           </div>
           <div className="p-2.5 bg-[#2B2119] border border-[#5E4527]">
             <span className="block text-[10px] uppercase text-[#B8A686]">
-              Guilda Atual
+              Aliança Atual
             </span>
             <span className="font-roman font-bold text-sm text-[#EFE2C4] truncate block">
               {entry.guildTag ? `[${entry.guildTag}] ${entry.guildName}` : 'Independente'}
@@ -518,4 +518,5 @@ export const PlayerPublicProfileModal: React.FC<{
     </GameModal>
   );
 };
+
 

@@ -1,28 +1,8 @@
 import type { GameItem } from './config.ts';
-
-const NOBILITY_TITLES = [
-  'Cavaleiro',
-  'Patrício',
-  'Tribuno',
-  'Questor',
-  'Edil',
-  'Pretor',
-  'Cônsul',
-  'Procônsul',
-  'Censor',
-  'Senador',
-  'Príncipe do Senado',
-  'Legado Imperial',
-  'César',
-  'Imperator',
-  'Augusto',
-] as const;
+import { getHeroTitle } from './heroIdentity.ts';
 
 export function getCompetitiveTitle(level: number, honorRank: number | null): string {
-  if (honorRank === 1) return 'Augusto Supremo do Coliseu';
-  const safeLevel = Number.isFinite(level) ? Math.max(1, Math.floor(level)) : 1;
-  const milestone = Math.min(NOBILITY_TITLES.length, Math.floor(safeLevel / 10));
-  return milestone > 0 ? NOBILITY_TITLES[milestone - 1] : 'Gladiador de Cápua';
+  return getHeroTitle(level, honorRank);
 }
 
 export type ItemAffixId = 'precise' | 'cruel' | 'swift';
@@ -77,4 +57,5 @@ export function getAffixChanceForRarity(baseChance: number, rarity: string): num
   const multiplier = /common|comum|uncommon|incomum/i.test(rarity) ? 1 : 1.75;
   return Math.min(0.35, baseChance * multiplier);
 }
+
 

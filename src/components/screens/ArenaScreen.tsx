@@ -60,7 +60,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
     void apiFetchOnlinePlayerRankings({ category: 'honor', limit: 50 }).then((page) => {
       if (!cancelled) setOnlineOpponents(page.items.filter((entry) => !entry.isPlayer));
     }).catch((error: unknown) => {
-      if (!cancelled) setOpponentsError(error instanceof Error ? error.message : 'Não foi possível carregar os gladiadores.');
+      if (!cancelled) setOpponentsError(error instanceof Error ? error.message : 'Não foi possível carregar os heróis.');
     }).finally(() => {
       if (!cancelled) setOpponentsLoading(false);
     });
@@ -69,25 +69,25 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
 
   return (
     <div className="arena-screen space-y-4">
-      <RomanSceneArt scene="arena" label="Interior do Coliseu com tochas e estandartes" className="arena-panorama">
-        <div className="arena-proclamation"><span>ARENA PROVINCIAL</span><h2>A glória pertence aos audazes.</h2><p>Escolha um desafiante abaixo e prepare seu próximo duelo.</p><span className="arena-laurel" aria-hidden="true">SPQR</span></div>
+      <RomanSceneArt scene="arena" label="Simulador holográfico de combate da Vigília" className="arena-panorama">
+        <div className="arena-proclamation"><span>SIMULAÇÃO TÁTICA · PROTOCOLO 01</span><h2>Teste seus limites.</h2><p>Treino não letal para preparar sua próxima operação.</p><span className="arena-laurel" aria-hidden="true">V</span></div>
       </RomanSceneArt>
       <RomanPanel
-        title="Arena Provincial de Cápua"
-        subtitle="Treino contra campeões locais · prepare seu gladiador e conquiste prestígio"
+        title="Simulação Tática da Vigília"
+        subtitle="Treino competitivo não letal · prepare seu herói e conquiste reputação"
         variant="parchment"
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-[#30251A]">
           <p className="leading-relaxed">
-            Enfrente os campeões fixos da escada da Arena Provincial para conquistar{' '}
-            <strong>Honra</strong>, <strong>Fama</strong> e <strong>Denários</strong>. Os 4
+            Enfrente os agentes simulados para conquistar{' '}
+            <strong>Reputação</strong>, <strong>Fama</strong> e <strong>Créditos</strong>. Os 4
             campeões abaixo são <strong>desafiantes locais com posição fixa na escada</strong>, separados da
-            Classificação Geral de Gladiadores e Guildas.
+            Classificação Geral de Heróis e Alianças.
           </p>
           <div className="shrink-0 bg-[#C2AB7E] border border-[#947044] p-2.5 text-center tabular-nums space-y-1.5">
             <div>
               <span className="block text-[10px] uppercase font-bold text-[#5C4935]">
-                {guildBonuses.guildTag ? `[${guildBonuses.guildTag}] ` : ''}Sua Honra Geral
+                {guildBonuses.guildTag ? `[${guildBonuses.guildTag}] ` : ''}Sua Reputação Geral
               </span>
               <span className="font-roman font-bold text-base text-[#30251A]">
                 {state.honor} Pontos (Posição #{playerRankEntry?.rank ?? '-'})
@@ -116,7 +116,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
       )}
 
       <RomanPanel
-        title="Campeões da Escada da Arena"
+        title="Agentes de Treino"
         subtitle="Treino contra campeões locais · 1 Energia · não afetam a classificação de jogadores"
         variant="stone"
       >
@@ -130,7 +130,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
                 playerStats={derived}
                 simulationTag={`${opp.simulationTag} · posição fixa na escada #${opp.arenaRank} · ${opp.ludusOrigin}`}
                 energyCost={1}
-                actionLabel="Desafiar na Arena"
+                actionLabel="Iniciar Simulação"
                 onAction={() => onChallengeArenaOpponent(opp.id)}
                 disabled={notEnoughEnergy}
                 disabledReason={
@@ -144,17 +144,17 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
 
       <RomanPanel
         title="Desafios PvP"
-        subtitle="Duelo assíncrono contra gladiadores reais · 1 Energia · até 5 desafios por dia"
+        subtitle="Duelo assíncrono contra heróis reais · 1 Energia · até 5 desafios por dia"
         variant="parchment"
       >
         {!isOnlineMode ? (
           <p className="text-sm text-[#30251A]">Entre na sua conta online para encontrar jogadores reais. O treino continua disponível sem login.</p>
         ) : opponentsLoading ? (
-          <p className="text-sm text-[#30251A]">Carregando gladiadores online…</p>
+          <p className="text-sm text-[#30251A]">Carregando heróis online…</p>
         ) : opponentsError ? (
           <p className="text-sm text-[#7A2723]">{opponentsError}</p>
         ) : onlineOpponents.length === 0 ? (
-          <p className="text-sm text-[#30251A]">Ainda não há outros gladiadores elegíveis. Assim que jogadores entrarem, eles aparecerão aqui.</p>
+          <p className="text-sm text-[#30251A]">Ainda não há outros heróis elegíveis. Assim que jogadores entrarem, eles aparecerão aqui.</p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {onlineOpponents.slice(0, 12).map((opponent) => {
@@ -165,7 +165,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
                   <div className="min-w-0">
                     <strong className="block truncate">{opponent.name}</strong>
                     <span className="text-xs">{opponent.title} · Nv. {opponent.level} · Rank #{opponent.rank}</span>
-                    <span className="block text-xs">{opponent.guildTag ? `[${opponent.guildTag}] ` : ''}{opponent.honor} Honra</span>
+                    <span className="block text-xs">{opponent.guildTag ? `[${opponent.guildTag}] ` : ''}{opponent.honor} Reputação</span>
                   </div>
                   <GameButton variant="parchment" size="sm" disabled={!eligible || !onChallengePlayer} onClick={() => onChallengePlayer?.(opponent.uid)}>
                     {levelGap > 10 ? 'Nível distante' : state.energy < 1 ? 'Sem energia' : 'Desafiar'}
@@ -179,4 +179,5 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
     </div>
   );
 };
+
 

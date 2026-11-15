@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import titleBgImg from '../assets/images/title_bg_1794015146150.jpg';
+import vigiliaKeyArt from '../assets/images/vigilia-key-art.jpg';
 import gladiatorPortraitImg from '../assets/images/gladiator_portrait_1794015147183.jpg';
 import expeditionRuinsImg from '../assets/images/expedition_ruins_1794015148681.jpg';
 import enemyChampionImg from '../assets/images/enemy_champion_1794015149273.jpg';
@@ -12,7 +12,7 @@ import enemyChampionImg from '../assets/images/enemy_champion_1794015149273.jpg'
  */
 
 export const IMAGE_ASSETS = {
-  titleBackdrop: titleBgImg,
+  titleBackdrop: vigiliaKeyArt,
   playerPortrait: gladiatorPortraitImg,
   expeditionBanner: expeditionRuinsImg,
   championPortrait: enemyChampionImg,
@@ -201,4 +201,5 @@ export const EnemyPortrait: React.FC<{
     </div>
   );
 };
+
 

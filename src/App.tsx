@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { claimContract } from './game/contracts';
 import { getCompetitiveTitle } from './game/competitiveProgression';
+import { GAME_IDENTITY, NAVIGATION_LABELS } from './game/heroIdentity';
 import { ArtworkImage, IMAGE_ASSETS } from './design/assets';
 import {
   ARENA_OPPONENTS,
@@ -587,7 +588,7 @@ export default function App() {
       return;
     }
     showToast(
-      `Conectado com sucesso como ${res.user?.displayName ?? 'Gladiador'}!`,
+      `Conectado com sucesso como ${res.user?.displayName ?? 'Herói'}!`,
       'success'
     );
   };
@@ -693,7 +694,7 @@ export default function App() {
       return;
     }
     setGameState(res.state);
-    showToast(`Item vendido por +${res.goldReceived} denários de ouro.`, 'success');
+    showToast(`Item vendido por +${res.goldReceived} créditos.`, 'success');
   };
 
   const handleRestoreHealthAtBarracks = () => {
@@ -705,7 +706,7 @@ export default function App() {
     if (missing <= 0) return;
     const cost = Math.max(5, Math.ceil(missing * 0.25));
     if (gameState.gold < cost) {
-      showToast(`Ouro insuficiente para o médico (${cost} Ouro).`, 'error');
+      showToast(`Créditos insuficientes para o atendimento (${cost}).`, 'error');
       return;
     }
     setGameState((prev) => ({
@@ -713,7 +714,7 @@ export default function App() {
       gold: prev.gold - cost,
       currentHp: derivedStats.maxHp,
     }));
-    showToast('Seus ferimentos foram tratados pelo médico do Ludus!', 'success');
+    showToast('Seus ferimentos foram tratados pela equipe médica da Vigília!', 'success');
   };
 
   // Handler de Expedição Manual
@@ -814,7 +815,7 @@ export default function App() {
     }));
 
     showToast(
-      `Patrulha Automática ativada em ${region.name}! Seu gladiador combaterá a cada ${region.durationSeconds}s.`,
+      `Operação automática iniciada em ${region.name}! Seu herói entrará em ação a cada ${region.durationSeconds}s.`,
       'success'
     );
   };
@@ -893,7 +894,7 @@ export default function App() {
       opponent,
       {
         mode: 'arena',
-        locationName: 'Arena Provincial de Cápua',
+        locationName: 'Simulação Tática da Vigília',
         timestampMs: now,
       }
     );
@@ -923,7 +924,7 @@ export default function App() {
 
   const handleChallengeOnlinePlayer = (opponentUid: string) => {
     if (!isOnlineMode) {
-      showToast('Entre na conta online para desafiar outros gladiadores.', 'error');
+      showToast('Entre na conta online para desafiar outros heróis.', 'error');
       return;
     }
     void executeOnlineAction('challenge_player', { opponentUid });
@@ -947,7 +948,7 @@ export default function App() {
     showToast(
       res.discountAmount > 0
         ? `Atributo treinado (-${res.costPaid}g com desconto de -${res.discountAmount}g da Guilda)!`
-        : `Atributo treinado com sucesso (-${res.costPaid} denários)!`,
+        : `Atributo treinado com sucesso (-${res.costPaid} créditos)!`,
       'success'
     );
   };
@@ -964,7 +965,7 @@ export default function App() {
     }
     setGameState(result.state);
     showToast(
-      `${result.itemName ?? 'Equipamento'} aprimorado na Forja para o nível ${result.forgeLevel} (-${result.costPaid} denários).`,
+      `${result.itemName ?? 'Equipamento'} aprimorado no Laboratório para o nível ${result.forgeLevel} (-${result.costPaid} créditos).`,
       'success'
     );
   };
@@ -1220,20 +1221,20 @@ export default function App() {
       : gameState.name;
 
     return (
-      <div className="relative min-h-screen w-full bg-[#17120F] text-[#EFE2C4] flex flex-col justify-between overflow-hidden">
+      <div className="vigilia-title relative min-h-screen w-full text-[#EDF6FF] flex flex-col justify-between overflow-hidden">
         <div className="absolute inset-0">
           <ArtworkImage
             src={IMAGE_ASSETS.titleBackdrop}
-            alt="Pátio do Ludus Romano e Coliseu ao entardecer"
+            alt="Equipe original de heróis observando uma cidade diante de uma fenda luminosa"
             fallbackType="banner"
             loading="eager"
-            className="w-full h-full object-cover object-center"
+            className="vigilia-title-backdrop w-full h-full object-cover object-center"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#17120F]/75 via-transparent to-[#17120F]/95" />
+          <div className="vigilia-title-overlay absolute inset-0" />
         </div>
 
         <div className="relative z-10 w-full max-w-4xl mx-auto px-3 sm:px-4 pt-4 sm:pt-10 flex flex-wrap items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2.5 sm:gap-3 bg-[#17120F]/85 frame-bronze px-3 py-2 min-w-0">
+          <div className="vigilia-title-brand flex items-center gap-2.5 sm:gap-3 px-3 py-2 min-w-0">
             <svg
               viewBox="0 0 64 64"
               className="w-10 h-10 sm:w-12 sm:h-12 shrink-0"
@@ -1241,22 +1242,22 @@ export default function App() {
             >
               <polygon
                 points="32,4 56,16 52,46 32,60 12,46 8,16"
-                fill="#792B28"
-                stroke="#B79552"
+                fill="#4d38a4"
+                stroke="#72e3f5"
                 strokeWidth="2.5"
               />
-              <path d="M32 12 L32 52 M20 26 L44 26" stroke="#EFE2C4" strokeWidth="2.5" />
-              <circle cx="32" cy="26" r="6" fill="#B79552" stroke="#17120F" strokeWidth="1.5" />
+              <path d="M32 12 L32 52 M20 26 L44 26" stroke="#EDF6FF" strokeWidth="2.5" />
+              <circle cx="32" cy="26" r="6" fill="#58D6F2" stroke="#07111F" strokeWidth="1.5" />
             </svg>
             <div className="min-w-0">
-              <span className="text-[10px] sm:text-xs font-roman tracking-widest text-[#D4B26A] uppercase block truncate">
-                Cápua & Via Ápia
+              <span className="text-[10px] sm:text-xs font-roman tracking-widest text-[#7FE7FB] uppercase block truncate">
+                PROTOCOLO GLOBAL · 01
               </span>
-              <h1 className="font-roman font-extrabold text-lg sm:text-3xl text-[#EFE2C4] tracking-wider leading-none truncate">
-                GLADIATORUM
+              <h1 className="font-roman font-extrabold text-lg sm:text-3xl text-[#EDF6FF] tracking-wider leading-none truncate">
+                {GAME_IDENTITY.name.toUpperCase()}
               </h1>
-              <span className="font-roman font-semibold text-[10px] sm:text-xs text-[#D6C29A] tracking-widest block mt-0.5 truncate">
-                ARENA AETERNA
+              <span className="font-roman font-semibold text-[10px] sm:text-xs text-[#A0F0FF] tracking-widest block mt-0.5 truncate">
+                {GAME_IDENTITY.subtitle.toUpperCase()}
               </span>
             </div>
           </div>
@@ -1276,7 +1277,7 @@ export default function App() {
         <div className="relative z-10 flex-1 min-h-[100px]" />
 
         <div className="relative z-10 w-full max-w-xl mx-auto px-4 pb-6 sm:pb-10">
-          <div className="surface-stone frame-bronze p-4 sm:p-6 shadow-2xl space-y-4">
+          <div className="vigilia-title-card p-4 sm:p-6 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#5E4527]">
               <span
                 className={`px-2 py-0.5 text-[11px] font-roman font-bold border ${
@@ -1301,9 +1302,7 @@ export default function App() {
             </div>
 
             <p className="text-xs sm:text-sm text-[#EFE2C4] leading-relaxed">
-              Comande a ascensão do seu gladiador nos quartéis de Roma. Equipe armamentos,
-              treine com o Doctore, integre uma Guilda compartilhada e dispute a Classificação
-              Provincial.
+              {GAME_IDENTITY.description} Escolha seu caminho: herói, vigilante ou anti-herói.
             </p>
 
             {(hasExistingSave || isOnlineMode) && (
@@ -1320,7 +1319,7 @@ export default function App() {
                     {titleDisplayName} · Nível {gameState.level}
                   </div>
                   <div className="text-[11px] text-[#D4B26A] tabular-nums">
-                    {gameState.gold} Ouro · {gameState.honor} Honra (#{playerRankPosition}) ·{' '}
+                    {gameState.gold} Créditos · {gameState.honor} Reputação (#{playerRankPosition}) ·{' '}
                     {gameState.wins} Vitória(s)
                   </div>
                 </div>
@@ -1335,7 +1334,7 @@ export default function App() {
                   e.currentTarget.blur();
                   setScreenMode('playing');
                 }}
-                className="flex-1 min-h-[48px] px-5 py-3 bg-gradient-to-b from-[#8E332F] to-[#611F1C] text-[#EFE2C4] border-2 border-[#B79552] font-roman font-bold text-sm sm:text-base tracking-wider cursor-pointer active:translate-y-[1px]"
+                className="vigilia-primary flex-1 min-h-[48px] px-5 py-3 text-white border-2 font-roman font-bold text-sm sm:text-base tracking-wider cursor-pointer active:translate-y-[1px] rounded-lg"
               >
                 {hasExistingSave || isOnlineMode
                   ? `Continuar (${titleDisplayName} · Nv.${gameState.level})`
@@ -1355,7 +1354,7 @@ export default function App() {
         <GameModal
           open={accountModalOpen}
           title="Conta e progresso"
-          subtitle="Acesse sua conta para jogar e salvar seu gladiador online"
+          subtitle="Acesse sua conta para jogar e salvar seu herói online"
           onClose={() => setAccountModalOpen(false)}
         >
           <OnlineAccountAndMigrationModalContent
@@ -1372,8 +1371,8 @@ export default function App() {
 
         <GameModal
           open={helpModalOpen}
-          title="Manual do Ludus — Como Jogar"
-          subtitle="Guia de Combate, Guildas, Classificação e Patrulha automática"
+          title="Manual da Vigília — Como Jogar"
+          subtitle="Combate, Alianças, Classificação e Operações automáticas"
           onClose={() => setHelpModalOpen(false)}
         >
           <HowToPlayModalContent
@@ -1413,7 +1412,7 @@ export default function App() {
                     setCorruptedSaveModal(null);
                   }}
                 >
-                  Iniciar Novo Gladiador Nível 1
+                  Iniciar Novo Herói Nível 1
                 </GameButton>
               </div>
             </div>
@@ -1427,7 +1426,7 @@ export default function App() {
     <>
       <GameShell
         activeTab={activeTab}
-        sectionTitle={({ character: 'Arsenal do Gladiador', expeditions: 'Expedições e Campanhas', arena: 'Arena de Combate', inventory: 'Inventário do Arsenal', city: 'Cidade de Cápua' })[activeTab]}
+        sectionTitle={({ character: 'Protocolo do Herói', expeditions: 'Operações e Incursões', arena: 'Simulação de Combate', inventory: 'Equipamentos', city: 'Agência Central' })[activeTab] || NAVIGATION_LABELS[activeTab]}
         bannerFeedback={bannerFeedback}
         onDismissFeedback={() => setBannerFeedback(null)}
         guidedOnboardingBar={
@@ -1511,7 +1510,7 @@ export default function App() {
         <Suspense
           fallback={
             <div className="p-6 text-center text-xs font-roman text-[#D6C29A]">
-              Carregando ala do Ludus…
+              Carregando seção da Vigília…
             </div>
           }
         >
@@ -1802,7 +1801,7 @@ export default function App() {
       <GameModal
         open={accountModalOpen}
         title="Conta e progresso"
-        subtitle="Acesse sua conta para jogar e salvar seu gladiador online"
+        subtitle="Acesse sua conta para jogar e salvar seu herói online"
         onClose={() => setAccountModalOpen(false)}
       >
         <OnlineAccountAndMigrationModalContent
@@ -1853,7 +1852,7 @@ export default function App() {
 
       <GameModal
         open={Boolean(offlineModalBatch)}
-        title="Relatório de Retorno ao Ludus"
+        title="Relatório de Retorno à Vigília"
         subtitle="Progresso contabilizado em segundo plano por timestamps"
         onClose={() => setOfflineModalBatch(null)}
       >
@@ -1864,8 +1863,8 @@ export default function App() {
 
       <GameModal
         open={helpModalOpen}
-        title="Manual do Ludus — Como Jogar"
-        subtitle="Regras de Combate, Guildas, Classificação e Patrulha automática"
+        title="Manual da Vigília — Como Jogar"
+        subtitle="Combate, Alianças, Classificação e Operações automáticas"
         onClose={() => setHelpModalOpen(false)}
       >
         <HowToPlayModalContent
@@ -1876,7 +1875,7 @@ export default function App() {
             setHasExistingSave(false);
             setLastStatChange(null);
             setHelpModalOpen(false);
-            showToast('Progresso reiniciado para um novo Gladiador Nível 1.', 'info');
+            showToast('Progresso reiniciado para um novo Herói Nível 1.', 'info');
           }}
         />
       </GameModal>
@@ -1929,7 +1928,7 @@ const OnlineAccountAndMigrationModalContent: React.FC<{
             Modo visitante · progresso salvo neste navegador
           </div>
           <p className="text-xs leading-relaxed">
-            Conecte sua conta com o Google para salvar seu gladiador na nuvem, recuperar o
+            Conecte sua conta com o Google para salvar seu herói na nuvem, recuperar o
             progresso em qualquer navegador, ingressar em Guildas Online compartilhadas e
             disputar a Classificação Competitiva.
           </p>
@@ -2002,7 +2001,7 @@ const GuidedTutorialBar: React.FC<{
       number: 1,
       title: 'Passo 1/5: Iniciar uma Expedição',
       instruction:
-        'Abra a aba Expedições e enfrente o Lobo Cinzento nos Bosques de Cápua.',
+        'Abra Operações e enfrente a ameaça do Distrito Verde.',
       targetTab: 'expeditions',
       cta: 'Ir para Expedições',
     },
@@ -2010,7 +2009,7 @@ const GuidedTutorialBar: React.FC<{
       number: 2,
       title: 'Passo 2/5: Receber a Recompensa',
       instruction:
-        'Toque em "Resgatar Recompensas" no pergaminho de vitória para guardar seu Ouro e XP.',
+        'Conclua uma operação e resgate seus créditos e XP para avançar.',
       targetTab: 'expeditions',
       cta: 'Ver Recompensa',
     },
@@ -2026,7 +2025,7 @@ const GuidedTutorialBar: React.FC<{
       number: 4,
       title: 'Passo 4/5: Treinar um Atributo',
       instruction:
-        'Visite a Cidade e use seus denários para treinar +1 ponto de Força ou Habilidade.',
+        'Visite a Agência e use créditos para treinar seus atributos.',
       targetTab: 'city',
       cta: 'Ir ao Treinamento',
     },
@@ -2034,7 +2033,7 @@ const GuidedTutorialBar: React.FC<{
       number: 5,
       title: 'Passo 5/5: Escolher Próxima Atividade',
       instruction:
-        'Ative uma Patrulha automática nas Expedições, junte-se a uma Guilda ou desafie na Arena.',
+        'Ative operações automáticas, junte-se a uma Aliança ou enfrente rivais na Simulação.',
       targetTab: 'expeditions',
       cta: 'Escolher Atividade',
     },
@@ -2095,33 +2094,33 @@ const HowToPlayModalContent: React.FC<{
     <div className="space-y-4 text-xs sm:text-sm">
       <div className="surface-parchment frame-parchment p-3 text-[#30251A] space-y-2.5">
         <h3 className="font-roman font-bold text-sm text-[#792B28]">
-          1. O Ciclo do Gladiador
+          1. O Ciclo do Herói
         </h3>
         <p className="leading-relaxed">
-          Em <strong>GLADIATORUM: Arena Aeterna</strong>, realize <strong>Expedições</strong>{' '}
-          para obter ouro, experiência e armas; <strong>equipe itens</strong> nos 8 espaços do
-          corpo; e <strong>treine atributos</strong> na Cidade para vencer inimigos superiores.
+          Em <strong>Vigília: Heróis do Limiar</strong>, realize <strong>Operações</strong>{' '}
+          para obter créditos, experiência e equipamentos; <strong>equipe itens</strong> nos 8 espaços do
+          traje; e <strong>treine atributos</strong> na Agência para vencer ameaças superiores.
         </p>
 
         <h3 className="font-roman font-bold text-sm text-[#792B28] pt-1">
-          2. Guildas (Collegia) Compartilhadas & Sede de 8 Edifícios
+          2. Alianças Compartilhadas & Base de 8 Estruturas
         </h3>
         <p className="leading-relaxed">
-          Na aba <strong>Cidade → Guilda</strong>, você pode ingressar em uma guilda real
-          ou fundar a sua. A sede conta com 8 edifícios funcionais: <strong>Forum Gladiatorius</strong>{' '}
-          (vagas), <strong>Banco</strong> (tesouro), <strong>Campo de Treino</strong> (desconto
+          Na aba <strong>Agência → Aliança</strong>, você pode ingressar em uma equipe real
+          ou fundar a sua. A base conta com 8 estruturas funcionais: <strong>Centro de Recrutamento</strong>{' '}
+          (vagas), <strong>Banco</strong> (créditos), <strong>Centro de Treino</strong> (desconto
           nos treinos), <strong>Balneário</strong> (+PV/min), <strong>Villa Medici</strong>{' '}
-          (cura com espera), <strong>Biblioteca</strong> (pergaminhos temporários de 2h),{' '}
+          (cura com espera), <strong>Laboratório</strong> (protocolos temporários de 2h),{' '}
           <strong>Armazém</strong> e <strong>Mercado Interno</strong> (-15%).
         </p>
 
         <h3 className="font-roman font-bold text-sm text-[#792B28] pt-1">
-          3. Classificação Online de Gladiadores e Guildas
+          3. Classificação Online de Heróis e Alianças
         </h3>
         <p className="leading-relaxed">
           Na aba <strong>Cidade → Classificação</strong>, consulte a classificação competitiva de
-          Gladiadores (por Honra, Fama, Vitórias, Proezas e Ouro Saqueado) e de Guildas (soma
-          exata da Honra dos membros atuais).
+          Heróis (por Reputação, Fama, Vitórias, Proezas e Créditos recebidos) e de Alianças (soma
+          exata da Reputação dos membros atuais).
         </p>
       </div>
 
@@ -2136,4 +2135,5 @@ const HowToPlayModalContent: React.FC<{
     </div>
   );
 };
+
 

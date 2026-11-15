@@ -67,11 +67,11 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
   return (
     <div className="inventory-screen space-y-4">
       <RomanPanel
-        title="Equipamentos em Uso no Corpo"
+        title="Equipamento Ativo do Herói"
         subtitle={
           inventoryFull
-            ? `Mochila cheia (${inventoryCapacity}/${inventoryCapacity})! Venda itens abaixo antes de remover equipamentos.`
-            : 'Toque em um item equipado para removê-lo para a mochila'
+            ? `Inventário cheio (${inventoryCapacity}/${inventoryCapacity})! Venda itens abaixo antes de remover equipamentos.`
+            : 'Toque em um item equipado para guardá-lo no inventário'
         }
         variant="stone"
       >
@@ -101,7 +101,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         <div className="lg:col-span-7">
           <RomanPanel
-            title={`Arca de couro (${state.inventory.length}/${inventoryCapacity} espaços)`}
+            title={`Inventário de Equipamentos (${state.inventory.length}/${inventoryCapacity} espaços)`}
             subtitle="Filtre por categoria ou toque em um item para usar medicamentos ou comparar com o espaço atual"
             variant="wood"
             headerAction={expansionCost === null ? <span className="text-xs text-[#D6C29A]">Limite máximo</span> : (
@@ -157,8 +157,8 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
 
             {state.inventory.length === 0 ? (
               <div className="p-4 bg-[#17120F]/70 border border-[#5E4527] text-xs text-[#D6C29A] mb-3">
-                Sua arca de couro está vazia. Realize Expedições com foco em{' '}
-                <strong>Caça a Equipamentos</strong> ou compre armas e medicinas na Cidade.
+                Sua arca de couro está vazia. Realize Operações com foco em{' '}
+                <strong>Caça a Equipamentos</strong> ou compre armas e medicinas na Agência.
               </div>
             ) : null}
 
@@ -212,4 +212,5 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
     </div>
   );
 };
+
 

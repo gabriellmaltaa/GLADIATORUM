@@ -5,6 +5,7 @@ import { CONTRACTS, contractProgress } from '../../game/contracts';
 import { COLLECTIONS, getItemsVisibleByDiscovery, isRarityDiscovered } from '../../game/expansion';
 import { DESIGN_TOKENS, RarityKey } from '../../design/tokens';
 import { ItemArtwork } from '../../design/assets';
+import { getHeroicItemName } from '../../game/heroIdentity';
 
 export function ChronicleScreen({ state, onClaim }: { state: GameState; onClaim: (id: string) => void }) {
   const [tab, setTab] = useState<'contracts' | 'collection'>('contracts');
@@ -27,7 +28,7 @@ export function ChronicleScreen({ state, onClaim }: { state: GameState; onClaim:
       <button role="tab" aria-selected={tab === 'collection'} onClick={() => setTab('collection')}>Coleção <span>{items.filter(i => discovered.has(i.templateId)).length}/{items.length}</span></button>
     </div>
     {tab === 'contracts' ? <>
-      <div className="section-intro"><span className="eyebrow">QUADRO DO LUDUS</span><h2>Todo feito merece ser lembrado.</h2><p>Contratos permanentes. Avance no seu ritmo e resgate cada recompensa uma única vez.</p></div>
+      <div className="section-intro"><span className="eyebrow">CENTRAL DE OPERAÇÕES</span><h2>Todo feito merece ser lembrado.</h2><p>Contratos permanentes. Avance no seu ritmo e resgate cada recompensa uma única vez.</p></div>
       <div className="contract-grid">{CONTRACTS.map((contract, index) => {
         const progress = contractProgress(state, contract);
         const claimed = state.claimedContracts?.includes(contract.id);
@@ -36,12 +37,12 @@ export function ChronicleScreen({ state, onClaim }: { state: GameState; onClaim:
           <span className="eyebrow">{contract.kind === 'wins' ? 'COMBATE' : contract.kind === 'loot' ? 'ESPÓLIOS' : 'DISCIPLINA'}</span>
           <h3>{contract.title}</h3><p>{contract.description}</p>
           <div className="contract-progress"><span style={{ width: `${progress / contract.target * 100}%` }} /></div>
-          <div className="contract-footer"><span>{progress}/{contract.target}</span><strong>{contract.gold} denários</strong></div>
+          <div className="contract-footer"><span>{progress}/{contract.target}</span><strong>{contract.gold} créditos</strong></div>
           <button disabled={claimed || progress < contract.target} onClick={() => onClaim(contract.id)}>{claimed ? 'Recompensa resgatada' : progress >= contract.target ? 'Resgatar recompensa' : 'Em andamento'}</button>
         </article>;
       })}</div>
     </> : <>
-      <div className="section-intro"><span className="eyebrow">ARSENAL DA PROVÍNCIA</span><h2>Tesouros para conquistar.</h2><p>Conheça os equipamentos disponíveis e planeje sua próxima melhoria.</p></div>
+      <div className="section-intro"><span className="eyebrow">ARQUIVO DE EQUIPAMENTOS</span><h2>Tecnologia para conquistar.</h2><p>Conheça os equipamentos disponíveis e planeje sua próxima melhoria.</p></div>
       <div className="collection-themes">{COLLECTIONS.map(c => <span key={c.id}>{c.name}<small>Nv. {c.level} · {c.origin}</small></span>)}</div>
       <div className="collection-filters">
         <input aria-label="Buscar equipamento na coleção" placeholder="Buscar equipamento…" value={search} onChange={e => setSearch(e.target.value)} />
@@ -55,7 +56,7 @@ export function ChronicleScreen({ state, onClaim }: { state: GameState; onClaim:
         return <article className="collection-card" style={{ '--rarity': color.border } as React.CSSProperties} key={item.templateId}>
           <div className="collection-art"><ItemArtwork iconId={item.iconId} rarity={item.rarity} size={88} /><span>Nv. {item.levelReq}</span></div>
           <span className="rarity-label" style={{ color: color.textOnDark }}>{color.label} · {EQUIPMENT_SLOT_LABELS[item.slot as EquipmentSlotType]}</span>
-          <h3>{item.name}</h3><p>{item.description}</p>
+          <h3>{getHeroicItemName(item.name)}</h3><p>{item.description}</p>
           <div className="collection-stats">{Object.entries(item.stats).filter(([, v]) => v).map(([key, value]) => <span key={key}>{({ armor: 'Armadura', strength: 'Força', skill: 'Habilidade', agility: 'Agilidade', constitution: 'Constituição', charisma: 'Carisma', intelligence: 'Inteligência', healthBonus: 'PV', damageMin: 'Dano mín.', damageMax: 'Dano máx.' } as Record<string,string>)[key]} +{value}</span>)}</div>
           <span className={`discovery ${discovered.has(item.templateId) ? 'found' : ''}`}>{discovered.has(item.templateId) ? '◆ Descoberto' : '◇ A descobrir'}</span>
         </article>;
@@ -64,5 +65,6 @@ export function ChronicleScreen({ state, onClaim }: { state: GameState; onClaim:
     </>}
   </section>;
 }
+
 
 

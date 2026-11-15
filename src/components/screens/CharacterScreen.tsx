@@ -118,7 +118,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
                     variant="iron"
                     size="sm"
                     onClick={onOpenRankingScreen}
-                    title="Abrir Classificação Geral de Gladiadores"
+                    title="Abrir Classificação Geral de Heróis"
                   >
                     Classificação #{playerRankEntry?.rank ?? '-'}
                   </GameButton>
@@ -150,7 +150,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
                 })}
               </div>
 
-              {/* Retrato Central do Gladiador */}
+              {/* Retrato Central do Herói */}
               <div className="flex flex-col items-center">
                 <div className="gladiator-stage dynamic-gladiator-stage relative w-full frame-bronze overflow-hidden shadow-xl">
                   <GladiatorAvatar equipped={state.equipped} level={state.level} name={displayNameWithTag} />
@@ -163,7 +163,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
                       onClick={onOpenRankingScreen}
                       className="text-[11px] text-[#D4B26A] font-semibold hover:underline cursor-pointer"
                     >
-                      Honra: {state.honor} (Posição #{playerRankEntry?.rank ?? '-'})
+                      Reputação: {state.honor} (Posição #{playerRankEntry?.rank ?? '-'})
                     </button>
                   </div>
                 </div>
@@ -221,10 +221,10 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
                     onClick={onRestoreHealthAtBarracks}
                     disabled={state.gold < healCost}
                     disabledReason={
-                      state.gold < healCost ? `Requer ${healCost} Ouro` : undefined
+                      state.gold < healCost ? `Requer ${healCost} Créditos` : undefined
                     }
                   >
-                    Curar no Médico ({healCost} Ouro)
+                    Curar no Médico ({healCost} Créditos)
                   </GameButton>
                 </div>
               )}
@@ -275,7 +275,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
           >
             {state.inventory.length === 0 ? (
               <p className="text-xs text-[#B8A686] py-2">
-                Sua bolsa está vazia. Conquiste espólios nas Expedições ou visite o Mercado na Cidade.
+                Sua bolsa está vazia. Conquiste espólios nas Operações ou visite o Mercado na Agência.
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -318,7 +318,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
           )}
 
           <RomanPanel
-            title="Atributos do Gladiador"
+            title="Atributos do Herói"
             subtitle="Atributos atualizados com seus treinos e equipamentos."
             variant="parchment"
           >
@@ -345,7 +345,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
 
           <RomanPanel
             title="Atributos de combate"
-            subtitle="Fórmulas explícitas aplicadas nas Expedições, Arena e Masmorras"
+            subtitle="Fórmulas explícitas aplicadas nas Operações, Arena e Masmorras"
             variant="stone"
           >
             <div className="divide-y divide-[#5E4527]/50">
@@ -354,7 +354,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
                 totalValue={`${derived.damageMin} - ${derived.damageMax}`}
                 description={
                   derived.tempDamageBonusPercent > 0
-                    ? `Dano base + Força + Pergaminho Temporário da Guilda (+${derived.tempDamageBonusPercent}%).`
+                    ? `Dano base + Força + Pergaminho Temporário da Aliança (+${derived.tempDamageBonusPercent}%).`
                     : 'Dano base da arma somado ao bônus de Força.'
                 }
               />
@@ -378,8 +378,8 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
                 totalValue={`${derived.hpRegenPerMinute} PV/min`}
                 description={
                   guildBonuses.bathhouseHpRegenBonusPerMinute > 0
-                    ? `Base 12 PV/min + ${guildBonuses.bathhouseHpRegenBonusPerMinute} PV/min do Balneário da Guilda.`
-                    : 'Regeneração natural em repouso e patrulha (expansível no Balneário da Guilda).'
+                    ? `Base 12 PV/min + ${guildBonuses.bathhouseHpRegenBonusPerMinute} PV/min do Balneário da Aliança.`
+                    : 'Regeneração natural em repouso e patrulha (expansível no Balneário da Aliança).'
                 }
               />
               <StatRow
@@ -394,4 +394,5 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
     </div>
   );
 };
+
 

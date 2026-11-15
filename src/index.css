@@ -129,3 +129,85 @@ html, body {
   background: #5E4527;
   border: 1px solid #947044;
 }
+
+/* Public release identity: Vigília — Heróis do Limiar. */
+:root {
+  color-scheme: dark;
+  --color-bg-deep: #07111f;
+  --color-panel-dark: #101c2e;
+  --color-panel-wood: #14243a;
+  --color-panel-leather: #0b1728;
+  --color-parchment: #17283d;
+  --color-parchment-dark: #263b53;
+  --color-parchment-light: #dce8f5;
+  --color-bronze: #2f86a4;
+  --color-bronze-dark: #1b526a;
+  --color-iron: #38495d;
+  --color-gold: #58d6f2;
+  --color-gold-bright: #a0f0ff;
+  --color-crimson: #7554db;
+  --color-crimson-dark: #4d38a4;
+  --color-text-light: #edf6ff;
+  --color-text-muted: #9cb2ca;
+  --color-text-parchment: #edf6ff;
+  --color-text-parchment-muted: #b6c8db;
+  --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body { background: #07111f; }
+.font-roman { font-family: var(--font-display); letter-spacing: .01em; }
+.surface-stone, .surface-wood, .surface-leather {
+  background-color: #101c2e;
+  background-image: linear-gradient(145deg, #15253ae8 0%, #0c1727e8 70%, #0a1422ef 100%), url('./assets/images/vigilia-tech-texture.jpg');
+  background-size: cover;
+}
+.surface-parchment { background: #17283d; color: #edf6ff; }
+.frame-bronze, .frame-parchment, .frame-iron {
+  border-color: #45c8e866;
+  box-shadow: inset 0 1px 0 #ffffff12, 0 8px 24px #02081270;
+}
+.roman-panel { border-color: #4dcceb38; background-color: #101c2e; box-shadow: 0 10px 32px #02081270; }
+.roman-panel > header { background: linear-gradient(90deg,#152842,#111d30); border-color: #42bdd333; }
+.roman-panel h2 { color: #eaf7ff; }
+.imperium-shell { background: radial-gradient(ellipse at 75% -10%,#0c739155,transparent 42%),#07111f; }
+.imperium-shell > header { background: #0a1524ed; border-color: #35badb44; }
+.imperium-main { max-width: 1320px; }
+.imperium-hero { border-color: #56d9f266; background-position: center 38%; box-shadow: 0 20px 60px #02081290; }
+.imperium-hero h1 { color: #eafaff; text-shadow: 0 3px 20px #061424; }
+.imperium-hero p { color: #b3d2e7; }
+.eyebrow { color: #7fe7fb; }
+.hero-seal { border-color: #7de7fa99; outline-color: #7de7fa44; color: #b5f6ff; background: #061426bb; }
+.ludus-navigation { background: #091524f5; border-color: #41c2df50; }
+.ludus-navigation button[aria-current] { background: linear-gradient(0deg,#2b89aa38,transparent); color: #a5f2ff; }
+.ludus-navigation::before { content: 'VIGÍLIA'; color: #8cecff; }
+.navigation-emblem { filter: hue-rotate(150deg) saturate(.72); }
+.roman-scene-art { opacity: .2; filter: hue-rotate(155deg) saturate(.45); }
+.item-portrait, .equipment-art { filter: hue-rotate(155deg) saturate(.74); }
+.chronicle-banner, .contract-card, .collection-card { border-color: #42badb45; background-image: linear-gradient(140deg,#14243a,#0c1726); }
+.chronicle-banner strong, .section-intro h2 { color: #eaf8ff; }
+.chronicle-tabs button[aria-selected=true] { color: #b7f3ff; background: #1889a72b; box-shadow: inset 0 0 0 1px #58d7f24a; }
+.contract-footer strong, .collection-themes > span { color: #92eafb; }
+.contract-progress span { background: linear-gradient(90deg,#2584a5,#85eaff); }
+.contract-card > button { background: linear-gradient(100deg,#4d38a4,#266d91); border-color: #80eaff66; }
+.collection-art { background: radial-gradient(ellipse,var(--rarity-glow,#167d9a55),#07111f 75%); }
+.collection-card { background: linear-gradient(145deg,#142238,#0b1523); }
+.collection-filters input:not([type=checkbox]), .collection-filters select { background:#0a1727; border-color:#45c8e855; color:#edf6ff; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline-color:#8beafa; }
+.vigilia-title { background:#07111f; }
+.vigilia-title > .vigilia-title-backdrop { object-position:center 42%; filter:saturate(.8) contrast(1.06); }
+.vigilia-title > .vigilia-title-overlay { background:linear-gradient(180deg,#07111f33 0%,#07111f20 35%,#07111f 100%); }
+.vigilia-title-card { border:1px solid #58d6f266; border-radius:16px; background:linear-gradient(145deg,#13243bed,#0b1728f2); box-shadow:0 18px 58px #020812bb, inset 0 1px 0 #d5f8ff18; backdrop-filter:blur(12px); }
+.vigilia-title-brand { border:1px solid #58d6f255; border-radius:12px; background:#081525d9; box-shadow:0 10px 32px #02081299; backdrop-filter:blur(10px); }
+.vigilia-title h1 { letter-spacing:.14em; text-shadow:0 0 24px #4dd6f155; }
+.vigilia-title .vigilia-primary { border-color:#97efff; background:linear-gradient(100deg,#4f38a6,#126d91); box-shadow:0 0 24px #32c1e433; }
+.gladiator-stage img { filter:hue-rotate(145deg) saturate(.72) brightness(.94); }
+.gladiator-stage { border-color:#58d6f277; box-shadow:0 0 30px #1c9cbc35,0 20px 50px #02081299; }
+.map-cartouche,.arena-proclamation { background:linear-gradient(110deg,#0b1728ee,#102b3dcc); border:1px solid #52d4ed66; color:#edf6ff; }
+.arena-proclamation h2 { color:#dffaff; text-shadow:0 0 20px #32bfd144; }
+.arena-laurel { border-color:#7eeaff; color:#b4f5ff; background:#081525dd; }
+@media (min-width:1200px) {
+  .ludus-navigation { border-color:#41c2df50; }
+  .ludus-navigation::before { color:#8cecff; }
+}
+
