@@ -9,6 +9,7 @@ import {
   OnlineAuthorityEngine,
 } from './src/server/onlineAuthorityEngine.ts';
 import type { PlayerRankingCategory } from './src/game/guildsAndRankings.ts';
+import { createHeroRepository, HEROX_CATALOG, HeroXAuthority } from './src/server/heroxAuthority.ts';
 
 const firebaseConfig = JSON.parse(
   fs.readFileSync(path.resolve(process.cwd(), 'firebase-applet-config.json'), 'utf-8')
@@ -142,7 +143,7 @@ export async function verifyFirebaseBearerToken(
   };
 }
 
-export function createAuthoritativeExpressApp(engine: OnlineAuthorityEngine) {
+export function createAuthoritativeExpressApp(engine: OnlineAuthorityEngine, herox?: HeroXAuthority) {
   const app = express();
   app.use(express.json({ limit: '256kb' }));
 
@@ -176,6 +177,64 @@ export function createAuthoritativeExpressApp(engine: OnlineAuthorityEngine) {
       status: 'online',
     });
   });
+
+  app.get('/api/herox/health', (_req, res) => {
+    res.json({ ok: true, service: 'herox', status: 'online', version: 1, persistence: herox?.persistenceMode ?? 'unavailable' });
+  });
+
+  app.get('/api/herox/v1/catalog', (_req, res) => {
+    res.json({ ok: true, ...HEROX_CATALOG });
+  });
+
+  if (herox) {
+    app.post('/api/herox/v1/bootstrap', requireAuth, async (req: AuthenticatedRequest, res) => {
+      try {
+        const result = await herox.bootstrap({
+          uid: req.authIdentity!.uid,
+          email: req.authIdentity!.email,
+          displayName: req.authIdentity!.displayName,
+        }, req.body?.faction);
+        res.json({ ok: true, ...result });
+      } catch (error) {
+        res.status(400).json({ ok: false, error: error instanceof Error ? error.message : 'Não foi possível criar seu herói.' });
+      }
+    });
+
+    app.get('/api/herox/v1/me', requireAuth, async (req: AuthenticatedRequest, res) => {
+      try {
+        const player = await herox.getPlayer(req.authIdentity!.uid);
+        if (!player) {
+          res.status(404).json({ ok: false, code: 'HERO_NOT_CREATED', error: 'Crie seu herói para começar.' });
+          return;
+        }
+        res.json({ ok: true, player });
+      } catch (error) {
+        res.status(503).json({ ok: false, error: error instanceof Error ? error.message : 'Falha ao consultar o perfil.' });
+      }
+    });
+
+    app.post('/api/herox/v1/action', requireAuth, async (req: AuthenticatedRequest, res) => {
+      try {
+        const result = await herox.act({
+          uid: req.authIdentity!.uid,
+          email: req.authIdentity!.email,
+          displayName: req.authIdentity!.displayName,
+        }, req.body);
+        res.json({ ok: true, ...result });
+      } catch (error) {
+        res.status(400).json({ ok: false, error: error instanceof Error ? error.message : 'Ação HEROX não concluída.' });
+      }
+    });
+
+    app.get('/api/herox/v1/rankings', async (req, res) => {
+      try {
+        const limit = Number(req.query.limit || 50);
+        res.json({ ok: true, items: await herox.rankings(limit) });
+      } catch (error) {
+        res.status(503).json({ ok: false, error: error instanceof Error ? error.message : 'Falha ao consultar a classificação.' });
+      }
+    });
+  }
 
   app.post('/api/online/bootstrap', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
@@ -344,7 +403,13 @@ async function startServer() {
     seedInitialOnlineGuilds: false,
     launchId: 'vigilia-public-launch-2026-11-15',
   });
-  const app = createAuthoritativeExpressApp(engine);
+  const heroxRepository = createHeroRepository({
+    projectId: firebaseConfig.projectId,
+    databaseId: firebaseConfig.firestoreDatabaseId ?? '(default)',
+    volumePath: path.resolve(process.cwd(), '.data', 'herox_authority_state.json'),
+  });
+  const herox = new HeroXAuthority(heroxRepository);
+  const app = createAuthoritativeExpressApp(engine, herox);
 
   if (!IS_PROD) {
     const { createServer: createViteServer } = await import('vite');
@@ -363,7 +428,7 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(
-      `[GLADIATORUM Authority Server] Rodando em http://0.0.0.0:${PORT} (Firebase Project: ${firebaseConfig.projectId})`
+      `[HEROX API] Rodando em http://0.0.0.0:${PORT} (Firebase Project: ${firebaseConfig.projectId}; persistence: ${herox.persistenceMode})`
     );
   });
 }
