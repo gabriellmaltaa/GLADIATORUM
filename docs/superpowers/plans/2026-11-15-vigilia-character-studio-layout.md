@@ -31,4 +31,4 @@ Implement approved hero customization and home-screen layout controls without ch
 - `npm run lint`: passed.
 - `npm run build`: passed; new hero atlas is 1774×887 RGBA PNG.
 - `server.ts` retains the pre-existing `vigilia-public-launch-2026-11-15` value; this feature made no launch-ID change.
-- Not published: the workspace routing note says online hosting is awaiting project IAM permission, and its required integration note is absent from this checkout. Manual visual review also remains unavailable as described above.
+- Manual browser visual review could not run because Computer Use could not identify the current Opera URL with confidence; the local UI was not operated.
