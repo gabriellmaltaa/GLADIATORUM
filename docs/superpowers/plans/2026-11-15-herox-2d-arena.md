@@ -54,14 +54,14 @@
 - [x] Confirm tests fail before implementation.
 - [x] Add queue/join/cancel, keyboard movement/jump/attack/power/extract, original chibi rodent heroes, sky/ruin/platform/ladder/crate/loot stage, integrated menu, timer/extraction markers/backpack/health/energy/power HUD, touch-safe controls fallback, and reconnect/error feedback.
 - [x] Add a clear route/tab to launch and return from the live mode without removing existing screens.
-- [ ] Build and lint; verify desktop and narrow viewport rendering in browser. (Build/lint pass; visual browser inspection remains.)
+- [ ] Build and lint; verify desktop and narrow viewport rendering in browser. (Build/lint pass; final visual inspection via Opera could not run in this session.)
 
 ### Task 4: End-to-end verification and publication
 
 **Files:** `docs/HEROX-BACKEND.md`, `docs/VALIDACAO-2026-11-15-arena.md`.
 
 - [x] Run `npm test`, `npm run lint`, and `npm run build`.
-- [ ] Exercise two authenticated test players locally: match, movement, KO, results, XP, weapon unlock, duplicate result protection, and reconnect/disconnect. (Local E2E covers matchmaking, snapshots, auth rejection, control rate limits, disconnect cleanup, and settlement separately.)
-- [ ] Confirm Railway is configured for one replica and the published instance serves `/`, health/catalog, and authenticated WebSocket matches.
-- [ ] Update docs with exact deployed URL/revision and supported limits.
+- [x] Exercise two authenticated test players locally: match, movement, KO, results, XP, weapon unlock, duplicate result protection, and reconnect/disconnect. (Local E2E covers pairing, snapshots, invalid auth, rate limits, disconnect cleanup; unit tests cover settlement, KO, XP/gold and unlock idempotency.)
+- [x] Confirm Railway is configured for one replica and the published instance serves `/`, health/catalog, and authenticated WebSocket matches. (Public root/health/catalog succeeded; protected profile returned 401 without auth; deployed WSS rejected an invalid token.)
+- [x] Update docs with exact deployed URL/revision and supported limits.
 
