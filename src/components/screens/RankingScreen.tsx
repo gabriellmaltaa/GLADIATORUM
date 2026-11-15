@@ -317,11 +317,11 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
         <div>
           <strong className="text-[#D4B26A] font-roman uppercase">
             {isOnlineMode
-              ? 'Modo Online Competitivo — Servidor Autoritativo & Firebase:'
+              ? 'Classificação online:'
               : 'Modo Visitante Local — Dados Simulados:'}
           </strong>{' '}
           {isOnlineMode
-            ? `Classificação paginada por cursor com dados validados pelo servidor (Atualizado às ${formattedUpdatedTime}). Adversários fixos da Arena e NPCs de demonstração não entram neste ranking.`
+            ? `Gladiadores reais da comunidade · Atualizada às ${formattedUpdatedTime}. NPCs de treino não entram neste ranking.`
             : 'Você está jogando sem login online. Os dados abaixo são simulados localmente. Conecte sua conta no topo para disputar o Ranking Online real.'}
         </div>
         <div className="flex items-center gap-2 shrink-0">
