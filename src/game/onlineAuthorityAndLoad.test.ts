@@ -26,6 +26,135 @@ test('detalhes do perfil público online incluem apenas equipamento vestido e da
   assert.equal(engine.getPublicPlayerProfileDetails('unknown_player'), null);
 });
 
+test('PvP online usa contas reais, impede autoataque/repetição e limita cada alvo por dia', () => {
+  const engine = new OnlineAuthorityEngine({ seedInitialOnlineGuilds: false });
+  const now = 1_800_000_000_000;
+  engine.bootstrapPlayer({ uid: 'pvp_alpha', email: 'a@test', displayName: 'Alpha' }, now);
+  engine.bootstrapPlayer({ uid: 'pvp_beta', email: 'b@test', displayName: 'Beta' }, now);
+
+  const battle = engine.executeAction('pvp_alpha', {
+    opId: 'pvp_alpha_beta_1', action: 'challenge_player', params: { opponentUid: 'pvp_beta' },
+  }, now + 1);
+  assert.equal(battle.ok, true);
+  assert.ok(battle.combatReport);
+  assert.equal(battle.state.energy, 11);
+  assert.equal(
+    battle.state.pendingRewards.some((reward) => reward.sourceTitle.includes('PvP')),
+    battle.combatReport?.victory === true
+  );
+
+  const replay = engine.executeAction('pvp_alpha', {
+    opId: 'pvp_alpha_beta_1', action: 'challenge_player', params: { opponentUid: 'pvp_beta' },
+  }, now + 2);
+  assert.equal(replay.idempotentReplay, true);
+  assert.equal(replay.state.energy, 11);
+
+  const repeatedTarget = engine.executeAction('pvp_alpha', {
+    opId: 'pvp_alpha_beta_2', action: 'challenge_player', params: { opponentUid: 'pvp_beta' },
+  }, now + 3);
+  assert.equal(repeatedTarget.ok, false);
+  assert.equal(repeatedTarget.state.energy, 11);
+
+  const selfAttack = engine.executeAction('pvp_alpha', {
+    opId: 'pvp_alpha_self', action: 'challenge_player', params: { opponentUid: 'pvp_alpha' },
+  }, now + 4);
+  assert.equal(selfAttack.ok, false);
+  assert.equal(selfAttack.state.energy, 11);
+});
+
+test('saque do tesouro só para líder, transfere atomicamente e registra operação idempotente', () => {
+  const engine = new OnlineAuthorityEngine({ seedInitialOnlineGuilds: false });
+  const now = 1_800_000_100_000;
+  engine.bootstrapPlayer({ uid: 'bank_leader', email: 'l@test', displayName: 'Líder' }, now);
+  engine.bootstrapPlayer({ uid: 'bank_member', email: 'm@test', displayName: 'Membro' }, now);
+  const created = engine.executeAction('bank_leader', {
+    opId: 'bank_create', action: 'guild_create', params: {
+      name: 'Aerarium', tag: 'AER', emblemId: 'aquila_imperial', description: 'Guilda aberta',
+      recruitmentStatus: 'open', minLevelReq: 1, minHonorReq: 0,
+    },
+  }, now + 1);
+  assert.equal(created.ok, true);
+  const guildId = created.state.guildState.playerGuildId!;
+  assert.equal(engine.executeAction('bank_member', {
+    opId: 'bank_join', action: 'guild_apply_or_join', params: { guildId, message: 'Quero entrar' },
+  }, now + 2).ok, true);
+  assert.equal(engine.executeAction('bank_member', {
+    opId: 'bank_donate', action: 'guild_donate_gold', params: { amount: 100 },
+  }, now + 3).ok, true);
+
+  const denied = engine.executeAction('bank_member', {
+    opId: 'member_withdraw', action: 'guild_withdraw_gold', params: { amount: 5 },
+  }, now + 4);
+  assert.equal(denied.ok, false);
+  assert.equal(denied.state.gold, 60);
+
+  const withdrawal = engine.executeAction('bank_leader', {
+    opId: 'leader_withdraw', action: 'guild_withdraw_gold', params: { amount: 75 },
+  }, now + 5);
+  assert.equal(withdrawal.ok, true);
+  assert.equal(withdrawal.state.gold, 115);
+  const bankAfter = withdrawal.state.guildState.guilds.find((g) => g.id === guildId)!;
+  assert.equal(bankAfter.treasuryGold, 25);
+  assert.equal(bankAfter.bankHistory[0].type, 'withdrawal');
+  const ledgerEntry = bankAfter.treasuryLedger?.find((entry) => entry.opId === 'leader_withdraw');
+  assert.equal(ledgerEntry?.balanceBefore, 100);
+  assert.equal(ledgerEntry?.balanceAfter, 25);
+
+  const replay = engine.executeAction('bank_leader', {
+    opId: 'leader_withdraw', action: 'guild_withdraw_gold', params: { amount: 75 },
+  }, now + 6);
+  assert.equal(replay.idempotentReplay, true);
+  assert.equal(replay.state.gold, 115);
+});
+
+test('guerra de guildas exige aceite, limita ataques e distribui prêmio ao encerrar', () => {
+  const engine = new OnlineAuthorityEngine({ seedInitialOnlineGuilds: false });
+  const now = 1_800_000_200_000;
+  engine.bootstrapPlayer({ uid: 'war_alpha', email: 'a@test', displayName: 'Alpha' }, now);
+  engine.bootstrapPlayer({ uid: 'war_beta', email: 'b@test', displayName: 'Beta' }, now);
+  const makeGuild = (uid: string, opId: string, name: string, tag: string, atMs: number) =>
+    engine.executeAction(uid, {
+      opId, action: 'guild_create', params: {
+        name, tag, emblemId: 'aquila_imperial', description: name,
+        recruitmentStatus: 'open', minLevelReq: 1, minHonorReq: 0,
+      },
+    }, atMs);
+  const guildA = makeGuild('war_alpha', 'war_guild_a', 'Legião Alfa', 'LGA', now + 1).state.guildState.playerGuildId!;
+  const guildB = makeGuild('war_beta', 'war_guild_b', 'Legião Beta', 'LGB', now + 2).state.guildState.playerGuildId!;
+  assert.ok(guildA && guildB);
+
+  const challenge = engine.executeAction('war_alpha', {
+    opId: 'war_challenge', action: 'guild_war_challenge', params: { opponentGuildId: guildB },
+  }, now + 3);
+  assert.equal(challenge.ok, true);
+  const war = challenge.state.guildState.guildWars?.[0];
+  assert.ok(war);
+  assert.equal(war.status, 'pending');
+  assert.equal(war.direction, 'outgoing');
+
+  const accepted = engine.executeAction('war_beta', {
+    opId: 'war_accept', action: 'guild_war_accept', params: { warId: war.id },
+  }, now + 4);
+  assert.equal(accepted.ok, true);
+  const attack = engine.executeAction('war_alpha', {
+    opId: 'war_attack_1', action: 'guild_war_attack', params: { warId: war.id },
+  }, now + 5);
+  assert.equal(attack.ok, true);
+  assert.equal(attack.state.guildState.guildWars?.[0].myAttacksUsed, 1);
+  const replay = engine.executeAction('war_alpha', {
+    opId: 'war_attack_1', action: 'guild_war_attack', params: { warId: war.id },
+  }, now + 6);
+  assert.equal(replay.idempotentReplay, true);
+
+  const ended = engine.bootstrapPlayer('war_alpha', now + 24 * 60 * 60 * 1000 + 10);
+  assert.equal(ended.state.guildState.guildWars?.[0].status, 'completed');
+  const winnerId = ended.state.guildState.guildWars?.[0].winnerGuildId;
+  if (winnerId) {
+    const winner = ended.state.guildState.guilds.find((guild) => guild.id === winnerId)!;
+    assert.ok(winner.treasuryGold >= 500);
+  }
+});
+
 test('bootstrap migra ouro não coletado do correio antigo para o saldo uma única vez', () => {
   const now = 1_750_000_000_100;
   const uid = 'legacy_mailbox_player';
