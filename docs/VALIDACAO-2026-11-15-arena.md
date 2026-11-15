@@ -16,17 +16,19 @@
 - E2E local por WebSocket: dois perfis humanos de teste autenticaram, entraram na fila, receberam a mesma partida e snapshots; token inválido foi rejeitado; spam de controles foi limitado; desconexão cancelou sem prêmio e permitiu que o jogador restante voltasse à fila.
 - Simulação: agilidade aumentou velocidade, força aumentou dano, vitalidade/nível determinaram PV máximo sem curar perfil ferido, salto respeitou limites, cada pickup carregou 15 XP e 5 ouro, arma coletada equipou durante a partida, saque só foi bancado na extração, KO encerrou a partida, e uma recompensa repetida não alterou o perfil.
 - Smoke HTTP local: `/api/herox/health` e `/api/herox/v1/catalog` responderam 200; health reportou `arena: websocket` e persistência `railway-volume`.
+- Produção após publicação: `/` respondeu 200 e serviu o bundle HEROX; health e catálogo responderam 200; `/api/herox/v1/me` sem token respondeu 401; WebSocket WSS abriu e rejeitou token inválido.
+- Railway: deploy `1da2e641-1338-481b-84a5-9d564fe483e3` do commit `619959d740291314a65a2a04969a9111c16ecf03` ficou `SUCCESS`; serviço online, 1 réplica, volume `gladiatorum-volume` mantido em `/app/.data`.
 
 ## Figma
 
 - Protótipo criado: [HEROX — Arena 2D](https://www.figma.com/design/JwIKf4G7T9bcPTorWCDGmm).
 - O frame `HEROX · Incursão 2D · Menu e extração` contém a base editável 1920×1080, menu, barras, plataformas, loot HUD e extração. O limite de chamadas MCP do plano Starter bloqueou a adição dos personagens vetoriais finais ao frame; os heróis originais já estão renderizados no cliente canvas.
 
-## Limites antes de publicação
+## Limites e próximos passos
 
 - A sala de partida é mantida em memória: publicar com uma réplica Railway; escalar exige serviço compartilhado de salas/matchmaking.
 - Este ambiente não tem autenticação de duas contas Google reais para validar tráfego de jogadores reais; os testes usaram identidades efêmeras de servidor e tokens inválidos.
 - O Figma está incompleto quanto às ilustrações vetoriais finais por limite do plano.
-- A visualização final da partida com dois jogadores reais e duas contas Firebase não foi possível nesta sessão; o E2E local usa identidades temporárias e o gateway real de WebSocket.
-- A publicação em Railway ainda depende da criação do commit/PR e validação do deploy depois do merge.
+- Não houve sessão de duas contas Google reais para disputar a partida; o E2E local usa identidades temporárias e o gateway real de WebSocket.
+- Não foi possível inspecionar visualmente a página pelo Opera nesta sessão, embora os assets publicados e o build tenham sido verificados.
 
