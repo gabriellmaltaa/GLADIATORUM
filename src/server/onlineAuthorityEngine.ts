@@ -69,6 +69,7 @@ import {
   useMedicineFromInventory,
 } from '../game/rules.ts';
 import { grantXxmaltaObsidianLoginGift } from './targetedLoginGift.ts';
+import { isHeroAppearance, normalizeHeroAppearance, type HeroAppearance } from '../game/heroCustomization.ts';
 import { getCompetitiveTitle } from '../game/competitiveProgression.ts';
 import {
   getAffixChanceForRarity,
@@ -110,6 +111,7 @@ export interface OnlinePublicPlayerProfile {
 export interface OnlinePublicPlayerProfileDetails {
   profile: OnlinePublicPlayerProfile;
   equipped: Partial<Record<EquipmentSlotType, GameItem>>;
+  appearance: HeroAppearance;
 }
 
 export interface AuthoritativePlayerRecord {
@@ -191,6 +193,7 @@ export interface CursorPaginatedGuildsResponse {
 export type AuthoritativeActionType =
   | 'claim_contract'
   | 'update_gladiator_name'
+  | 'update_hero_appearance'
   | 'equip_item'
   | 'unequip_slot'
   | 'sell_item'
@@ -1107,7 +1110,7 @@ export class OnlineAuthorityEngine {
       record.state.level,
       this.getPlayerRankPosition(uid, 'honor', nowMs) === 1 ? 1 : null
     );
-    return { profile, equipped };
+    return { profile, equipped, appearance: normalizeHeroAppearance(record.state.heroAppearance) };
   }
 
   private normalizeIdentity(
@@ -1582,6 +1585,13 @@ export class OnlineAuthorityEngine {
           };
           this.syncPlayerIntoSharedGuildMember(record);
           message = `Nome de arena atualizado para ${rawName}.`;
+          break;
+        }
+
+        case 'update_hero_appearance': {
+          if (!isHeroAppearance(params.appearance)) return fail('A aparência enviada contém opções inválidas.');
+          record.state = { ...record.state, heroAppearance: normalizeHeroAppearance(params.appearance) };
+          message = 'Identidade visual do herói atualizada.';
           break;
         }
 

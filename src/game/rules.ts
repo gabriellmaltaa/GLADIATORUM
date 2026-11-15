@@ -28,6 +28,7 @@ import {
   syncPlayerMemberInGuilds,
 } from './guildsAndRankings.ts';
 import { OBSIDIAN_ITEMS, OBSIDIAN_TO_TRANSCENDENT } from './expansion.ts';
+import { DEFAULT_HERO_APPEARANCE, normalizeHeroAppearance, type HeroAppearance } from './heroCustomization.ts';
 
 export interface BaseAttributes {
   strength: number;
@@ -157,6 +158,7 @@ export interface GameState {
   version: number;
   name: string;
   title: string;
+  heroAppearance: HeroAppearance;
   level: number;
   xp: number;
   gold: number;
@@ -563,6 +565,7 @@ export function createInitialGameState(nowMs: number = Date.now()): GameState {
     version: GAME_CONFIG.saveVersion,
     name: 'Aurelius Valerius',
     title: 'Gladiador de Cápua',
+    heroAppearance: { ...DEFAULT_HERO_APPEARANCE },
     level: 1,
     xp: 0,
     gold: 160,
@@ -2184,6 +2187,7 @@ export function inspectAndLoadSaveState(
       ...fallback,
       ...parsed,
       version: GAME_CONFIG.saveVersion,
+      heroAppearance: normalizeHeroAppearance(parsed.heroAppearance),
       fame: migratedFame,
       goldLooted: migratedGoldLooted,
       completedFeats: Array.isArray(parsed.completedFeats) ? parsed.completedFeats : [],

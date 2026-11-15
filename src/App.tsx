@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from
 import { claimContract } from './game/contracts';
 import { getCompetitiveTitle } from './game/competitiveProgression';
 import { GAME_IDENTITY, NAVIGATION_LABELS } from './game/heroIdentity';
-import { ArtworkImage, IMAGE_ASSETS } from './design/assets';
+import { ArtworkImage, HeroPortrait, IMAGE_ASSETS } from './design/assets';
 import {
   ARENA_OPPONENTS,
   DUNGEONS,
@@ -100,6 +100,7 @@ import {
   RewardPanel,
 } from './components/ui/RomanComponents';
 import { CharacterScreen } from './components/screens/CharacterScreen';
+import type { HeroAppearance } from './game/heroCustomization';
 import type { CitySubTab } from './components/screens/CityScreen';
 
 const ExpeditionsScreen = lazy(() =>
@@ -1308,11 +1309,7 @@ export default function App() {
             {(hasExistingSave || isOnlineMode) && (
               <div className="flex items-center gap-3 p-2.5 bg-[#17120F] border border-[#947044]">
                 <div className="w-12 h-12 shrink-0 frame-bronze overflow-hidden">
-                  <ArtworkImage
-                    src={IMAGE_ASSETS.playerPortrait}
-                    alt={gameState.name}
-                    className="w-full h-full object-cover"
-                  />
+                  <HeroPortrait name={gameState.name} archetype={gameState.heroAppearance.archetype} className="w-full h-full" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="font-roman font-bold text-xs sm:text-sm text-[#EFE2C4] truncate">
@@ -1478,6 +1475,7 @@ export default function App() {
         resourceBar={
           <ResourceBar
             name={gameState.name}
+            appearance={gameState.heroAppearance}
             guildTag={guildBonuses.guildTag}
             playerRank={playerRankPosition}
             level={gameState.level}
@@ -1529,6 +1527,10 @@ export default function App() {
             onNavigateTab={setActiveTab}
             onOpenGuildScreen={() => openCitySubTab('guild')}
             onOpenRankingScreen={() => openCitySubTab('rankings')}
+            onSaveHeroAppearance={(appearance: HeroAppearance) => {
+              if (isOnlineMode) { void executeOnlineAction('update_hero_appearance', { appearance }); return; }
+              setGameState(previous => ({ ...previous, heroAppearance: appearance }));
+            }}
           />
         )}
 
@@ -2135,5 +2137,4 @@ const HowToPlayModalContent: React.FC<{
     </div>
   );
 };
-
 

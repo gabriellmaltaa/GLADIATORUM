@@ -593,7 +593,7 @@ export async function apiFetchOnlinePlayerProfile(uid: string): Promise<OnlinePu
   if (!res.ok || !data.ok) {
     throw new Error(data.error || 'Falha ao consultar o perfil público.');
   }
-  return { profile: data.profile, equipped: data.equipped } as OnlinePublicPlayerProfileDetails;
+  return { profile: data.profile, equipped: data.equipped, appearance: data.appearance } as OnlinePublicPlayerProfileDetails;
 }
 
 export async function apiFetchOnlineGuildRankings(options: {
