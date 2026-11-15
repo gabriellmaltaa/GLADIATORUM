@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { claimContract } from './game/contracts';
+import { getCompetitiveTitle } from './game/competitiveProgression';
 import { ArtworkImage, IMAGE_ASSETS } from './design/assets';
 import {
   ARENA_OPPONENTS,
@@ -78,7 +79,6 @@ import {
   AuthoritativeActionType,
   MigrationReport,
 } from './server/onlineAuthorityEngine';
-import { MIGRATION_COMPETITIVE_CAPS } from './game/onlinePolicy';
 import {
   apiBootstrapOnlinePlayer,
   apiExecuteAuthoritativeAction,
@@ -87,7 +87,6 @@ import {
   OnlineSessionUser,
   signInWithGooglePopup,
   subscribeToAuthState,
-  testFirestoreConnection,
 } from './services/firebaseClient';
 import {
   BottomNavigation,
@@ -226,11 +225,6 @@ export default function App() {
   const [onlineGuildRank, setOnlineGuildRank] = useState<number | null>(null);
   const [migratedFromLocal, setMigratedFromLocal] = useState<boolean>(false);
   const [migrationReport, setMigrationReport] = useState<MigrationReport | null>(null);
-  const [firebaseProjectInfo, setFirebaseProjectInfo] = useState<{
-    connected: boolean;
-    projectId: string;
-    databaseId: string;
-  } | null>(null);
   const [pendingRetryAction, setPendingRetryAction] = useState<{
     opId: string;
     action: AuthoritativeActionType;
@@ -340,9 +334,6 @@ export default function App() {
   );
 
   useEffect(() => {
-    void testFirestoreConnection().then((info) => {
-      setFirebaseProjectInfo(info);
-    });
     const unsub = subscribeToAuthState((user) => {
       setOnlineUser(user);
       if (user) {
@@ -920,6 +911,14 @@ export default function App() {
     setInspectedReport(report);
   };
 
+  const handleChallengeOnlinePlayer = (opponentUid: string) => {
+    if (!isOnlineMode) {
+      showToast('Entre na conta online para desafiar outros gladiadores.', 'error');
+      return;
+    }
+    void executeOnlineAction('challenge_player', { opponentUid });
+  };
+
   // Handler de Treinamento na Cidade
   const handleTrainStat = (stat: PrimaryStatKey) => {
     if (isOnlineMode) {
@@ -1341,13 +1340,12 @@ export default function App() {
 
         <GameModal
           open={accountModalOpen}
-          title="Conta Online, Firebase & Migração Segura"
-          subtitle="Autenticação Persistente, Servidor Autoritativo e Importação do Save Local"
+          title="Conta e progresso"
+          subtitle="Acesse sua conta para jogar e salvar seu gladiador online"
           onClose={() => setAccountModalOpen(false)}
         >
           <OnlineAccountAndMigrationModalContent
             onlineUser={onlineUser}
-            firebaseProjectInfo={firebaseProjectInfo}
             hasLocalSave={hasExistingSave}
             migratedFromLocal={migratedFromLocal}
             migrationReport={migrationReport}
@@ -1500,6 +1498,7 @@ export default function App() {
           <CharacterScreen
             state={screenStateWithoutActiveModalReward}
             derived={derivedStats}
+            competitiveTitle={getCompetitiveTitle(gameState.level, isOnlineMode && playerRankPosition === 1 ? 1 : null)}
             nextObjective={nextObjective}
             lastStatChange={lastStatChange}
             onEquipItem={handleEquipItem}
@@ -1534,6 +1533,8 @@ export default function App() {
             onClaimReward={handleClaimReward}
             onInspectCombatReport={(rep) => setInspectedReport(rep)}
             onOpenRankingScreen={() => openCitySubTab('rankings')}
+            isOnlineMode={isOnlineMode}
+            onChallengePlayer={handleChallengeOnlinePlayer}
           />
         )}
 
@@ -1691,6 +1692,22 @@ export default function App() {
               }
               applyGuildAction(donateToGuildBank(gameState, amount, txId, Date.now()));
             }}
+            onWithdrawGold={(amount, opId) => {
+              if (!isOnlineMode) return;
+              void executeOnlineAction('guild_withdraw_gold', { amount }, opId);
+            }}
+            onChallengeGuildWar={(opponentGuildId) => {
+              if (!isOnlineMode) return;
+              void executeOnlineAction('guild_war_challenge', { opponentGuildId });
+            }}
+            onAcceptGuildWar={(warId) => {
+              if (!isOnlineMode) return;
+              void executeOnlineAction('guild_war_accept', { warId });
+            }}
+            onAttackGuildWar={(warId) => {
+              if (!isOnlineMode) return;
+              void executeOnlineAction('guild_war_attack', { warId });
+            }}
             onUpgradeBuilding={(buildingId, txId) => {
               if (isOnlineMode) {
                 void executeOnlineAction('guild_upgrade_building', { buildingId }, txId);
@@ -1762,13 +1779,12 @@ export default function App() {
 
       <GameModal
         open={accountModalOpen}
-        title="Conta Online, Firebase & Migração Segura"
-        subtitle="Autenticação Persistente, Servidor Autoritativo e Importação do Save Local"
+        title="Conta e progresso"
+        subtitle="Acesse sua conta para jogar e salvar seu gladiador online"
         onClose={() => setAccountModalOpen(false)}
       >
         <OnlineAccountAndMigrationModalContent
           onlineUser={onlineUser}
-          firebaseProjectInfo={firebaseProjectInfo}
           hasLocalSave={hasExistingSave}
           migratedFromLocal={migratedFromLocal}
           migrationReport={migrationReport}
@@ -1848,11 +1864,6 @@ export default function App() {
 
 const OnlineAccountAndMigrationModalContent: React.FC<{
   onlineUser: OnlineSessionUser | null;
-  firebaseProjectInfo: {
-    connected: boolean;
-    projectId: string;
-    databaseId: string;
-  } | null;
   hasLocalSave: boolean;
   migratedFromLocal: boolean;
   migrationReport: MigrationReport | null;
@@ -1862,7 +1873,6 @@ const OnlineAccountAndMigrationModalContent: React.FC<{
   onMigrateLocalSave: () => void;
 }> = ({
   onlineUser,
-  firebaseProjectInfo,
   hasLocalSave,
   migratedFromLocal,
   migrationReport,
@@ -1873,44 +1883,22 @@ const OnlineAccountAndMigrationModalContent: React.FC<{
 }) => {
   return (
     <div className="space-y-4 text-xs sm:text-sm text-[#EFE2C4]">
-      {/* Status do Projeto Firebase Provisionado */}
-      <div className="p-3 bg-[#1D1510] border-2 border-[#947044] space-y-1">
-        <div className="font-roman font-bold text-[#D4B26A] uppercase">
-          Conexão Oficial Firebase & Servidor Autoritativo
-        </div>
-        <div className="text-[11px] text-[#D6C29A] tabular-nums space-y-0.5">
-          <div>
-            Projeto Cloud/Firebase:{' '}
-            <strong>{firebaseProjectInfo?.projectId ?? 'abstract-bee-901dl'}</strong>
-          </div>
-          <div>
-            Status de Conexão Firestore:{' '}
-            <strong className="text-[#88B87E]">
-              {firebaseProjectInfo?.connected ? 'Conectado e Regras Ativas' : 'Inicializando'}
-            </strong>
-          </div>
-        </div>
-      </div>
-
       {/* Estado de Login / Sessão */}
       {onlineUser ? (
         <div className="p-3 bg-[#1E2E1C] border-2 border-[#4B7A47] space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="font-roman font-bold text-[#EFE2C4] block">
-                Sessão Online Conectada: {onlineUser.displayName}
+                Conta conectada: {onlineUser.displayName}
               </span>
-              <span className="text-[11px] text-[#B8A686] font-mono">
-                UID: {onlineUser.uid}
-              </span>
+              <span className="text-[11px] text-[#B8A686]">Seu progresso está sincronizado.</span>
             </div>
             <GameButton variant="iron" size="sm" onClick={onLogout}>
-              Sair da Conta (Logout)
+              Sair da conta
             </GameButton>
           </div>
           <p className="text-[11px] text-[#D6C29A]">
-            Seu progresso, combates, doações ao banco da guilda e classificação são
-            validados no servidor com proteção idempotente contra cliques duplos.
+            Seu progresso e suas atividades online ficam salvos na sua conta.
           </p>
         </div>
       ) : (
@@ -1924,7 +1912,7 @@ const OnlineAccountAndMigrationModalContent: React.FC<{
             disputar a Classificação Competitiva.
           </p>
           <GameButton variant="crimson" size="md" fullWidth onClick={onGoogleSignIn}>
-            Entrar com Google (Firebase Auth)
+            Continuar com Google
           </GameButton>
         </div>
       )}
@@ -1932,24 +1920,16 @@ const OnlineAccountAndMigrationModalContent: React.FC<{
       {/* Política e Ação de Migração Segura do Save Local (Seção 5) */}
       <div className="p-3 bg-[#17120F] border border-[#5E4527] space-y-2">
         <div className="font-roman font-bold text-[#D4B26A] uppercase">
-          Migração Segura do Save Local (Política Competitiva)
+          Transferir progresso local
         </div>
         <p className="text-xs text-[#D6C29A] leading-relaxed">
-          Para proteger o equilíbrio do ranking online contra edições manuais de{' '}
-          <code>localStorage</code>, a importação única de save local preserva um backup
-          em <code>{PRE_MIGRATION_BACKUP_KEY}</code>, valida apenas itens oficiais do
-          catálogo e aplica os tetos competitivos de entrada: Nível máx.{' '}
-          <strong>{MIGRATION_COMPETITIVE_CAPS.maxLevel}</strong>, Ouro máx.{' '}
-          <strong>{MIGRATION_COMPETITIVE_CAPS.maxGold}g</strong>, Honra máx.{' '}
-          <strong>{MIGRATION_COMPETITIVE_CAPS.maxHonor}</strong> e Atributos base máx.{' '}
-          <strong>{MIGRATION_COMPETITIVE_CAPS.maxBaseStat}</strong>. Guildas simuladas
-          locais não entram no ranking online.
+          Você pode trazer seu progresso deste navegador uma única vez. O jogo ajusta a
+          importação às regras competitivas para manter a disputa justa.
         </p>
 
         {migratedFromLocal ? (
           <div className="p-2 bg-[#253B23] border border-[#4B7A47] text-xs text-[#EFE2C4]">
-            <strong>Migração já concluída para esta conta.</strong> Repetições de
-            importação estão bloqueadas para proteger seu progresso online.
+            Seu progresso local já foi transferido para esta conta.
           </div>
         ) : (
           <GameButton
@@ -1962,35 +1942,18 @@ const OnlineAccountAndMigrationModalContent: React.FC<{
               !onlineUser
                 ? 'Conecte sua conta online primeiro'
                 : !hasLocalSave
-                ? 'Nenhum save local com progresso encontrado neste navegador'
+                ? 'Não encontramos progresso local neste navegador'
                 : undefined
             }
           >
-            Importar Save Local (Única Vez)
+            Transferir progresso local
           </GameButton>
         )}
 
         {migrationReport && (
-          <div className="mt-2 p-2.5 bg-[#2B2119] border border-[#947044] text-[11px] space-y-1 tabular-nums">
-            <div className="font-bold text-[#D4B26A]">
-              Relatório de Migração Competitiva ({migrationReport.backupKey}):
-            </div>
-            <div>
-              Nível: {migrationReport.originalLevel} →{' '}
-              <strong>{migrationReport.cappedLevel}</strong> · Ouro:{' '}
-              {migrationReport.originalGold}g →{' '}
-              <strong>{migrationReport.cappedGold}g</strong> · Honra:{' '}
-              {migrationReport.originalHonor} →{' '}
-              <strong>{migrationReport.cappedHonor}</strong>
-            </div>
-            {migrationReport.appliedCaps.length > 0 && (
-              <ul className="list-disc pl-4 text-[#D6C29A]">
-                {migrationReport.appliedCaps.map((c, idx) => (
-                  <li key={idx}>{c}</li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <p className="text-xs text-[#D6C29A]">
+            Progresso transferido e ajustado às regras competitivas do jogo.
+          </p>
         )}
       </div>
     </div>
