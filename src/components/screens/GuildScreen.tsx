@@ -277,7 +277,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
 
         {visitorMode === 'directory' ? (
           <RomanPanel
-            title="Collegia e Alianças de Cápua"
+            title="Guildas (Collegia) de Cápua"
             subtitle="Busque por nome ou tag, consulte o perfil público ou envie sua candidatura"
             variant="stone"
           >
@@ -334,7 +334,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                               [{g.tag}] {g.name}
                             </span>
                             <span className="px-1.5 py-0.5 text-[10px] font-bold bg-[#2B2119] border border-[#947044] text-[#D4B26A] tabular-nums">
-                              Rank #{rankInfo?.rank ?? '-'}
+                              Classificação #{rankInfo?.rank ?? '-'}
                             </span>
                           </div>
                           <p className="text-xs text-[#B8A686] mt-0.5 line-clamp-2">
@@ -421,7 +421,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
           </RomanPanel>
         ) : (
           <RomanPanel
-            title="Fundar Novo Collegium Romano"
+            title="Fundar Nova Guilda (Collegium)"
             subtitle={`Custo de fundação: ${GUILD_CONFIG.creationCostGold} Ouro · Nível mínimo: ${GUILD_CONFIG.creationMinLevel} · Seu saldo: ${state.gold} Ouro`}
             variant="parchment"
           >
@@ -540,7 +540,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
 
               <div>
                 <label className="block font-roman font-bold text-xs uppercase mb-1">
-                  Descrição e Lema da Aliança
+                  Descrição e Lema da Guilda
                 </label>
                 <textarea
                   rows={2}
@@ -652,7 +652,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
         variant="stone"
         headerAction={
           <GameButton variant="iron" size="sm" onClick={onOpenRankings}>
-            Ranking #{guildRankEntry?.rank ?? '-'}
+            Classificação #{guildRankEntry?.rank ?? '-'}
           </GameButton>
         }
       >
@@ -1153,7 +1153,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
           {/* Quadro de Membros Atuais */}
           <RomanPanel
             title={`Hierarquia de Membros (${playerGuild.members.length}/${maxCap})`}
-            subtitle="Exibe nome, cargo, nível, honra, contribuição e data de entrada (Sem indicador online fictício)"
+            subtitle="Mostra apenas dados confirmados; não exibe status online estimado"
             variant="stone"
           >
             <div className="space-y-2.5">
@@ -1305,7 +1305,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                       </select>
                     </div>
                     <div>
-                      <label className="block font-bold mb-1">Nível Mín.</label>
+                      <label className="block font-bold mb-1">Nível mínimo</label>
                       <input
                         type="number"
                         min={1}
@@ -1317,7 +1317,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
                       />
                     </div>
                     <div>
-                      <label className="block font-bold mb-1">Honra Mín.</label>
+                      <label className="block font-bold mb-1">Honra mínima</label>
                       <input
                         type="number"
                         min={0}
@@ -1516,7 +1516,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
           {/* Armazém (Horreum) */}
           <RomanPanel
             title={`Armazém Coletivo (Horreum Nv.${playerGuild.buildings.armazem ?? 1})`}
-            subtitle={`Ocupação do Armazém: ${playerGuild.warehouseItems.length}/${warehouseCap} slots · Sua Mochila: ${state.inventory.length}/${GAME_CONFIG.maxInventorySlots}`}
+            subtitle={`Ocupação do Armazém: ${playerGuild.warehouseItems.length}/${warehouseCap} espaços · Sua Mochila: ${state.inventory.length}/${GAME_CONFIG.maxInventorySlots}`}
             variant="stone"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
@@ -1616,8 +1616,8 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
       {memberTab === 'announcements_log' && (
         <div className="space-y-4">
           <RomanPanel
-            title="Mural de Avisos do Collegium"
-            subtitle="Éditos e ordens táticas publicados pelo Líder e Administradores"
+            title="Mural de Avisos da Guilda"
+            subtitle="Comunicados e ordens táticas publicados pelo Líder e Administradores"
             variant="parchment"
           >
             <div className="space-y-3 text-xs text-[#30251A]">
@@ -1675,7 +1675,7 @@ export const GuildScreen: React.FC<GuildScreenProps> = ({
           </RomanPanel>
 
           <RomanPanel
-            title="Acta Collegii — Registro de Ações e Auditoria"
+            title="Registro de Ações da Guilda (Acta Collegii)"
             subtitle="Histórico cronológico de entradas, saídas, cargos, doações e melhorias"
             variant="stone"
           >

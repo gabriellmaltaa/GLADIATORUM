@@ -47,14 +47,14 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
       </RomanSceneArt>
       <RomanPanel
         title="Arena Provincial de Cápua"
-        subtitle="Desafios contra NPCs · prepare seu gladiador e conquiste prestígio"
+        subtitle="Treino contra campeões locais · prepare seu gladiador e conquiste prestígio"
         variant="parchment"
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-[#30251A]">
           <p className="leading-relaxed">
             Enfrente os campeões fixos da escada da Arena Provincial para conquistar{' '}
             <strong>Honra</strong>, <strong>Fama</strong> e <strong>Denários</strong>. Os 4
-            campeões abaixo são <strong>desafiantes locais de escalão fixo</strong>, separados da
+            campeões abaixo são <strong>desafiantes locais com posição fixa na escada</strong>, separados da
             Classificação Geral de Gladiadores e Guildas.
           </p>
           <div className="shrink-0 bg-[#C2AB7E] border border-[#947044] p-2.5 text-center tabular-nums space-y-1.5">
@@ -63,7 +63,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
                 {guildBonuses.guildTag ? `[${guildBonuses.guildTag}] ` : ''}Sua Honra Geral
               </span>
               <span className="font-roman font-bold text-base text-[#30251A]">
-                {state.honor} Pontos (Rank #{playerRankEntry?.rank ?? '-'})
+                {state.honor} Pontos (Posição #{playerRankEntry?.rank ?? '-'})
               </span>
             </div>
             {onOpenRankingScreen && (
@@ -89,8 +89,8 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
       )}
 
       <RomanPanel
-        title="Desafiantes da Escada da Arena (Simulados)"
-        subtitle="Custo por duelo: 1 Energia · Compare seus atributos antes de lutar"
+        title="Campeões da Escada da Arena"
+        subtitle="Treino contra campeões locais · Custo por duelo: 1 Energia · Compare seus atributos antes de lutar"
         variant="stone"
       >
         <div className="space-y-3">
@@ -101,7 +101,7 @@ export const ArenaScreen: React.FC<ArenaScreenProps> = ({
                 key={opp.id}
                 enemy={opp}
                 playerStats={derived}
-                simulationTag={`${opp.simulationTag} · Escalão Fixo #${opp.arenaRank} · ${opp.ludusOrigin}`}
+                simulationTag={`${opp.simulationTag} · posição fixa na escada #${opp.arenaRank} · ${opp.ludusOrigin}`}
                 energyCost={1}
                 actionLabel="Desafiar na Arena"
                 onAction={() => onChallengeArenaOpponent(opp.id)}

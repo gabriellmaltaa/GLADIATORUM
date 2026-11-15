@@ -598,7 +598,7 @@ export function createInitialGameState(nowMs: number = Date.now()): GameState {
 export function getNextObjective(state: GameState, derived: DerivedStats): NextObjectiveInfo {
   if (state.pendingRewards.length > 0) {
     return {
-      title: 'Recolher Espólios de Vitória',
+      title: 'Resgatar Espólios de Vitória',
       description: 'Você possui recompensas de combate aguardando resgate.',
       requirementText: `${state.pendingRewards.length} lote(s) disponível(is) para resgate imediato.`,
       progressCurrent: 1,
@@ -614,7 +614,7 @@ export function getNextObjective(state: GameState, derived: DerivedStats): NextO
   if (equipableInBag) {
     return {
       title: `Equipar ${equipableInBag.name}`,
-      description: `O slot de ${EQUIPMENT_SLOT_LABELS[equipableInBag.slot]} está vazio e você possui este equipamento pronto na bolsa.`,
+      description: `O espaço de ${EQUIPMENT_SLOT_LABELS[equipableInBag.slot]} está vazio e você possui este equipamento pronto na bolsa.`,
       requirementText: `Requisito cumprido: Nível ${equipableInBag.levelReq}`,
       progressCurrent: Object.keys(state.equipped).length,
       progressTarget: Object.keys(state.equipped).length + 1,
@@ -676,7 +676,7 @@ export function getNextObjective(state: GameState, derived: DerivedStats): NextO
     return {
       title: 'Alcançar o Nível 2 (Desbloquear Via Ápia)',
       description:
-        'Acumule experiência em Expedições ou ative a Patrulha Idle para liberar as Ruínas da Via Ápia e usar o Gládio Hispânico.',
+        'Acumule experiência em Expedições ou ative a Patrulha automática para liberar as Ruínas da Via Ápia e usar o Gládio Hispânico.',
       requirementText: `Desbloqueia no Nível 2: Ruínas da Via Ápia e armas Incomuns`,
       progressCurrent: state.xp,
       progressTarget: xpTarget,

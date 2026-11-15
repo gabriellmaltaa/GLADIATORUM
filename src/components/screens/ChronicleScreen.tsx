@@ -27,7 +27,7 @@ export function ChronicleScreen({ state, onClaim }: { state: GameState; onClaim:
       <button role="tab" aria-selected={tab === 'collection'} onClick={() => setTab('collection')}>Coleção <span>{items.filter(i => discovered.has(i.templateId)).length}/{items.length}</span></button>
     </div>
     {tab === 'contracts' ? <>
-      <div className="section-intro"><span className="eyebrow">QUADRO DO LUDUS</span><h2>Todo feito merece ser lembrado.</h2><p>Contratos permanentes. Avance no seu ritmo e recolha cada recompensa uma única vez.</p></div>
+      <div className="section-intro"><span className="eyebrow">QUADRO DO LUDUS</span><h2>Todo feito merece ser lembrado.</h2><p>Contratos permanentes. Avance no seu ritmo e resgate cada recompensa uma única vez.</p></div>
       <div className="contract-grid">{CONTRACTS.map((contract, index) => {
         const progress = contractProgress(state, contract);
         const claimed = state.claimedContracts?.includes(contract.id);
@@ -37,7 +37,7 @@ export function ChronicleScreen({ state, onClaim }: { state: GameState; onClaim:
           <h3>{contract.title}</h3><p>{contract.description}</p>
           <div className="contract-progress"><span style={{ width: `${progress / contract.target * 100}%` }} /></div>
           <div className="contract-footer"><span>{progress}/{contract.target}</span><strong>{contract.gold} denários</strong></div>
-          <button disabled={claimed || progress < contract.target} onClick={() => onClaim(contract.id)}>{claimed ? 'Recompensa recolhida' : progress >= contract.target ? 'Recolher recompensa' : 'Em andamento'}</button>
+          <button disabled={claimed || progress < contract.target} onClick={() => onClaim(contract.id)}>{claimed ? 'Recompensa resgatada' : progress >= contract.target ? 'Resgatar recompensa' : 'Em andamento'}</button>
         </article>;
       })}</div>
     </> : <>
@@ -46,7 +46,7 @@ export function ChronicleScreen({ state, onClaim }: { state: GameState; onClaim:
       <div className="collection-filters">
         <input aria-label="Buscar equipamento na coleção" placeholder="Buscar equipamento…" value={search} onChange={e => setSearch(e.target.value)} />
         <select aria-label="Filtrar raridade" value={rarity} onChange={e => setRarity(e.target.value)}><option value="all">Todas as raridades</option>{Object.entries(DESIGN_TOKENS.colors.rarity).filter(([id]) => isRarityDiscovered(id as RarityKey, discoveredTemplates)).map(([id, r]) => <option key={id} value={id}>{r.label}</option>)}</select>
-        <select aria-label="Filtrar slot" value={slot} onChange={e => setSlot(e.target.value)}><option value="all">Todos os slots</option>{Object.entries(EQUIPMENT_SLOT_LABELS).map(([id, name]) => <option value={id} key={id}>{name}</option>)}</select>
+        <select aria-label="Filtrar espaço" value={slot} onChange={e => setSlot(e.target.value)}><option value="all">Todos os espaços</option>{Object.entries(EQUIPMENT_SLOT_LABELS).map(([id, name]) => <option value={id} key={id}>{name}</option>)}</select>
         <label><input type="checkbox" checked={maxLevel} onChange={e => setMaxLevel(e.target.checked)} /> Meu nível</label>
       </div>
       <p className="collection-count">{filtered.length} equipamentos encontrados</p>

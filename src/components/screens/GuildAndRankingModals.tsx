@@ -437,7 +437,7 @@ export const PlayerPublicProfileModal: React.FC<{
           </div>
           <div className="p-2.5 bg-[#2B2119] border border-[#5E4527]">
             <span className="block text-[10px] uppercase text-[#B8A686]">
-              Aliança Atual
+              Guilda Atual
             </span>
             <span className="font-roman font-bold text-sm text-[#EFE2C4] truncate block">
               {entry.guildTag ? `[${entry.guildTag}] ${entry.guildName}` : 'Independente'}

@@ -116,7 +116,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
                     onClick={onOpenRankingScreen}
                     title="Abrir Classificação Geral de Gladiadores"
                   >
-                    Rank #{playerRankEntry?.rank ?? '-'}
+                    Classificação #{playerRankEntry?.rank ?? '-'}
                   </GameButton>
                 )}
               </div>
@@ -265,8 +265,8 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
 
           {/* Bolsa Rápida de Equipamentos na Tela de Personagem */}
           <RomanPanel
-            title={`Alforje Rápido (${state.inventory.length}/${GAME_CONFIG.maxInventorySlots})`}
-            subtitle="Toque em um equipamento para comparar com o slot atual e equipar"
+            title={`Alforje Rápido (${state.inventory.length}/${GAME_CONFIG.maxInventorySlots} espaços)`}
+            subtitle="Toque em um equipamento para comparar com o espaço atual e equipar"
             variant="wood"
           >
             {state.inventory.length === 0 ? (
@@ -315,7 +315,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
 
           <RomanPanel
             title="Atributos do Gladiador"
-            subtitle="Valores atualizados imediatamente por treinos e equipamentos"
+            subtitle="Atributos atualizados com seus treinos e equipamentos."
             variant="parchment"
           >
             <div className="divide-y divide-[#947044]/40">
@@ -340,7 +340,7 @@ export const CharacterScreen: React.FC<CharacterScreenProps> = ({
           </RomanPanel>
 
           <RomanPanel
-            title="Estatísticas de Combate Militar"
+            title="Atributos de combate"
             subtitle="Fórmulas explícitas aplicadas nas Expedições, Arena e Masmorras"
             variant="stone"
           >

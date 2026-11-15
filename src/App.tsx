@@ -1211,11 +1211,11 @@ export default function App() {
           <div className="absolute inset-0 bg-gradient-to-b from-[#17120F]/75 via-transparent to-[#17120F]/95" />
         </div>
 
-        <div className="relative z-10 w-full max-w-4xl mx-auto px-4 pt-6 sm:pt-10 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 bg-[#17120F]/80 frame-bronze px-3.5 py-2.5">
+        <div className="relative z-10 w-full max-w-4xl mx-auto px-3 sm:px-4 pt-4 sm:pt-10 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 sm:gap-3 bg-[#17120F]/85 frame-bronze px-3 py-2 min-w-0">
             <svg
               viewBox="0 0 64 64"
-              className="w-11 h-11 sm:w-12 sm:h-12 shrink-0"
+              className="w-10 h-10 sm:w-12 sm:h-12 shrink-0"
               aria-hidden="true"
             >
               <polygon
@@ -1227,14 +1227,14 @@ export default function App() {
               <path d="M32 12 L32 52 M20 26 L44 26" stroke="#EFE2C4" strokeWidth="2.5" />
               <circle cx="32" cy="26" r="6" fill="#B79552" stroke="#17120F" strokeWidth="1.5" />
             </svg>
-            <div>
-              <span className="text-[10px] sm:text-xs font-roman tracking-widest text-[#D4B26A] uppercase block">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs font-roman tracking-widest text-[#D4B26A] uppercase block truncate">
                 Cápua & Via Ápia
               </span>
-              <h1 className="font-roman font-extrabold text-xl sm:text-3xl text-[#EFE2C4] tracking-wider leading-none">
+              <h1 className="font-roman font-extrabold text-lg sm:text-3xl text-[#EFE2C4] tracking-wider leading-none truncate">
                 GLADIATORUM
               </h1>
-              <span className="font-roman font-semibold text-[11px] sm:text-xs text-[#D6C29A] tracking-widest block mt-0.5">
+              <span className="font-roman font-semibold text-[10px] sm:text-xs text-[#D6C29A] tracking-widest block mt-0.5 truncate">
                 ARENA AETERNA
               </span>
             </div>
@@ -1244,10 +1244,11 @@ export default function App() {
             variant={isOnlineMode ? 'bronze' : 'crimson'}
             size="sm"
             onClick={() => setAccountModalOpen(true)}
+            className="text-[11px] sm:text-xs px-2.5 sm:px-3"
           >
             {isOnlineMode
               ? `Conta Online (${onlineUser?.displayName.slice(0, 12)})`
-              : 'Conectar Conta / Google'}
+              : 'Conectar conta com Google'}
           </GameButton>
         </div>
 
@@ -1264,21 +1265,23 @@ export default function App() {
                 }`}
               >
                 {isOnlineMode
-                  ? `MODO ONLINE COMPETITIVO (${onlineUser?.displayName})`
-                  : 'MODO VISITANTE LOCAL (CONECTE SUA CONTA PARA JOGAR ONLINE)'}
+                  ? `Modo online competitivo · ${onlineUser?.displayName}`
+                  : 'Modo visitante · progresso salvo neste navegador'}
               </span>
-              <button
-                type="button"
-                onClick={() => setAccountModalOpen(true)}
-                className="text-xs text-[#D4B26A] underline hover:text-[#EFE2C4] cursor-pointer"
-              >
-                {isOnlineMode ? 'Gerenciar Conta / Migração' : 'Entrar com Google'}
-              </button>
+              {isOnlineMode && (
+                <button
+                  type="button"
+                  onClick={() => setAccountModalOpen(true)}
+                  className="text-xs text-[#D4B26A] underline hover:text-[#EFE2C4] cursor-pointer"
+                >
+                  Gerenciar Conta / Migração
+                </button>
+              )}
             </div>
 
             <p className="text-xs sm:text-sm text-[#EFE2C4] leading-relaxed">
               Comande a ascensão do seu gladiador nos quartéis de Roma. Equipe armamentos,
-              treine com o Doctore, integre uma Guilda compartilhada e dispute o Ranking
+              treine com o Doctore, integre uma Guilda compartilhada e dispute a Classificação
               Provincial.
             </p>
 
@@ -1350,7 +1353,7 @@ export default function App() {
         <GameModal
           open={helpModalOpen}
           title="Manual do Ludus — Como Jogar"
-          subtitle="Guia de Combate, Guildas, Classificação e Patrulha Idle"
+          subtitle="Guia de Combate, Guildas, Classificação e Patrulha automática"
           onClose={() => setHelpModalOpen(false)}
         >
           <HowToPlayModalContent
@@ -1806,7 +1809,7 @@ export default function App() {
       <GameModal
         open={helpModalOpen}
         title="Manual do Ludus — Como Jogar"
-        subtitle="Regras de Combate, Guildas, Classificação e Patrulha Idle"
+        subtitle="Regras de Combate, Guildas, Classificação e Patrulha automática"
         onClose={() => setHelpModalOpen(false)}
       >
         <HowToPlayModalContent
@@ -1884,7 +1887,7 @@ const OnlineAccountAndMigrationModalContent: React.FC<{
               </span>
             </div>
             <GameButton variant="iron" size="sm" onClick={onLogout}>
-              Sair da Conta (Logout)
+              Sair da Conta
             </GameButton>
           </div>
           <p className="text-[11px] text-[#D6C29A]">
@@ -1895,7 +1898,7 @@ const OnlineAccountAndMigrationModalContent: React.FC<{
       ) : (
         <div className="p-3 surface-parchment frame-parchment text-[#30251A] space-y-2.5">
           <div className="font-roman font-bold text-sm text-[#792B28]">
-            Você está em Modo Visitante Local
+            Modo visitante · progresso salvo neste navegador
           </div>
           <p className="text-xs leading-relaxed">
             Conecte sua conta com o Google para salvar seu gladiador na nuvem, recuperar o
@@ -1903,7 +1906,7 @@ const OnlineAccountAndMigrationModalContent: React.FC<{
             disputar a Classificação Competitiva.
           </p>
           <GameButton variant="crimson" size="md" fullWidth onClick={onGoogleSignIn}>
-            Entrar com Google (Firebase Auth)
+            Conectar conta com Google
           </GameButton>
         </div>
       )}
@@ -1914,7 +1917,7 @@ const OnlineAccountAndMigrationModalContent: React.FC<{
           Migração Segura do Save Local (Política Competitiva)
         </div>
         <p className="text-xs text-[#D6C29A] leading-relaxed">
-          Para proteger o equilíbrio do ranking online contra edições manuais de{' '}
+          Para proteger o equilíbrio da classificação online contra edições manuais de{' '}
           <code>localStorage</code>, a importação única de save local preserva um backup
           em <code>{PRE_MIGRATION_BACKUP_KEY}</code>, valida apenas itens oficiais do
           catálogo e aplica os tetos competitivos de entrada: Nível máx.{' '}
@@ -1922,7 +1925,7 @@ const OnlineAccountAndMigrationModalContent: React.FC<{
           <strong>{MIGRATION_COMPETITIVE_CAPS.maxGold}g</strong>, Honra máx.{' '}
           <strong>{MIGRATION_COMPETITIVE_CAPS.maxHonor}</strong> e Atributos base máx.{' '}
           <strong>{MIGRATION_COMPETITIVE_CAPS.maxBaseStat}</strong>. Guildas simuladas
-          locais não entram no ranking online.
+          locais não entram na classificação online.
         </p>
 
         {migratedFromLocal ? (
@@ -2028,7 +2031,7 @@ const GuidedTutorialBar: React.FC<{
       number: 5,
       title: 'Passo 5/5: Escolher Próxima Atividade',
       instruction:
-        'Ative uma Patrulha Idle nas Expedições, junte-se a uma Guilda ou desafie na Arena.',
+        'Ative uma Patrulha automática nas Expedições, junte-se a uma Guilda ou desafie na Arena.',
       targetTab: 'expeditions',
       cta: 'Escolher Atividade',
     },
@@ -2093,7 +2096,7 @@ const HowToPlayModalContent: React.FC<{
         </h3>
         <p className="leading-relaxed">
           Em <strong>GLADIATORUM: Arena Aeterna</strong>, realize <strong>Expedições</strong>{' '}
-          para obter ouro, experiência e armas; <strong>equipe itens</strong> nos 8 slots do
+          para obter ouro, experiência e armas; <strong>equipe itens</strong> nos 8 espaços do
           corpo; e <strong>treine atributos</strong> na Cidade para vencer inimigos superiores.
         </p>
 
@@ -2101,7 +2104,7 @@ const HowToPlayModalContent: React.FC<{
           2. Guildas (Collegia) Compartilhadas & Sede de 8 Edifícios
         </h3>
         <p className="leading-relaxed">
-          Na aba <strong>Cidade → Guilda</strong>, você pode ingressar em uma aliança real
+          Na aba <strong>Cidade → Guilda</strong>, você pode ingressar em uma guilda real
           ou fundar a sua. A sede conta com 8 edifícios funcionais: <strong>Forum Gladiatorius</strong>{' '}
           (vagas), <strong>Banco</strong> (tesouro), <strong>Campo de Treino</strong> (desconto
           nos treinos), <strong>Balneário</strong> (+PV/min), <strong>Villa Medici</strong>{' '}
@@ -2110,10 +2113,10 @@ const HowToPlayModalContent: React.FC<{
         </p>
 
         <h3 className="font-roman font-bold text-sm text-[#792B28] pt-1">
-          3. Classificação Online Paginada por Cursor
+          3. Classificação Online de Gladiadores e Guildas
         </h3>
         <p className="leading-relaxed">
-          Na aba <strong>Cidade → Classificação</strong>, consulte o ranking competitivo de
+          Na aba <strong>Cidade → Classificação</strong>, consulte a classificação competitiva de
           Gladiadores (por Honra, Fama, Vitórias, Proezas e Ouro Saqueado) e de Guildas (soma
           exata da Honra dos membros atuais).
         </p>

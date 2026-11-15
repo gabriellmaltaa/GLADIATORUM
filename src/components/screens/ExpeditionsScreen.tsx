@@ -91,8 +91,8 @@ export const ExpeditionsScreen: React.FC<ExpeditionsScreenProps> = ({
 
       {/* Painel de Estratégia e Comando de Progressão Idle (Item 10) */}
       <RomanPanel
-        title="Comando de Patrulha e Foco Tático (Modo Idle)"
-        subtitle={`Repetição automática em segundo plano · Limite offline de ${
+        title="Comando de Patrulha automática e Foco Tático"
+        subtitle={`Repetição automática em segundo plano · Limite quando estiver fora do jogo: ${
           GAME_CONFIG.maxOfflineSeconds / 3600
         } horas`}
         variant="wood"
@@ -101,7 +101,7 @@ export const ExpeditionsScreen: React.FC<ExpeditionsScreenProps> = ({
           {/* Escolha de Foco de Atividade: Ouro, Experiência ou Equipamentos */}
           <div>
             <span className="block text-xs font-roman font-bold text-[#D4B26A] mb-1.5">
-              1. Escolha o Foco da Atividade (Afeta incursões manuais e patrulha idle):
+              1. Escolha o foco da atividade. Ele afeta as incursões manuais e a patrulha automática.
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {(Object.keys(IDLE_FOCUS_DEFINITIONS) as IdleFocusMode[]).map((modeKey) => {
@@ -168,10 +168,10 @@ export const ExpeditionsScreen: React.FC<ExpeditionsScreenProps> = ({
             <div className="bg-[#17120F]/80 p-3 border border-[#5E4527] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="text-xs text-[#D6C29A] space-y-1">
                 <div className="font-bold text-[#EFE2C4]">
-                  Status: Patrulha Automática em Pausa (Foco atual: {activeFocusDef.label})
+                  Status: Patrulha automática em pausa (Foco atual: {activeFocusDef.label})
                 </div>
                 <p className="leading-relaxed text-[#B8A686]">
-                  <strong>Regras da Patrulha:</strong> Repete automaticamente a cada ciclo, consumindo Energia ({selectedRegion.energyCost} EN) e ajustando a Vida conforme o combate. Se a energia acabar, aguarda regeneração (+1 EN a cada 3 min). Ao pausar ou trocar de alvo, os espólios já obtidos permanecem salvos. As mesmas regras aplicam-se offline por até 8h.
+                  <strong>Regras da Patrulha:</strong> Repete automaticamente a cada ciclo, consumindo Energia ({selectedRegion.energyCost} EN) e ajustando a Vida conforme o combate. Se a energia acabar, aguarda regeneração (+1 EN a cada 3 min). Ao pausar ou trocar de alvo, os espólios já obtidos permanecem salvos. As mesmas regras aplicam-se quando estiver fora do jogo por até 8h.
                 </p>
               </div>
               <GameButton
@@ -179,7 +179,7 @@ export const ExpeditionsScreen: React.FC<ExpeditionsScreenProps> = ({
                 size="sm"
                 onClick={() => onToggleIdleActivity(selectedRegion.id, 0, selectedFocusMode)}
               >
-                Ativar Patrulha em {selectedRegion.name}
+                Ativar Patrulha automática em {selectedRegion.name}
               </GameButton>
             </div>
           )}
@@ -296,7 +296,7 @@ export const ExpeditionsScreen: React.FC<ExpeditionsScreenProps> = ({
                 secondaryActionLabel={
                   isCurrentIdleTarget
                     ? 'Pausar Patrulha Neste Alvo'
-                    : 'Repetir em Patrulha Idle'
+                    : 'Repetir em Patrulha automática'
                 }
                 onSecondaryAction={() => {
                   if (levelLocked) return;

@@ -318,11 +318,11 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
           <strong className="text-[#D4B26A] font-roman uppercase">
             {isOnlineMode
               ? 'Modo Online Competitivo — Servidor Autoritativo & Firebase:'
-              : 'Modo Visitante Local — Dados Simulados:'}
+              : 'Modo visitante:'}
           </strong>{' '}
           {isOnlineMode
-            ? `Classificação paginada por cursor com dados validados pelo servidor (Atualizado às ${formattedUpdatedTime}). Adversários fixos da Arena e NPCs de demonstração não entram neste ranking.`
-            : 'Você está jogando sem login online. Os dados abaixo são simulados localmente. Conecte sua conta no topo para disputar o Ranking Online real.'}
+            ? `Classificação com dados validados pelo servidor (Atualizado às ${formattedUpdatedTime}). Adversários fixos da Arena e campeões locais não entram nesta classificação.`
+            : 'Você está no modo visitante. Estes dados são simulados; conecte sua conta para disputar a classificação online.'}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <GameButton variant="iron" size="sm" onClick={handleRefreshSnapshot}>
@@ -418,7 +418,7 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
         }
         subtitle={
           isOnlineMode
-            ? `Cursor Página ${cursorStack.length} · ${totalItemsDisplayed} registros validados · Atualizado às ${formattedUpdatedTime}`
+            ? `Página ${cursorStack.length} · ${totalItemsDisplayed} registros validados · Atualizado às ${formattedUpdatedTime}`
             : `Página ${safeLocalPage} de ${localTotalPages} · Toque em qualquer linha para abrir o Perfil Público`
         }
         variant="stone"
@@ -681,7 +681,7 @@ export const RankingScreen: React.FC<RankingScreenProps> = ({
         <span className="text-[#D6C29A]">
           {playerGuildEntry
             ? `Sua guilda [${playerGuildEntry.tag}] ${playerGuildEntry.name} ocupa a posição #${playerGuildEntry.rank} com ${playerGuildEntry.totalHonor} pontos de Honra.`
-            : 'Você ainda é um gladiador independente. Junte-se a uma guilda ou funde a sua para disputar o ranking de alianças!'}
+            : 'Você ainda é um gladiador independente. Junte-se a uma guilda ou funde a sua para disputar a classificação de guildas!'}
         </span>
         <GameButton variant="bronze" size="sm" onClick={onOpenGuildTab}>
           {playerGuildEntry ? 'Abrir Sede da Guilda' : 'Explorar Guildas'}

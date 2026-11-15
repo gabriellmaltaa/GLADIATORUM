@@ -96,8 +96,8 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         <div className="lg:col-span-7">
           <RomanPanel
-            title={`Arca de Couro (${state.inventory.length}/${GAME_CONFIG.maxInventorySlots} Slots)`}
-            subtitle="Filtre por categoria ou toque em um item para usar medicina ou comparar com o slot atual"
+            title={`Arca de couro (${state.inventory.length}/${GAME_CONFIG.maxInventorySlots} espaços)`}
+            subtitle="Filtre por categoria ou toque em um item para usar medicamentos ou comparar com o espaço atual"
             variant="wood"
           >
             <div className="flex flex-wrap gap-1.5 mb-3 pb-2 border-b border-[#5E4527]">
@@ -121,7 +121,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
                     : 'bg-[#1D1510] text-[#88B87E] border-[#4E7A45]'
                 }`}
               >
-                Medicina ({medicineCount})
+                Medicamentos ({medicineCount})
               </button>
               {allSlots.map((slot) => {
                 const count = state.inventory.filter(
@@ -190,7 +190,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
               onSell={() => onSellItem(activeItem.id)}
             />
           ) : (
-            <RomanPanel title="Inspeção de Equipamento e Medicina" variant="parchment">
+            <RomanPanel title="Inspeção de Equipamento e Medicamentos" variant="parchment">
               <p className="text-xs sm:text-sm text-[#5C4935]">
                 Selecione qualquer item na arca de couro para visualizar seus atributos, raridade,
                 efeito medicinal ou comparação com o equipamento atual.
