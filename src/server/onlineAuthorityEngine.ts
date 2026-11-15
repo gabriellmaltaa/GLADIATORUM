@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
   ARENA_OPPONENTS,
   DUNGEONS,
+  type EnemyDefinition,
   type EquipmentSlotType,
   EXPEDITION_REGIONS,
   GAME_CONFIG,
@@ -26,6 +27,8 @@ import {
   type GuildEmblemId,
   type GuildMemberRecord,
   type GuildRecord,
+  type GuildTreasuryLedgerEntry,
+  type GuildWarRecord,
   type GuildRecruitmentStatus,
   type GuildRole,
   getBuildingUpgradeCost,
@@ -59,12 +62,20 @@ import {
   migrateLegacyRewardGold,
   type PendingRewardBatch,
   resolveCombat,
+  prepareArenaEquipment,
   sellItemFromInventory,
   trainGladiatorStat,
   unequipSlotToInventory,
   useMedicineFromInventory,
 } from '../game/rules.ts';
 import { grantXxmaltaObsidianLoginGift } from './targetedLoginGift.ts';
+import { getCompetitiveTitle } from '../game/competitiveProgression.ts';
+import {
+  getAffixChanceForRarity,
+  ITEM_AFFIX_CHANCES,
+  maybeAffixItem,
+  rollEquipmentAffix,
+} from '../game/competitiveProgression.ts';
 
 export type CompetitiveStatus = 'verified_online' | 'migrated_capped';
 
@@ -110,6 +121,7 @@ export interface AuthoritativePlayerRecord {
   state: GameState;
   processedOpIds: string[];
   loginGiftIds?: string[];
+  pvpHistory?: { opponentUid: string; opId: string; atMs: number; outcome: 'win' | 'loss' }[];
   lastVillaMediciUseMs: number;
   createdAtMs: number;
   updatedAtMs: number;
@@ -194,6 +206,7 @@ export type AuthoritativeActionType =
   | 'start_expedition'
   | 'combat_arena'
   | 'challenge_arena'
+  | 'challenge_player'
   | 'combat_dungeon'
   | 'fight_dungeon'
   | 'reset_dungeon'
@@ -222,6 +235,10 @@ export type AuthoritativeActionType =
   | 'guild_update_profile'
   | 'guild_post_announcement'
   | 'guild_donate_gold'
+  | 'guild_withdraw_gold'
+  | 'guild_war_challenge'
+  | 'guild_war_accept'
+  | 'guild_war_attack'
   | 'guild_upgrade_building'
   | 'guild_use_villa_medici'
   | 'guild_activate_scroll'
@@ -280,6 +297,7 @@ export function normalizeGuildTagKey(tag: string): string {
 export class OnlineAuthorityEngine {
   private players = new Map<string, AuthoritativePlayerRecord>();
   private guilds = new Map<string, GuildRecord>();
+  private guildWars: GuildWarRecord[] = [];
   private txChain: Promise<unknown> = Promise.resolve();
   private persistencePath: string | null;
   private launchId: string | null;
@@ -301,6 +319,18 @@ export class OnlineAuthorityEngine {
     readsObserved: 0,
     writesObserved: 0,
   };
+
+  private affixDrops(batch: PendingRewardBatch, mode: 'expedition' | 'arena' | 'dungeon') {
+    const baseChance = mode === 'arena' ? ITEM_AFFIX_CHANCES.arena : mode === 'dungeon'
+      ? ITEM_AFFIX_CHANCES.dungeon
+      : ITEM_AFFIX_CHANCES.expedition;
+    return {
+      ...batch,
+      items: batch.items.map((item) =>
+        maybeAffixItem(item, getAffixChanceForRarity(baseChance, item.rarity))
+      ),
+    };
+  }
 
   constructor(options?: { persistencePath?: string | null; seedInitialOnlineGuilds?: boolean; launchId?: string }) {
     this.persistencePath = options?.persistencePath ?? null;
@@ -368,9 +398,9 @@ export class OnlineAuthorityEngine {
     this.cachedPlayerRankings.clear();
     this.cachedRankMapByCategory.clear();
     this.cachedGuildRankings = null;
+    this.cachedPublicProfiles.clear();
     if (invalidateGuildMembership) {
       this.cachedMemberToGuildMap = null;
-      this.cachedPublicProfiles.clear();
     }
   }
 
@@ -585,6 +615,7 @@ export class OnlineAuthorityEngine {
         launchId?: string;
         players?: [string, AuthoritativePlayerRecord][];
         guilds?: [string, GuildRecord][];
+        guildWars?: GuildWarRecord[];
       };
       if (this.launchId && parsed.launchId !== this.launchId) {
         // Preserve the entire prelaunch dataset on the persistent volume before resetting.
@@ -607,7 +638,11 @@ export class OnlineAuthorityEngine {
       }
       if (Array.isArray(parsed.guilds)) {
         this.guilds = new Map(parsed.guilds);
+        for (const guild of this.guilds.values()) {
+          guild.treasuryLedger ??= [];
+        }
       }
+      this.guildWars = Array.isArray(parsed.guildWars) ? parsed.guildWars : [];
       if (migratedRewardGold) this.saveToDisk();
       this.invalidateRankingCaches();
     } catch (error) {
@@ -627,6 +662,7 @@ export class OnlineAuthorityEngine {
         launchId: this.launchId,
         players: Array.from(this.players.entries()),
         guilds: Array.from(this.guilds.entries()),
+        guildWars: this.guildWars,
       });
       const tmpPath = `${this.persistencePath}.tmp`;
       fs.writeFileSync(tmpPath, payload, 'utf-8');
@@ -726,6 +762,7 @@ export class OnlineAuthorityEngine {
         processedTransactionIds: record.processedOpIds.slice(-50),
         lastVillaMediciUseMs: record.lastVillaMediciUseMs,
         lastUpdatedAtMs: nowMs,
+        guildWars: this.getGuildWarSummariesForPlayer(record.uid, nowMs),
       },
     };
   }
@@ -741,6 +778,86 @@ export class OnlineAuthorityEngine {
       this.cachedMemberToGuildMap = map;
     }
     return this.cachedMemberToGuildMap.get(uid) ?? null;
+  }
+
+  private getGuildWarSummariesForPlayer(uid: string, nowMs: number) {
+    const ownGuildId = this.findPlayerGuildId(uid);
+    if (!ownGuildId) return [];
+    return this.guildWars
+      .filter((war) =>
+        (war.guildAId === ownGuildId || war.guildBId === ownGuildId) &&
+        (war.status === 'pending' || war.status === 'active' || nowMs - (war.endsAtMs ?? war.createdAtMs) < 24 * 60 * 60 * 1000)
+      )
+      .slice(-5)
+      .map((war) => {
+        const isA = war.guildAId === ownGuildId;
+        const opponentGuildId = isA ? war.guildBId : war.guildAId;
+        const direction = war.status !== 'pending'
+          ? 'participant' as const
+          : isA ? 'outgoing' as const : 'incoming' as const;
+        return {
+          id: war.id,
+          status: war.status,
+          direction,
+          opponentGuildId,
+          opponentGuildName: isA ? war.guildBName : war.guildAName,
+          ownScore: isA ? war.scoreA : war.scoreB,
+          opponentScore: isA ? war.scoreB : war.scoreA,
+          endsAtMs: war.endsAtMs,
+          myAttacksUsed: war.attacksByMember[uid] ?? 0,
+          winnerGuildId: war.winnerGuildId,
+        };
+      });
+  }
+
+  private settleExpiredGuildWars(nowMs: number): boolean {
+    let changed = false;
+    for (const war of this.guildWars) {
+      if (war.status === 'pending' && nowMs - war.createdAtMs >= 24 * 60 * 60 * 1000) {
+        war.status = 'expired';
+        changed = true;
+        continue;
+      }
+      if (war.status !== 'active' || !war.endsAtMs || nowMs < war.endsAtMs) continue;
+      war.status = 'completed';
+      war.winnerGuildId = war.scoreA === war.scoreB
+        ? null
+        : war.scoreA > war.scoreB ? war.guildAId : war.guildBId;
+      if (war.winnerGuildId) {
+        const winner = this.guilds.get(war.winnerGuildId);
+        if (winner) {
+          const balanceBefore = winner.treasuryGold;
+          winner.treasuryGold += 500;
+          winner.treasuryLedger = [
+            ...(winner.treasuryLedger ?? []),
+            {
+              opId: `war_${war.id}_reward`,
+              actorUid: 'system',
+              actorName: 'Ludus',
+              type: 'deposit',
+              amount: 500,
+              balanceBefore,
+              balanceAfter: winner.treasuryGold,
+              timestampMs: nowMs,
+            },
+          ];
+          winner.bankHistory = [
+            {
+              txId: `war_${war.id}_reward`,
+              type: 'donation',
+              authorName: 'Ludus',
+              amount: 500,
+              description: 'Recompensa pela vitória na guerra de guildas',
+              timestampMs: nowMs,
+            },
+            ...winner.bankHistory.slice(0, MAX_RETAINED_LEDGER_ENTRIES - 1),
+          ];
+        }
+      }
+      changed = true;
+    }
+    if (changed) this.saveToDisk();
+    return changed;
   }
 
   private getPermanentGuildRewardPercent(uid: string, kind: 'gold' | 'xp'): number {
@@ -853,7 +970,7 @@ export class OnlineAuthorityEngine {
     const owner: GuildMemberRecord = {
       id: record.uid,
       name: record.state.name,
-      title: record.state.title,
+      title: getCompetitiveTitle(record.state.level, null),
       isPlayer: false,
       role: 'leader',
       level: record.state.level,
@@ -985,7 +1102,12 @@ export class OnlineAuthorityEngine {
       };
     }
 
-    return { profile: this.toPublicProfile(record, nowMs), equipped };
+    const profile = this.toPublicProfile(record, nowMs);
+    profile.title = getCompetitiveTitle(
+      record.state.level,
+      this.getPlayerRankPosition(uid, 'honor', nowMs) === 1 ? 1 : null
+    );
+    return { profile, equipped };
   }
 
   private normalizeIdentity(
@@ -1033,6 +1155,7 @@ export class OnlineAuthorityEngine {
     serverTimestampMs: number;
   } {
     const identity = this.normalizeIdentity(identityInput);
+    this.settleExpiredGuildWars(serverNowMs);
     this.metrics.totalRequests += 1;
     this.metrics.readsObserved += 2;
 
@@ -1073,7 +1196,9 @@ export class OnlineAuthorityEngine {
       this.saveToDisk();
     }
     const loginGiftGranted = grantXxmaltaObsidianLoginGift(record);
-    if (loginGiftGranted) record.updatedAtMs = serverNowMs;
+    if (loginGiftGranted) {
+      record.updatedAtMs = serverNowMs;
+    }
     const vipGuildChanged = this.ensureGovernoVipGuild(record, serverNowMs);
     if (!isNewAccount) {
       const hydrated = this.buildClientGameStateForPlayer(record, serverNowMs);
@@ -1374,6 +1499,7 @@ export class OnlineAuthorityEngine {
     serverNowMs: number = Date.now()
   ): AuthoritativeActionResponse {
     const identity = this.normalizeIdentity(identityInput);
+    this.settleExpiredGuildWars(serverNowMs);
     this.metrics.totalRequests += 1;
     this.metrics.readsObserved += 2;
 
@@ -1624,7 +1750,8 @@ export class OnlineAuthorityEngine {
 
           const step1 = advanceTutorialIfMatching(record.state.tutorial, 'start_expedition');
           const step2 = advanceTutorialIfMatching(step1, 'choose_next_activity');
-          const credited = creditRewardGold(record.state, combatRes.rewardBatch);
+          const rewardBatch = this.affixDrops(combatRes.rewardBatch, 'expedition');
+          const credited = creditRewardGold(record.state, rewardBatch);
 
           record.state = {
             ...credited.state,
@@ -1666,7 +1793,7 @@ export class OnlineAuthorityEngine {
           });
 
           const enrichedBatch: PendingRewardBatch = {
-            ...combatRes.rewardBatch,
+            ...this.affixDrops(combatRes.rewardBatch, 'arena'),
             honor: combatRes.report.victory ? opponent.honorReward : 0,
           };
           const credited = creditRewardGold(record.state, enrichedBatch);
@@ -1690,6 +1817,124 @@ export class OnlineAuthorityEngine {
           message = combatRes.report.victory
             ? `Vitória na Arena contra ${opponent.name}!`
             : `Derrota na Arena contra ${opponent.name}.`;
+          break;
+        }
+
+        case 'challenge_player': {
+          const opponentUid = String(params.opponentUid ?? '').trim();
+          if (!opponentUid || opponentUid === identity.uid) {
+            return fail('Escolha outro gladiador para desafiar.');
+          }
+          const opponentRecord = this.players.get(opponentUid);
+          if (!opponentRecord || serverNowMs - opponentRecord.updatedAtMs > 30 * 24 * 60 * 60 * 1000) {
+            return fail('Este gladiador não está disponível para PvP no momento.');
+          }
+          if (Math.abs(record.state.level - opponentRecord.state.level) > 10) {
+            return fail('O desafio PvP exige uma diferença máxima de 10 níveis.');
+          }
+          if (record.state.energy < 1) return fail('Energia insuficiente para o duelo PvP.');
+
+          const utcDayStart = Math.floor(serverNowMs / 86_400_000) * 86_400_000;
+          record.pvpHistory = (record.pvpHistory ?? []).filter((entry) => entry.atMs >= utcDayStart);
+          if (record.pvpHistory.length >= 5) return fail('Você já realizou os 5 duelos PvP de hoje.');
+          if (record.pvpHistory.some((entry) => entry.opponentUid === opponentUid)) {
+            return fail('Você já desafiou este gladiador hoje.');
+          }
+
+          const attackerState = this.buildClientGameStateForPlayer(record, serverNowMs);
+          const defenderEquipment = prepareArenaEquipment(opponentRecord.state.equipped);
+          const attackerStats = calculateDerivedStats(
+            attackerState.baseStats,
+            attackerState.equipped,
+            attackerState.level,
+            attackerState.guildState,
+            serverNowMs
+          );
+          const defenderStats = calculateDerivedStats(
+            opponentRecord.state.baseStats,
+            defenderEquipment,
+            opponentRecord.state.level,
+            undefined,
+            serverNowMs
+          );
+          const attackerPower = record.state.level * 20 + attackerStats.damageMax * 5 + attackerStats.armor;
+          const defenderPower = opponentRecord.state.level * 20 + defenderStats.damageMax * 5 + defenderStats.armor;
+          if (Math.max(attackerPower, defenderPower) / Math.max(1, Math.min(attackerPower, defenderPower)) > 1.75) {
+            return fail('O nível de poder está distante demais para um duelo justo.');
+          }
+          const enemy: EnemyDefinition = {
+            id: `player_${opponentUid}`,
+            name: opponentRecord.state.name,
+            title: getCompetitiveTitle(opponentRecord.state.level, null),
+            level: opponentRecord.state.level,
+            avatarId: 'centurion',
+            maxHp: defenderStats.maxHp,
+            strength: defenderStats.strength,
+            skill: defenderStats.skill,
+            agility: defenderStats.agility,
+            constitution: defenderStats.constitution,
+            charisma: defenderStats.charisma,
+            armor: defenderStats.armor,
+            damageMin: defenderStats.damageMin,
+            damageMax: defenderStats.damageMax,
+            goldMin: 0,
+            goldMax: 0,
+            xpReward: 0,
+            dropChance: 0,
+            dropPool: [],
+          };
+          const combatRes = resolveCombat(attackerState, enemy, {
+            mode: 'arena',
+            locationName: 'Arena PvP',
+            timestampMs: serverNowMs,
+            seed: serverNowMs ^ opponentUid.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0),
+          });
+          const won = combatRes.report.victory;
+          const honorReward = won
+            ? Math.max(3, Math.min(12, 8 + Math.sign(opponentRecord.state.level - record.state.level) * 2))
+            : 0;
+          const rewards: GameItem[] = [];
+          if (won && Math.random() < ITEM_AFFIX_CHANCES.arena) {
+            const eligible = Object.entries(ITEM_TEMPLATES)
+              .filter(([, item]) => item.levelReq <= record!.state.level + 2 && !item.consumable)
+              .map(([templateId]) => templateId);
+            if (eligible.length > 0) {
+              const templateId = eligible[Math.floor(Math.random() * eligible.length)];
+              rewards.push(rollEquipmentAffix(createItemFromTemplate(templateId, `pvp_${opId}`)));
+            }
+          }
+          const pvpBatch: PendingRewardBatch = {
+            ...combatRes.rewardBatch,
+            claimId: `pvp_${opId}`,
+            sourceTitle: `Duelo PvP contra ${opponentRecord.state.name}`,
+            gold: 0,
+            goldCredited: true,
+            xp: 0,
+            honor: honorReward,
+            items: rewards,
+            victories: won ? 1 : 0,
+            defeats: won ? 0 : 1,
+          };
+          record.pvpHistory.push({ opponentUid, opId, atMs: serverNowMs, outcome: won ? 'win' : 'loss' });
+          record.pvpHistory = record.pvpHistory.slice(-30);
+          record.state = {
+            ...record.state,
+            energy: Math.max(0, record.state.energy - 1),
+            currentHp: combatRes.playerRemainingHp,
+            wins: won ? record.state.wins + 1 : record.state.wins,
+            losses: won ? record.state.losses : record.state.losses + 1,
+            honor: record.state.honor,
+            lastSaveTimestampMs: serverNowMs,
+            pendingRewards: won
+              ? [...record.state.pendingRewards.slice(-19), pvpBatch]
+              : record.state.pendingRewards,
+            combatHistory: [combatRes.report, ...record.state.combatHistory.slice(0, 14)],
+          };
+          combatReport = combatRes.report;
+          this.syncPlayerIntoSharedGuildMember(record);
+          message = won
+            ? `Vitória sobre ${opponentRecord.state.name}: +${honorReward} Honra.`
+            : `O duelo contra ${opponentRecord.state.name} foi uma derrota.`;
           break;
         }
 
@@ -1750,7 +1995,7 @@ export class OnlineAuthorityEngine {
                 ],
               }
             : combatRes.rewardBatch;
-          const credited = creditRewardGold(record.state, finalBatch);
+          const credited = creditRewardGold(record.state, this.affixDrops(finalBatch, 'dungeon'));
 
           const nextEncounterIdx = combatRes.report.victory
             ? isBoss
@@ -2524,11 +2769,25 @@ export class OnlineAuthorityEngine {
           }
 
           // Desconta atomicamente do jogador e credita no banco da guilda
+          const treasuryBefore = guild.treasuryGold;
           record.state = {
             ...record.state,
             gold: record.state.gold - amount,
           };
           guild.treasuryGold += amount;
+          guild.treasuryLedger = [
+            ...(guild.treasuryLedger ?? []),
+            {
+              opId,
+              actorUid: identity.uid,
+              actorName: record.state.name,
+              type: 'deposit',
+              amount,
+              balanceBefore: treasuryBefore,
+              balanceAfter: guild.treasuryGold,
+              timestampMs: serverNowMs,
+            },
+          ];
           guild.members = guild.members.map((m) =>
             m.id === identity.uid
               ? { ...m, goldContributed: m.goldContributed + amount }
@@ -2557,6 +2816,234 @@ export class OnlineAuthorityEngine {
           ];
           this.syncPlayerIntoSharedGuildMember(record);
           message = `Você doou +${amount} Ouro ao Banco da Guilda!`;
+          break;
+        }
+
+        case 'guild_withdraw_gold': {
+          const guildId = this.findPlayerGuildId(identity.uid);
+          if (!guildId) return fail('Você precisa pertencer a uma guilda para retirar ouro.');
+          const guild = this.guilds.get(guildId);
+          if (!guild) return fail('Guilda não encontrada.');
+          const actor = guild.members.find((member) => member.id === identity.uid);
+          if (actor?.role !== 'leader') return fail('Somente o líder pode retirar ouro do tesouro.');
+
+          const amount = Number(params.amount ?? 0);
+          if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 5_000) {
+            return fail('Informe um valor inteiro entre 1 e 5.000 denários por retirada.');
+          }
+          if (guild.treasuryGold < amount) return fail('O tesouro da guilda não tem saldo suficiente.');
+
+          const cutoff = serverNowMs - 24 * 60 * 60 * 1000;
+          const withdrawnInWindow = (guild.treasuryLedger ?? [])
+            .filter((entry) => entry.type === 'withdrawal' && entry.timestampMs >= cutoff)
+            .reduce((sum, entry) => sum + entry.amount, 0);
+          if (withdrawnInWindow + amount > 10_000) {
+            return fail('Esta guilda já atingiu o limite de 10.000 denários retirados nas últimas 24 horas.');
+          }
+
+          const balanceBefore = guild.treasuryGold;
+          const balanceAfter = balanceBefore - amount;
+          guild.treasuryGold = balanceAfter;
+          record.state = {
+            ...record.state,
+            gold: record.state.gold + amount,
+            lastSaveTimestampMs: serverNowMs,
+          };
+          const ledgerEntry: GuildTreasuryLedgerEntry = {
+            opId,
+            actorUid: identity.uid,
+            actorName: record.state.name,
+            type: 'withdrawal',
+            amount,
+            balanceBefore,
+            balanceAfter,
+            timestampMs: serverNowMs,
+          };
+          guild.treasuryLedger = [...(guild.treasuryLedger ?? []), ledgerEntry];
+          guild.bankHistory = [
+            {
+              txId: opId,
+              type: 'withdrawal',
+              authorName: record.state.name,
+              actorUid: identity.uid,
+              amount: -amount,
+              description: `Retirada autorizada do Aerarium (${balanceBefore} → ${balanceAfter})`,
+              balanceBefore,
+              balanceAfter,
+              timestampMs: serverNowMs,
+            },
+            ...guild.bankHistory.slice(0, MAX_RETAINED_LEDGER_ENTRIES - 1),
+          ];
+          guild.auditLog = [
+            {
+              id: `audit_withdraw_${opId}`,
+              actorName: record.state.name,
+              action: `Retirou ${amount} denários do tesouro (${balanceBefore} → ${balanceAfter}).`,
+              timestampMs: serverNowMs,
+            },
+            ...guild.auditLog.slice(0, MAX_RETAINED_AUDIT_ENTRIES - 1),
+          ];
+          message = `${amount} denários transferidos do tesouro para sua carteira.`;
+          break;
+        }
+
+        case 'guild_war_challenge': {
+          const guildId = this.findPlayerGuildId(identity.uid);
+          const guild = guildId ? this.guilds.get(guildId) : undefined;
+          const leader = guild?.members.find((member) => member.id === identity.uid);
+          if (!guild || leader?.role !== 'leader') return fail('Somente o líder pode declarar guerra.');
+          const opponentGuildId = String(params.opponentGuildId ?? '').trim();
+          const opponentGuild = this.guilds.get(opponentGuildId);
+          if (!opponentGuild || opponentGuildId === guildId || opponentGuild.isSimulatedSeed) {
+            return fail('Escolha uma guilda online válida para desafiar.');
+          }
+          const busyGuildIds = new Set(
+            this.guildWars
+              .filter((war) => war.status === 'pending' || war.status === 'active')
+              .flatMap((war) => [war.guildAId, war.guildBId])
+          );
+          if (busyGuildIds.has(guild.id) || busyGuildIds.has(opponentGuildId)) {
+            return fail('Uma das guildas já possui um desafio ou guerra em andamento.');
+          }
+          const war: GuildWarRecord = {
+            id: `war_${opId}`,
+            guildAId: guild.id,
+            guildAName: guild.name,
+            guildBId: opponentGuild.id,
+            guildBName: opponentGuild.name,
+            status: 'pending',
+            createdAtMs: serverNowMs,
+            acceptedAtMs: null,
+            endsAtMs: null,
+            scoreA: 0,
+            scoreB: 0,
+            attacksByMember: {},
+            winnerGuildId: null,
+          };
+          this.guildWars.push(war);
+          message = `Desafio de guerra enviado para ${opponentGuild.name}.`;
+          break;
+        }
+
+        case 'guild_war_accept': {
+          const guildId = this.findPlayerGuildId(identity.uid);
+          const guild = guildId ? this.guilds.get(guildId) : undefined;
+          const leader = guild?.members.find((member) => member.id === identity.uid);
+          if (!guild || leader?.role !== 'leader') return fail('Somente o líder pode aceitar uma guerra.');
+          const war = this.guildWars.find((entry) => entry.id === String(params.warId ?? ''));
+          if (!war || war.guildBId !== guild.id || war.status !== 'pending') {
+            return fail('Este convite de guerra não está mais disponível.');
+          }
+          if (serverNowMs - war.createdAtMs >= 24 * 60 * 60 * 1000) {
+            war.status = 'expired';
+            return fail('O prazo deste convite expirou.');
+          }
+          war.status = 'active';
+          war.acceptedAtMs = serverNowMs;
+          war.endsAtMs = serverNowMs + 24 * 60 * 60 * 1000;
+          message = `Guerra contra ${war.guildAName} iniciada por 24 horas.`;
+          break;
+        }
+
+        case 'guild_war_attack': {
+          const guildId = this.findPlayerGuildId(identity.uid);
+          const guild = guildId ? this.guilds.get(guildId) : undefined;
+          if (!guild || !guild.members.some((member) => member.id === identity.uid)) {
+            return fail('Você precisa pertencer a uma guilda para lutar na guerra.');
+          }
+          const war = this.guildWars.find((entry) => entry.id === String(params.warId ?? ''));
+          if (!war || war.status !== 'active' || !war.endsAtMs || serverNowMs >= war.endsAtMs) {
+            return fail('Não há guerra ativa disponível para sua guilda.');
+          }
+          const isA = war.guildAId === guild.id;
+          if (!isA && war.guildBId !== guild.id) return fail('Sua guilda não participa desta guerra.');
+          const attacksUsed = war.attacksByMember[identity.uid] ?? 0;
+          if (attacksUsed >= 3) return fail('Você já usou seus 3 ataques nesta guerra.');
+          const opponentGuild = this.guilds.get(isA ? war.guildBId : war.guildAId);
+          const candidates = (opponentGuild?.members ?? [])
+            .map((member) => this.players.get(member.id))
+            .filter((opponent): opponent is AuthoritativePlayerRecord => Boolean(opponent));
+          const opponentRecord = candidates
+            .filter((opponent) => Math.abs(opponent.state.level - record!.state.level) <= 10)
+            .sort((a, b) => Math.abs(a.state.level - record!.state.level) - Math.abs(b.state.level - record!.state.level))[0];
+          if (!opponentRecord) return fail('A guilda rival não tem um oponente elegível para este nível.');
+          if (record.state.energy < 1) return fail('Energia insuficiente para atacar na guerra.');
+
+          const attackerState = this.buildClientGameStateForPlayer(record, serverNowMs);
+          const defenderEquipment = prepareArenaEquipment(opponentRecord.state.equipped);
+          const attackerStats = calculateDerivedStats(attackerState.baseStats, attackerState.equipped, attackerState.level, attackerState.guildState, serverNowMs);
+          const defenderStats = calculateDerivedStats(opponentRecord.state.baseStats, defenderEquipment, opponentRecord.state.level, undefined, serverNowMs);
+          const attackerPower = record.state.level * 20 + attackerStats.damageMax * 5 + attackerStats.armor;
+          const defenderPower = opponentRecord.state.level * 20 + defenderStats.damageMax * 5 + defenderStats.armor;
+          if (Math.max(attackerPower, defenderPower) / Math.max(1, Math.min(attackerPower, defenderPower)) > 1.75) {
+            return fail('O nível de poder está distante demais para uma batalha justa entre guildas.');
+          }
+          const enemy: EnemyDefinition = {
+            id: `guild_war_${opponentRecord.uid}`,
+            name: opponentRecord.state.name,
+            title: getCompetitiveTitle(opponentRecord.state.level, null),
+            level: opponentRecord.state.level,
+            avatarId: 'centurion',
+            maxHp: defenderStats.maxHp,
+            strength: defenderStats.strength,
+            skill: defenderStats.skill,
+            agility: defenderStats.agility,
+            constitution: defenderStats.constitution,
+            charisma: defenderStats.charisma,
+            armor: defenderStats.armor,
+            damageMin: defenderStats.damageMin,
+            damageMax: defenderStats.damageMax,
+            goldMin: 0,
+            goldMax: 0,
+            xpReward: 0,
+            dropChance: 0,
+            dropPool: [],
+          };
+          const combatRes = resolveCombat(attackerState, enemy, {
+            mode: 'arena',
+            locationName: 'Guerra de Guildas',
+            timestampMs: serverNowMs,
+            seed: serverNowMs ^ opId.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0),
+          });
+          const won = combatRes.report.victory;
+          war.attacksByMember[identity.uid] = attacksUsed + 1;
+          if (won) {
+            if (isA) war.scoreA += 1;
+            else war.scoreB += 1;
+          }
+          const warItems: GameItem[] = [];
+          if (won && Math.random() < ITEM_AFFIX_CHANCES.guildWar) {
+            const pool = Object.entries(ITEM_TEMPLATES)
+              .filter(([, item]) => item.levelReq <= record!.state.level + 2 && !item.consumable)
+              .map(([templateId]) => templateId);
+            if (pool.length) {
+              const templateId = pool[Math.floor(Math.random() * pool.length)];
+              warItems.push(rollEquipmentAffix(createItemFromTemplate(templateId, `war_${opId}`)));
+            }
+          }
+          const reward: PendingRewardBatch = {
+            ...combatRes.rewardBatch,
+            claimId: `guild_war_${opId}`,
+            sourceTitle: `Guerra contra ${opponentGuild?.name ?? 'guilda rival'}`,
+            gold: 0,
+            goldCredited: true,
+            xp: 0,
+            honor: won ? 5 : 0,
+            items: warItems,
+          };
+          record.state = {
+            ...record.state,
+            energy: Math.max(0, record.state.energy - 1),
+            currentHp: combatRes.playerRemainingHp,
+            wins: won ? record.state.wins + 1 : record.state.wins,
+            losses: won ? record.state.losses : record.state.losses + 1,
+            pendingRewards: won ? [...record.state.pendingRewards.slice(-19), reward] : record.state.pendingRewards,
+            combatHistory: [combatRes.report, ...record.state.combatHistory.slice(0, 14)],
+            lastSaveTimestampMs: serverNowMs,
+          };
+          this.syncPlayerIntoSharedGuildMember(record);
+          combatReport = combatRes.report;
+          message = won ? `Vitória na guerra! Sua guilda marcou um ponto e você ganhou 5 de Honra.` : 'Derrota no duelo da guerra. Seu ataque foi contabilizado.';
           break;
         }
 
@@ -2963,6 +3450,7 @@ export class OnlineAuthorityEngine {
       rankMap.set(p.uid, rank);
       return {
         ...p,
+        title: getCompetitiveTitle(p.level, category === 'honor' && rank === 1 ? 1 : null),
         rank,
       };
     });
